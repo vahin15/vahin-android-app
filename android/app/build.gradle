@@ -17,20 +17,20 @@ android {
         }
     }
 
-    // Release signing — reads from environment variables so the real keystore
-    // password/key never has to be written into this file or committed to git.
-    // GitHub Actions provides these via repository secrets (see .github/workflows/build-apk.yml).
-    // For a *local* build on your own computer, set the same-named environment
-    // variables yourself before running ./gradlew, or this falls back to an
-    // unsigned/debug-signed build so local testing still works without secrets.
     signingConfigs {
         release {
-            def ksPath = file('keystore/release.keystore')
+            def ksPath = rootProject.file('keystore/release.keystore')
             if (ksPath.exists() && System.getenv("ANDROID_KEYSTORE_PASSWORD") != null) {
                 storeFile ksPath
                 storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
                 keyAlias System.getenv("ANDROID_KEY_ALIAS")
                 keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+            } else {
+                throw new GradleException(
+                    "Release signing keystore not found at " + ksPath.getAbsolutePath() +
+                    " or ANDROID_KEYSTORE_PASSWORD is not set. Refusing to produce an " +
+                    "unsigned release build — set the GitHub repository secrets correctly."
+                )
             }
         }
     }
@@ -39,10 +39,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            def ksPath = file('keystore/release.keystore')
-            if (ksPath.exists() && System.getenv("ANDROID_KEYSTORE_PASSWORD") != null) {
-                signingConfig signingConfigs.release
-            }
+            signingConfig signingConfigs.release
         }
     }
 }
