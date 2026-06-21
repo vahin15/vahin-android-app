@@ -60,7 +60,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: vahin-connect-apk
-          path: path: android/app/build/outputs/apk/release/*.apk
+          path: android/app/build/outputs/apk/release/*.apk
 
       - name: Upload AAB (use this later for Play Store upload)
         uses: actions/upload-artifact@v4
