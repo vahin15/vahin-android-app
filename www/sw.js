@@ -20,7 +20,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (e) {
-    data = { type: 'message', from: 'Vahin Connect', text: event.data ? event.data.text() : '' };
+    data = { type: 'message', from: 'Unifest', text: event.data ? event.data.text() : '' };
   }
 
   const { type, from, text } = data;
@@ -30,7 +30,7 @@ self.addEventListener('push', (event) => {
 
   if (type === 'call') {
     title = `📞 Incoming call — ${from}`;
-    body = 'Tap to answer in Vahin Connect';
+    body = 'Tap to answer in Unifest';
     tag = 'vahin-call-' + from;
     requireInteraction = true; // keep it on screen like a real ringing call
     actions = [

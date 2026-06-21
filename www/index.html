@@ -10,7 +10,7 @@
 <link rel="manifest" href="/manifest.json"/>
 <link rel="icon" href="/icons/favicon-32.png" sizes="32x32"/>
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"/>
-<title>Vahin Connect — Cross-Platform Calling</title>
+<title>Unifest — Cross-Platform Calling</title>
 <script>
   // ═══════════════════════════════════════════════════════════
   //  CONFIG — REQUIRED before building the Android app.
@@ -21,7 +21,7 @@
   //  NOT work inside the installed Android app, since there's
   //  no local server running on the phone itself.
   // ═══════════════════════════════════════════════════════════
-  window.VAHIN_NOTIF_API = window.VAHIN_NOTIF_API || 'https://REPLACE-WITH-YOUR-RENDER-URL.onrender.com';
+  window.VAHIN_NOTIF_API = window.VAHIN_NOTIF_API || 'https://vahin-backend.onrender.com';
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -170,15 +170,16 @@ button,input{font-family:inherit;}
 /* ── TOPBAR ── */
 .topbar{
   background:var(--surface);border-bottom:1px solid var(--border);
-  padding:0 16px;height:58px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+  padding:0 18px;height:72px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
 }
-.topbar-brand{display:flex;align-items:center;gap:9px;}
+.topbar-brand{display:flex;align-items:center;gap:12px;}
 .topbar-mark{
-  width:30px;height:30px;border-radius:9px;
+  width:40px;height:40px;border-radius:12px;
   background:linear-gradient(135deg,var(--accent-grad-a),var(--accent-grad-b));
-  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:#fff;
+  box-shadow:0 4px 14px rgba(79,124,255,.3);
 }
-.topbar-name{font-size:16px;font-weight:800;color:var(--white);letter-spacing:-.3px;}
+.topbar-name{font-size:20px;font-weight:800;color:var(--white);letter-spacing:-.4px;}
 .topbar-right{display:flex;align-items:center;gap:8px;}
 .icon-btn{
   background:var(--surface2);border:1px solid var(--border);border-radius:10px;
@@ -235,29 +236,29 @@ button,input{font-family:inherit;}
 .action-label{font-size:13px;font-weight:700;color:var(--white);}
 .action-desc{font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
-.sep{height:1px;background:var(--border);margin:1px 0;}
-.recent-list{display:flex;flex-direction:column;gap:7px;}
+.sep{height:8px;background:transparent;margin:0;}
+.recent-list{display:flex;flex-direction:column;}
 .recent-item{
-  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
-  padding:12px 14px;display:flex;align-items:center;gap:11px;cursor:pointer;transition:all .15s;
-  min-height:60px;touch-action:manipulation;
+  background:transparent;border:none;border-bottom:1px solid var(--border);
+  padding:12px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:background .15s;
+  min-height:76px;touch-action:manipulation;margin:0 -18px;
 }
-.recent-item:active{border-color:var(--accent2);}
+.recent-item:active{background:var(--surface2);}
 .recent-avatar{
-  width:40px;height:40px;border-radius:50%;
+  width:54px;height:54px;border-radius:50%;
   background:linear-gradient(135deg,var(--surface3),var(--surface2));
   border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;
-  font-size:15px;font-weight:800;color:var(--accent2);flex-shrink:0;position:relative;
+  font-size:19px;font-weight:800;color:var(--accent2);flex-shrink:0;position:relative;
 }
 .recent-avatar .presence-dot{
-  position:absolute;bottom:-1px;right:-1px;width:11px;height:11px;border-radius:50%;
-  background:var(--text3);border:2px solid var(--surface);
+  position:absolute;bottom:0px;right:0px;width:14px;height:14px;border-radius:50%;
+  background:var(--text3);border:2.5px solid var(--bg);
 }
 .recent-avatar .presence-dot.online{background:var(--green);}
 .recent-info{flex:1;min-width:0;}
-.recent-id-name{font-size:14px;font-weight:700;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.recent-sub{font-size:11px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px;}
-.unread-badge{background:var(--accent);color:#fff;font-size:10px;font-weight:800;border-radius:9px;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 5px;}
+.recent-id-name{font-size:17px;font-weight:700;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.recent-sub{font-size:13.5px;color:var(--text3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px;}
+.unread-badge{background:var(--accent);color:#fff;font-size:11px;font-weight:800;border-radius:10px;min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;padding:0 6px;}
 .recent-actions{display:flex;gap:6px;flex-shrink:0;}
 .mini-btn{
   background:var(--surface2);border:1px solid var(--border);border-radius:9px;
@@ -455,57 +456,107 @@ button,input{font-family:inherit;}
 /* ── CHAT ── */
 #screen-chat{flex-direction:column;}
 .chat-header{
-  background:var(--surface);border-bottom:1px solid var(--border);height:58px;padding:0 14px;
-  display:flex;align-items:center;gap:8px;flex-shrink:0;
+  background:var(--surface);border-bottom:1px solid var(--border);height:72px;padding:0 14px;
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
 }
 .chat-back{
-  background:none;border:none;color:var(--text);font-size:26px;cursor:pointer;padding:4px 6px 4px 0;
-  font-weight:700;min-width:32px;min-height:44px;display:flex;align-items:center;touch-action:manipulation;
+  background:none;border:none;color:var(--text);font-size:30px;cursor:pointer;padding:4px 6px 4px 0;
+  font-weight:700;min-width:36px;min-height:48px;display:flex;align-items:center;touch-action:manipulation;
 }
 .chat-avatar-sm{
-  width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--surface3),var(--surface2));
+  width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--surface3),var(--surface2));
   border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;
-  font-size:14px;font-weight:800;color:var(--accent2);flex-shrink:0;
+  font-size:17px;font-weight:800;color:var(--accent2);flex-shrink:0;
 }
-.chat-peer{font-size:15px;font-weight:700;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.chat-peer-status{font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.chat-actions{margin-left:auto;display:flex;gap:7px;flex-shrink:0;}
+.chat-peer{font-size:17.5px;font-weight:700;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-peer-status{font-size:12.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-actions{margin-left:auto;display:flex;gap:6px;flex-shrink:0;}
 .chat-call-btn{
   background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);
-  padding:7px 11px;font-size:13px;font-weight:700;color:var(--text2);cursor:pointer;transition:all .15s;
-  min-height:38px;touch-action:manipulation;white-space:nowrap;
+  padding:9px 13px;font-size:14px;font-weight:700;color:var(--text2);cursor:pointer;transition:all .15s;
+  min-height:42px;touch-action:manipulation;white-space:nowrap;
 }
 .chat-call-btn:active{background:var(--accent);border-color:var(--accent);color:#fff;}
-.chat-msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px;display:flex;flex-direction:column;gap:10px;}
-.msg-row{display:flex;flex-direction:column;max-width:80%;}
+.chat-msgs{
+  flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px;display:flex;flex-direction:column;gap:11px;
+  background:
+    radial-gradient(circle at 15% 8%, rgba(79,124,255,.05), transparent 40%),
+    radial-gradient(circle at 85% 92%, rgba(142,111,255,.04), transparent 40%);
+}
+.msg-row{display:flex;flex-direction:column;max-width:78%;}
 .msg-row.me{align-self:flex-end;align-items:flex-end;}
 .msg-row.them{align-self:flex-start;align-items:flex-start;}
 .msg-row.sys{align-self:center;max-width:90%;}
-.msg-bubble{padding:10px 14px;border-radius:18px;font-size:15px;line-height:1.5;word-break:break-word;}
+.msg-bubble{padding:11px 15px;border-radius:18px;font-size:16px;line-height:1.5;word-break:break-word;}
 .msg-row.me .msg-bubble{
   background:linear-gradient(135deg,var(--accent-grad-a),var(--accent-grad-b));color:#fff;font-weight:500;border-bottom-right-radius:5px;
 }
 .msg-row.them .msg-bubble{background:var(--surface2);color:var(--text);border-bottom-left-radius:5px;border:1px solid var(--border);}
-.msg-row.sys .msg-bubble{background:var(--surface2);color:var(--text3);font-size:12px;padding:6px 12px;border-radius:12px;}
-.msg-time{font-size:10px;color:var(--text3);margin-top:3px;padding:0 4px;display:flex;align-items:center;gap:4px;}
-.msg-sender{font-size:11px;color:var(--accent2);margin-bottom:3px;padding:0 4px;font-weight:600;}
+.msg-row.sys .msg-bubble{background:var(--surface2);color:var(--text3);font-size:12.5px;padding:7px 13px;border-radius:12px;}
+.msg-time{font-size:11px;color:var(--text3);margin-top:4px;padding:0 4px;display:flex;align-items:center;gap:4px;}
+.msg-sender{font-size:12px;color:var(--accent2);margin-bottom:3px;padding:0 4px;font-weight:600;}
 
 .chat-input-bar{
-  padding:10px 14px;padding-bottom:calc(10px + var(--safe-bottom));border-top:1px solid var(--border);
-  display:flex;gap:9px;background:var(--surface);flex-shrink:0;align-items:flex-end;
+  padding:10px 12px;padding-bottom:calc(10px + var(--safe-bottom));border-top:1px solid var(--border);
+  display:flex;gap:8px;background:var(--surface);flex-shrink:0;align-items:flex-end;
 }
+.attach-btn{
+  background:var(--surface2);border:1px solid var(--border);border-radius:50%;
+  width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:20px;
+  cursor:pointer;flex-shrink:0;color:var(--text2);transition:all .15s;touch-action:manipulation;
+}
+.attach-btn:active{background:var(--accent);border-color:var(--accent);color:#fff;}
 .chat-input-bar input{
-  flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:22px;padding:11px 16px;
-  font-size:15px;color:var(--text);outline:none;transition:border-color .2s;-webkit-appearance:none;min-height:46px;
+  flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:24px;padding:13px 18px;
+  font-size:16px;color:var(--text);outline:none;transition:border-color .2s;-webkit-appearance:none;min-height:48px;
 }
 .chat-input-bar input:focus{border-color:var(--accent);}
 .chat-input-bar input::placeholder{color:var(--text3);}
 .send-btn{
   background:linear-gradient(135deg,var(--accent-grad-a),var(--accent-grad-b));border:none;border-radius:50%;
-  width:46px;height:46px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;
+  width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer;
   flex-shrink:0;transition:opacity .15s;color:#fff;font-weight:800;touch-action:manipulation;-webkit-appearance:none;
 }
 .send-btn:active{opacity:.8;}
+
+/* ── FILE MESSAGES ── */
+.msg-file{
+  display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:14px;min-width:200px;
+  background:rgba(255,255,255,.08);cursor:pointer;
+}
+.msg-row.them .msg-file{background:var(--surface3);}
+.msg-file-icon{
+  width:42px;height:42px;border-radius:10px;background:rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;
+}
+.msg-file-info{flex:1;min-width:0;}
+.msg-file-name{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.msg-file-meta{font-size:12px;opacity:.75;margin-top:2px;}
+.msg-image{max-width:240px;border-radius:14px;display:block;cursor:pointer;}
+.file-progress-track{height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin-top:6px;overflow:hidden;}
+.file-progress-fill{height:100%;background:currentColor;border-radius:2px;transition:width .2s;}
+
+/* ── ATTACH MENU ── */
+.attach-menu-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150;display:none;align-items:flex-end;justify-content:center;
+}
+.attach-menu-overlay.show{display:flex;}
+.attach-menu{
+  background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px;
+  padding-bottom:calc(20px + var(--safe-bottom));display:flex;flex-direction:column;gap:6px;
+  border-top:1px solid var(--border2);box-shadow:0 -10px 40px rgba(0,0,0,.5);
+}
+.attach-menu-handle{width:38px;height:4px;border-radius:2px;background:var(--border2);margin:0 auto 10px;}
+.attach-option{
+  display:flex;align-items:center;gap:16px;padding:14px 8px;border-radius:12px;cursor:pointer;
+  transition:background .15s;touch-action:manipulation;
+}
+.attach-option:active{background:var(--surface2);}
+.attach-option-icon{
+  width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;
+}
+.attach-option-label{font-size:16px;font-weight:600;color:var(--white);}
+.attach-option-desc{font-size:12.5px;color:var(--text3);margin-top:2px;}
 
 /* ── HISTORY SCREEN ── */
 #screen-history{flex-direction:column;}
@@ -630,8 +681,8 @@ button,input{font-family:inherit;}
 <!-- SCREEN: CREATE / RESTORE ID -->
 <div id="screen-id">
   <div class="landing-wrap">
-    <div class="brand-mark">V</div>
-    <div class="brand">Vahin <span>Connect</span></div>
+    <img class="brand-mark" src="icons/icon-192.png" alt="Unifest" style="width:64px;height:64px;border-radius:20px;box-shadow:0 10px 30px rgba(79,124,255,.35);"/>
+    <div class="brand">Uni<span>fest</span></div>
     <div class="tagline">Free peer-to-peer video calling, voice calls &amp; messaging. Works across Android, iOS, Windows &amp; any browser — no sign-up, no app store.</div>
 
     <div id="saved-profile-block" style="display:none;width:100%;flex-direction:column;gap:10px;">
@@ -648,7 +699,7 @@ button,input{font-family:inherit;}
 
     <div class="id-box">
       <label>Choose your ID</label>
-      <input class="id-input" id="my-id-input" placeholder="e.g. vahin007" maxlength="20"
+      <input class="id-input" id="my-id-input" placeholder="e.g. unifest007" maxlength="20"
              autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="none"
              inputmode="text"/>
       <div class="id-hint">Pick any name — friends search this exact ID to reach you.<br/>Works across any internet connection, worldwide.</div>
@@ -666,7 +717,7 @@ button,input{font-family:inherit;}
       <span>Cross-internet via TURN relay · works on any network, any device</span>
     </div>
 
-    <div class="credit">Vahin Connect · Built with WebRTC · Direct peer-to-peer</div>
+    <div class="credit">Unifest · Built with WebRTC · Direct peer-to-peer</div>
   </div>
 </div>
 
@@ -674,8 +725,8 @@ button,input{font-family:inherit;}
 <div id="screen-home">
   <div class="topbar">
     <div class="topbar-brand">
-      <div class="topbar-mark">V</div>
-      <div class="topbar-name">Vahin Connect</div>
+      <img class="topbar-mark" src="icons/icon-192.png" alt="Unifest" style="width:40px;height:40px;border-radius:12px;box-shadow:0 4px 14px rgba(79,124,255,.3);"/>
+      <div class="topbar-name">Unifest</div>
     </div>
     <div class="topbar-right">
       <button class="icon-btn" onclick="openHistory()" title="Call history">🕑</button>
@@ -775,7 +826,7 @@ button,input{font-family:inherit;}
   <!-- RINGING (incoming call) -->
   <div class="incoming-overlay" id="incoming-overlay">
     <button class="ringtone-toggle" id="ringtone-toggle-btn" onclick="toggleRingtoneMute()">🔊 Sound</button>
-    <div class="incoming-kicker">Vahin Connect</div>
+    <div class="incoming-kicker">Unifest</div>
     <div class="incoming-ring-wrap">
       <div class="ring-wave"></div><div class="ring-wave w2"></div><div class="ring-wave w3"></div>
       <div class="incoming-ring"><div class="incoming-avatar" id="incoming-avatar"></div></div>
@@ -843,10 +894,40 @@ button,input{font-family:inherit;}
   </div>
   <div class="chat-msgs" id="chat-msgs"></div>
   <div class="chat-input-bar" id="chat-input-bar">
+    <button class="attach-btn" onclick="openAttachMenu()" aria-label="Attach file">📎</button>
     <input id="chat-input" placeholder="Message…"
            autocomplete="off" autocorrect="off" autocapitalize="sentences"
            onkeydown="if(event.key==='Enter')sendChatMsg()"/>
     <button class="send-btn" onclick="sendChatMsg()">↑</button>
+  </div>
+</div>
+
+<input type="file" id="file-input-hidden" style="display:none;" onchange="handleFileSelected(event)"/>
+
+<!-- ATTACH MENU -->
+<div class="attach-menu-overlay" id="attach-menu-overlay" onclick="if(event.target===this)closeAttachMenu()">
+  <div class="attach-menu">
+    <div class="attach-menu-handle"></div>
+    <div class="attach-option" onclick="triggerFilePick('image')">
+      <div class="attach-option-icon" style="background:rgba(54,194,129,.15);color:var(--green);">🖼️</div>
+      <div>
+        <div class="attach-option-label">Photo</div>
+        <div class="attach-option-desc">Send a picture from your gallery</div>
+      </div>
+    </div>
+    <div class="attach-option" onclick="triggerFilePick('any')">
+      <div class="attach-option-icon" style="background:rgba(79,124,255,.15);color:var(--accent2);">📄</div>
+      <div>
+        <div class="attach-option-label">Document</div>
+        <div class="attach-option-desc">Send any file, up to 50 MB</div>
+      </div>
+    </div>
+    <div class="attach-option" onclick="closeAttachMenu()">
+      <div class="attach-option-icon" style="background:var(--surface2);color:var(--text2);">✕</div>
+      <div>
+        <div class="attach-option-label">Cancel</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1514,6 +1595,12 @@ function handleData(fromPeer,data,conn){
       show('home');
       toast(fromPeer+' cancelled the call');
     }
+  } else if(data.type==='file-meta'){
+    handleIncomingFileMeta(fromPeer,data);
+  } else if(data.type==='file-chunk'){
+    handleIncomingFileChunk(data);
+  } else if(data.type==='file-end'){
+    handleIncomingFileEnd(data.transferId);
   }
 }
 
@@ -2188,7 +2275,14 @@ function openDMChat(pid){
   if(!history.length){
     msgs.innerHTML='<div class="empty"><span class="empty-icon">💬</span><span class="empty-text">No messages yet.<br/>Say hello!</span></div>';
   } else {
-    history.forEach(m=>appendMsg(m.me,m.text,m.time,true));
+    history.forEach(m=>{
+      if(m.file){
+        const url=outgoingFileBlobs[m.file.transferId];
+        appendMsg(m.me,null,m.time,true,{...m.file,url,progress:100,outgoing:m.me});
+      } else {
+        appendMsg(m.me,m.text,m.time,true);
+      }
+    });
     setTimeout(()=>{msgs.scrollTop=msgs.scrollHeight;},50);
   }
   if(!chatConn||chatConn.peer!==pid||!chatConn.open){
@@ -2219,7 +2313,14 @@ function openGroupChat(){
   if(!groupHistory.length){
     msgs.innerHTML='<div class="empty"><span class="empty-icon">💬</span><span class="empty-text">Group chat is empty.<br/>Tap + Add to bring someone in.</span></div>';
   } else {
-    groupHistory.forEach(m=>appendGroupMsg(m.sender,m.text,m.time,true));
+    groupHistory.forEach(m=>{
+      if(m.file){
+        const url=outgoingFileBlobs[m.file.transferId];
+        appendGroupMsg(m.sender,null,m.time,true,{...m.file,url,progress:100,outgoing:m.sender===myId});
+      } else {
+        appendGroupMsg(m.sender,m.text,m.time,true);
+      }
+    });
     setTimeout(()=>{msgs.scrollTop=msgs.scrollHeight;},50);
   }
   groupMembers.forEach(pid=>{
@@ -2307,16 +2408,271 @@ function sendChatMsg(){
   }
 }
 
-function appendMsg(isMe,text,time,silent){
+function appendMsg(isMe,text,time,silent,fileData){
   const msgs=document.getElementById('chat-msgs');
   const row=document.createElement('div');
   row.className='msg-row '+(isMe?'me':'them');
-  row.innerHTML=`<div class="msg-bubble">${esc(text)}</div><div class="msg-time">${time||''}${isMe?' · sent':''}</div>`;
+  if(fileData){
+    row.appendChild(renderFileBubble(fileData,isMe));
+    const timeDiv=document.createElement('div');
+    timeDiv.className='msg-time';
+    timeDiv.textContent=(time||'')+(isMe?' · sent':'');
+    row.appendChild(timeDiv);
+  } else {
+    row.innerHTML=`<div class="msg-bubble">${esc(text)}</div><div class="msg-time">${time||''}${isMe?' · sent':''}</div>`;
+  }
   msgs.appendChild(row);
   if(!silent)msgs.scrollTop=msgs.scrollHeight;
 }
 
-function appendGroupMsg(sender,text,time,silent){
+// ════════════════════════════════════
+//  FILE SHARING — chunked P2P transfer over the existing DataConnection
+// ════════════════════════════════════
+const FILE_CHUNK_SIZE=16*1024; // 16KB per chunk, safe for WebRTC data channels
+const FILE_MAX_BYTES=50*1024*1024; // 50MB cap
+const incomingFileTransfers={}; // transferId -> {meta, chunks:[], received:0}
+const outgoingFileBlobs={}; // transferId -> Blob URL (for showing our own sent files)
+
+function openAttachMenu(){
+  document.getElementById('attach-menu-overlay').classList.add('show');
+}
+function closeAttachMenu(){
+  document.getElementById('attach-menu-overlay').classList.remove('show');
+}
+function triggerFilePick(kind){
+  const inp=document.getElementById('file-input-hidden');
+  inp.accept = kind==='image' ? 'image/*' : '*/*';
+  inp.click();
+  closeAttachMenu();
+}
+
+function handleFileSelected(event){
+  const file=event.target.files && event.target.files[0];
+  event.target.value=''; // reset so picking the same file twice still fires change
+  if(!file)return;
+  if(file.size>FILE_MAX_BYTES){
+    toast('File too large — max 50 MB');
+    return;
+  }
+  if(chatMode==='dm'){
+    sendFileTo(chatPeerId, file, chatConn, (conn)=>{ chatConn=conn; });
+  } else if(chatMode==='group'){
+    if(!groupMembers.length){toast('No group members to send to');return;}
+    groupMembers.forEach(pid=>{
+      const conn=groupConns[pid];
+      sendFileTo(pid, file, conn, (c)=>{ groupConns[pid]=c; }, /*isGroup*/true);
+    });
+  }
+}
+
+function genTransferId(){
+  return 'f'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+}
+
+async function sendFileTo(targetId, file, existingConn, onConnReady, isGroup){
+  const transferId=genTransferId();
+  const isImage=file.type && file.type.startsWith('image/');
+  const now=fmtTime();
+
+  const meta={
+    type:'file-meta',
+    transferId,
+    name:file.name,
+    size:file.size,
+    mime:file.type||'application/octet-stream',
+    isImage,
+    time:now,
+    group:!!isGroup,
+  };
+
+  // Show it on our own side immediately, with a local blob URL for instant preview.
+  const localUrl=URL.createObjectURL(file);
+  outgoingFileBlobs[transferId]=localUrl;
+  const fileDataForUI={transferId,name:file.name,size:file.size,isImage,url:localUrl,progress:100,outgoing:true};
+
+  if(!isGroup){
+    if(!dmHistory[chatPeerId])dmHistory[chatPeerId]=[];
+    dmHistory[chatPeerId].push({me:true,time:now,file:{name:file.name,size:file.size,isImage,transferId}});
+    saveDMHistory();
+  } else {
+    groupHistory.push({sender:myId,time:now,file:{name:file.name,size:file.size,isImage,transferId}});
+    saveGroupHistory();
+  }
+  const emptyEl=document.getElementById('chat-msgs').querySelector('.empty');
+  if(emptyEl)emptyEl.remove();
+  if((chatMode==='dm'&&!isGroup)||(chatMode==='group'&&isGroup)){
+    appendMsg(true,null,now,false,fileDataForUI);
+  }
+
+  // Make sure we have an open connection to send over.
+  let conn=existingConn;
+  if(!conn||!conn.open){
+    try{
+      conn=peer.connect(targetId,{reliable:true,metadata:{type:isGroup?'group':'dm'}});
+      await new Promise((resolve,reject)=>{
+        conn.on('open',resolve);
+        conn.on('error',reject);
+        setTimeout(reject,8000);
+      });
+      conn.on('data',data=>handleData(targetId,data,conn));
+      conn.on('error',()=>{});
+      if(onConnReady)onConnReady(conn);
+    }catch(e){
+      toast('Could not reach '+targetId+' to send the file');
+      return;
+    }
+  }
+
+  try{
+    conn.send(meta);
+    const buf=await file.arrayBuffer();
+    const totalChunks=Math.ceil(buf.byteLength/FILE_CHUNK_SIZE);
+    for(let i=0;i<totalChunks;i++){
+      const start=i*FILE_CHUNK_SIZE;
+      const chunk=buf.slice(start,start+FILE_CHUNK_SIZE);
+      conn.send({type:'file-chunk',transferId,index:i,total:totalChunks,data:chunk});
+      // small yield so the UI/data channel doesn't get overwhelmed on big files
+      if(i%8===0) await new Promise(r=>setTimeout(r,0));
+    }
+    conn.send({type:'file-end',transferId});
+  }catch(e){
+    toast('File send failed: '+e.message);
+  }
+}
+
+function handleIncomingFileMeta(fromPeer,meta){
+  incomingFileTransfers[meta.transferId]={meta,chunks:new Array(0),received:0,fromPeer};
+  // Show a placeholder bubble immediately with a progress indicator.
+  const now=meta.time||fmtTime();
+  if(meta.group){
+    groupHistory.push({sender:fromPeer,time:now,file:{name:meta.name,size:meta.size,isImage:meta.isImage,transferId:meta.transferId}});
+    saveGroupHistory();
+    if(chatMode==='group'){
+      appendMsg(false,null,now,false,{transferId:meta.transferId,name:meta.name,size:meta.size,isImage:meta.isImage,progress:0,outgoing:false});
+    } else {
+      toast('📎 '+fromPeer+' sent a file: '+meta.name);
+      showLocalNotification('message',fromPeer,'Sent a file: '+meta.name);
+    }
+  } else {
+    if(!dmHistory[fromPeer])dmHistory[fromPeer]=[];
+    dmHistory[fromPeer].push({me:false,time:now,file:{name:meta.name,size:meta.size,isImage:meta.isImage,transferId:meta.transferId}});
+    saveDMHistory();
+    if(chatMode==='dm'&&chatPeerId===fromPeer&&document.visibilityState==='visible'){
+      appendMsg(false,null,now,false,{transferId:meta.transferId,name:meta.name,size:meta.size,isImage:meta.isImage,progress:0,outgoing:false});
+    } else {
+      unreadDM[fromPeer]=(unreadDM[fromPeer]||0)+1;
+      renderRecent();
+      toast('📎 '+fromPeer+': '+meta.name);
+      showLocalNotification('message',fromPeer,'Sent a file: '+meta.name);
+    }
+  }
+}
+
+function handleIncomingFileChunk(chunkMsg){
+  const t=incomingFileTransfers[chunkMsg.transferId];
+  if(!t)return;
+  t.chunks[chunkMsg.index]=chunkMsg.data;
+  t.received++;
+  const pct=Math.round((t.received/chunkMsg.total)*100);
+  updateFileProgress(chunkMsg.transferId,pct);
+}
+
+function handleIncomingFileEnd(transferId){
+  const t=incomingFileTransfers[transferId];
+  if(!t)return;
+  try{
+    const blob=new Blob(t.chunks,{type:t.meta.mime||'application/octet-stream'});
+    const url=URL.createObjectURL(blob);
+    outgoingFileBlobs[transferId]=url;
+    updateFileProgress(transferId,100,url);
+  }catch(e){
+    toast('File transfer failed to complete');
+  }
+  delete incomingFileTransfers[transferId];
+}
+
+function updateFileProgress(transferId,pct,readyUrl){
+  const els=document.querySelectorAll('[data-transfer-id="'+CSS.escape(transferId)+'"]');
+  els.forEach(el=>{
+    const fill=el.querySelector('.file-progress-fill');
+    if(fill)fill.style.width=pct+'%';
+    const track=el.querySelector('.file-progress-track');
+    if(pct>=100&&track)track.style.display='none';
+    if(readyUrl){
+      el.dataset.url=readyUrl;
+      el.onclick=()=>openFile(readyUrl,el.dataset.name,el.dataset.isimage==='1');
+      const img=el.querySelector('img.msg-image-pending');
+      if(img){ img.src=readyUrl; img.classList.remove('msg-image-pending'); }
+    }
+  });
+}
+
+function renderFileBubble(fileData,isMe){
+  const wrap=document.createElement('div');
+  const knownUrl=fileData.url||outgoingFileBlobs[fileData.transferId];
+  const sizeStr=formatFileSize(fileData.size);
+
+  if(fileData.isImage){
+    wrap.innerHTML=`
+      <img class="msg-image${knownUrl?'':' msg-image-pending'}" src="${knownUrl||''}"
+           data-transfer-id="${escAttr(fileData.transferId)}" data-name="${escAttr(fileData.name)}" data-isimage="1"
+           style="background:var(--surface3);min-height:140px;"/>
+      ${!knownUrl?'<div class="file-progress-track" data-transfer-id="'+escAttr(fileData.transferId)+'"><div class="file-progress-fill" style="background:var(--accent);width:'+(fileData.progress||0)+'%;"></div></div>':''}
+    `;
+    const imgEl=wrap.querySelector('img');
+    if(knownUrl) imgEl.onclick=()=>openFile(knownUrl,fileData.name,true);
+  } else {
+    const bubble=document.createElement('div');
+    bubble.className='msg-file';
+    bubble.dataset.transferId=fileData.transferId;
+    bubble.dataset.name=fileData.name;
+    bubble.dataset.isimage='0';
+    if(knownUrl){ bubble.dataset.url=knownUrl; bubble.onclick=()=>openFile(knownUrl,fileData.name,false); }
+    bubble.innerHTML=`
+      <div class="msg-file-icon">${fileIconFor(fileData.name)}</div>
+      <div class="msg-file-info">
+        <div class="msg-file-name">${esc(fileData.name)}</div>
+        <div class="msg-file-meta">${sizeStr}${knownUrl?' · Tap to open':''}</div>
+        ${!knownUrl?'<div class="file-progress-track" data-transfer-id="'+escAttr(fileData.transferId)+'"><div class="file-progress-fill" style="background:var(--accent2);width:'+(fileData.progress||0)+'%;"></div></div>':''}
+      </div>
+    `;
+    wrap.appendChild(bubble);
+  }
+  return wrap;
+}
+
+function fileIconFor(name){
+  const ext=(name.split('.').pop()||'').toLowerCase();
+  if(['pdf'].includes(ext))return '📕';
+  if(['doc','docx'].includes(ext))return '📘';
+  if(['xls','xlsx','csv'].includes(ext))return '📗';
+  if(['ppt','pptx'].includes(ext))return '📙';
+  if(['zip','rar','7z'].includes(ext))return '🗜️';
+  if(['mp3','wav','m4a','ogg'].includes(ext))return '🎵';
+  if(['mp4','mov','avi','webm'].includes(ext))return '🎬';
+  return '📄';
+}
+
+function formatFileSize(bytes){
+  if(!bytes)return '';
+  if(bytes<1024)return bytes+' B';
+  if(bytes<1024*1024)return (bytes/1024).toFixed(1)+' KB';
+  return (bytes/(1024*1024)).toFixed(1)+' MB';
+}
+
+function openFile(url,name,isImage){
+  // Opens the received file in a new view — images show inline, other files
+  // trigger the system's normal "open with" handling via a temporary link.
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=name||'file';
+  a.target='_blank';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function appendGroupMsg(sender,text,time,silent,fileData){
   const msgs=document.getElementById('chat-msgs');
   const empty=msgs.querySelector('.empty');if(empty)empty.remove();
   if(sender==='System'){
@@ -2331,7 +2687,16 @@ function appendGroupMsg(sender,text,time,silent){
   const row=document.createElement('div');
   row.className='msg-row '+(isMe?'me':'them');
   const sLine=!isMe?`<div class="msg-sender">${esc(sender)}</div>`:'';
-  row.innerHTML=sLine+`<div class="msg-bubble">${esc(text)}</div><div class="msg-time">${time||''}</div>`;
+  if(fileData){
+    if(sLine)row.innerHTML=sLine;
+    row.appendChild(renderFileBubble(fileData,isMe));
+    const timeDiv=document.createElement('div');
+    timeDiv.className='msg-time';
+    timeDiv.textContent=time||'';
+    row.appendChild(timeDiv);
+  } else {
+    row.innerHTML=sLine+`<div class="msg-bubble">${esc(text)}</div><div class="msg-time">${time||''}</div>`;
+  }
   msgs.appendChild(row);
   if(!silent)msgs.scrollTop=msgs.scrollHeight;
 }
