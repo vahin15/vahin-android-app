@@ -1,122 +1,153 @@
 // ═══════════════════════════════════════════════════════════════
-//  VAHIN CONNECT — Service Worker
-//  Handles: push notifications, notification clicks/actions,
-//  and (where supported) background sync for presence.
+//  UNIFEST — Service Worker v4.0
+//  Offline caching · Push notifications · Background sync
 // ═══════════════════════════════════════════════════════════════
-const SW_VERSION = 'vahin-sw-v1';
+const SW_VERSION = 'unifest-sw-v4';
+const CACHE_NAME = 'unifest-cache-v4';
+
+const PRECACHE = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/vendor/peerjs.min.js',
+];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.addAll(PRECACHE.map(u => new Request(u, { cache: 'no-cache' }))).catch(() => {})
+    )
+  );
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
 });
 
-// ── PUSH EVENT ──
-// Fired by the browser/OS push service even if no tab is open
-// (as long as the PWA/site is installed or was visited and granted
-// notification permission — exact rules vary slightly by browser).
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  if (url.hostname !== self.location.hostname) return;
+  if (event.request.method !== 'GET') return;
+
+  if (url.pathname.match(/\.(js|css|png|webp|woff2?|svg|ico)$/)) {
+    event.respondWith(
+      caches.match(event.request).then((cached) =>
+        cached || fetch(event.request).then((res) => {
+          if (res && res.status === 200) {
+            caches.open(CACHE_NAME).then((c) => c.put(event.request, res.clone()));
+          }
+          return res;
+        })
+      )
+    );
+    return;
+  }
+
+  if (url.pathname === '/' || url.pathname.endsWith('.html')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((res) => {
+          if (res && res.status === 200)
+            caches.open(CACHE_NAME).then((c) => c.put(event.request, res.clone()));
+          return res;
+        })
+        .catch(() => caches.match('/index.html'))
+    );
+  }
+});
+
 self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (e) {
     data = { type: 'message', from: 'Unifest', text: event.data ? event.data.text() : '' };
   }
-
   const { type, from, text } = data;
-
-  let title, body, icon, tag, requireInteraction, actions;
-  icon = '/icons/icon-192.png';
+  const icon = '/icons/icon-192.png';
+  let title, body, tag, requireInteraction, actions, vibrate;
 
   if (type === 'call') {
-    title = `📞 Incoming call — ${from}`;
-    body = 'Tap to answer in Unifest';
-    tag = 'vahin-call-' + from;
-    requireInteraction = true; // keep it on screen like a real ringing call
-    actions = [
-      { action: 'accept', title: '✅ Accept' },
-      { action: 'decline', title: '❌ Decline' },
-    ];
-  } else if (type === 'conf') {
-    title = `🎥 Conference invite — ${from}`;
-    body = 'Tap to join the group call';
-    tag = 'vahin-conf-' + from;
+    title = `📞 Incoming call`;
+    body = `${from} is calling you`;
+    tag = `unifest-call-${from}`;
     requireInteraction = true;
-    actions = [
-      { action: 'accept', title: '✅ Join' },
-      { action: 'decline', title: '❌ Dismiss' },
-    ];
-  } else if (type === 'group') {
-    title = `💬 ${from} (Group)`;
-    body = text || 'New group message';
-    tag = 'vahin-group';
-    requireInteraction = false;
-    actions = [{ action: 'open', title: 'Open' }];
+    vibrate = [500, 200, 500, 200, 500, 200, 500];
+    actions = [{ action: 'accept', title: '✅ Accept' }, { action: 'decline', title: '❌ Decline' }];
+  } else if (type === 'conf') {
+    title = `🎥 Conference invite`;
+    body = `${from} invites you to a group call`;
+    tag = `unifest-conf-${from}`;
+    requireInteraction = true;
+    vibrate = [500, 200, 500, 200, 500];
+    actions = [{ action: 'accept', title: '✅ Join' }, { action: 'decline', title: '❌ Dismiss' }];
   } else {
     title = `💬 ${from}`;
-    body = text || 'New message';
-    tag = 'vahin-dm-' + from;
+    body = (text || 'New message').substring(0, 80);
+    tag = `unifest-dm-${from}`;
     requireInteraction = false;
-    actions = [{ action: 'open', title: 'Reply' }];
+    vibrate = [200, 100, 200];
+    actions = [{ action: 'open', title: '💬 Reply' }];
   }
 
-  const options = {
-    body,
-    icon,
-    badge: '/icons/icon-192.png',
-    tag,
-    renotify: true,
-    requireInteraction,
-    actions,
-    vibrate: type === 'call' || type === 'conf' ? [500, 300, 500, 300, 500, 300, 500] : [200, 100, 200],
-    data: { type, from, text, ts: Date.now() },
-  };
-
-  event.waitUntil(self.registration.showNotification(title, options));
-});
-
-// ── NOTIFICATION CLICK ──
-self.addEventListener('notificationclick', (event) => {
-  const { type, from } = event.notification.data || {};
-  event.notification.close();
-
-  let urlAction = 'open';
-  if (event.action === 'decline') urlAction = 'decline';
-  else if (event.action === 'accept') urlAction = 'accept';
-  else if (event.action === 'open') urlAction = 'open';
-
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // If a window is already open, focus it and tell it what happened.
-      for (const client of clientList) {
-        if ('focus' in client) {
-          client.focus();
-          client.postMessage({
-            kind: 'notification-action',
-            action: urlAction,
-            notifType: type,
-            from,
-          });
-          return;
-        }
-      }
-      // Otherwise open a new window (deep link could be added via query string).
-      if (self.clients.openWindow) {
-        return self.clients.openWindow('/?from=' + encodeURIComponent(from || '') + '&action=' + urlAction);
-      }
+    self.registration.getNotifications({ tag }).then((existing) => {
+      existing.forEach((n) => n.close());
+      return self.registration.showNotification(title, {
+        body, icon, badge: icon, tag, renotify: true,
+        requireInteraction, actions, vibrate, silent: false,
+        data: { type, from, text, ts: Date.now() },
+      });
     })
   );
 });
 
-// Optional: react to a subscription being silently rotated by the browser.
+self.addEventListener('notificationclick', (event) => {
+  const { type, from } = event.notification.data || {};
+  event.notification.close();
+  let action = 'open';
+  if (event.action === 'accept') action = 'accept';
+  else if (event.action === 'decline') action = 'decline';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      const target = clients.find((c) => c.visibilityState === 'visible') || clients[0];
+      if (target) {
+        target.focus();
+        target.postMessage({ kind: 'notification-action', action, notifType: type, from });
+        return;
+      }
+      const url = '/?notif=' + encodeURIComponent(type) + '&from=' + encodeURIComponent(from || '') + '&action=' + action;
+      return self.clients.openWindow(url);
+    })
+  );
+});
+
+self.addEventListener('notificationclose', (event) => {
+  const { type, from } = event.notification.data || {};
+  if (type === 'call') {
+    self.clients.matchAll({ type: 'window' }).then((clients) =>
+      clients.forEach((c) => c.postMessage({ kind: 'call-dismissed', from }))
+    );
+  }
+});
+
 self.addEventListener('pushsubscriptionchange', (event) => {
   event.waitUntil(
-    self.registration.pushManager.subscribe(event.oldSubscription ? event.oldSubscription.options : undefined)
-      .then((sub) => {
-        return self.clients.matchAll().then((clientList) => {
-          clientList.forEach((c) => c.postMessage({ kind: 'resubscribe', subscription: sub }));
-        });
-      })
+    self.registration.pushManager
+      .subscribe(event.oldSubscription ? event.oldSubscription.options : { userVisibleOnly: true })
+      .then((sub) => self.clients.matchAll().then((clients) =>
+        clients.forEach((c) => c.postMessage({ kind: 'resubscribe', subscription: sub }))
+      ))
       .catch(() => {})
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data && event.data.type === 'CLEAR_NOTIFICATIONS')
+    self.registration.getNotifications().then((n) => n.forEach((x) => x.close()));
 });

@@ -1,13 +1,23 @@
-bash
-
-cat > /home/claude/unifest/www/index.html << 'HTMLEOF'
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
+<meta http-equiv="Content-Security-Policy"
+  content="default-src 'self' blob:;
+           script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com;
+           connect-src 'self' wss: https:;
+           img-src 'self' blob: data: https:;
+           media-src 'self' blob: mediastream:;
+           style-src 'self' 'unsafe-inline';">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover"/>
 <meta name="theme-color" content="#2563EB"/>
 <title>Unifest</title>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Unifest"/>
+<link rel="apple-touch-icon" href="/icons/icon-192.png"/>
+<link rel="manifest" href="/manifest.json"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -1204,6 +1214,19 @@ button,input{font-family:inherit;}
   </div>
 </div>
 
+
+<!-- SW Update Banner -->
+<div id="sw-update-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:999;
+  background:linear-gradient(135deg,#2563EB,#7C3AED);color:#fff;padding:12px 18px;
+  display:none;align-items:center;justify-content:space-between;gap:12px;
+  font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.3);">
+  <span>✨ New version available!</span>
+  <button onclick="swUpdate()" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);
+    border-radius:8px;padding:7px 16px;color:#fff;cursor:pointer;font-weight:700;font-size:12px;">
+    Update Now
+  </button>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1354,6 +1377,35 @@ function obRender(){
 function obNext(){if(obStep<OB.length-1){obStep++;obRender();}else obSkip();}
 function obSkip(){ls_set(SK.ONBOARDED,1);showScreen('screen-id');}
 
+
+// ── MESSAGE PAGINATION ──
+var chatPageSize = 60;
+var chatPageLoaded = 1;
+
+function renderChatHistory(hist, msgs) {
+  msgs.innerHTML = '';
+  if (!hist || !hist.length) {
+    msgs.innerHTML = '<div class="empty-state"><div class="empty-icon">👋</div><div class="empty-title">Say hello!</div><div class="empty-sub">Messages are end-to-end peer-to-peer.</div></div>';
+    return;
+  }
+  var start = Math.max(0, hist.length - (chatPageSize * chatPageLoaded));
+  var slice = hist.slice(start);
+  // Load more sentinel
+  if (start > 0) {
+    var sentinel = document.createElement('div');
+    sentinel.id = 'load-more-sentinel';
+    sentinel.style.cssText = 'text-align:center;padding:12px;color:var(--text3);font-size:13px;cursor:pointer;';
+    sentinel.textContent = '↑ Load older messages';
+    sentinel.onclick = function() { chatPageLoaded++; renderChatHistory(hist, msgs); };
+    msgs.appendChild(sentinel);
+  }
+  slice.forEach(function(m) {
+    if (m.file) appendMsg(m.me, null, m.time, true, Object.assign({}, m.file, {url: fileBlobs[m.file.transferId], progress: 100}), m);
+    else appendMsg(m.me, m.text, m.time, true, null, m);
+  });
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
 // ── BOOT — runs after DOM is ready, BEFORE PeerJS loads ──
 function boot(){
   applyTheme();
@@ -1458,7 +1510,7 @@ function startPeer(){
     peerReady=false; setOnlineDot('red');
     if(e.type==='unavailable-id'){hideBanner();toast('ID "'+myId+'" is taken — try another');localStorage.removeItem(SK.MYID);document.getElementById('tab-nav').classList.remove('visible');showScreen('screen-id');}
     else if(['network','server-error','socket-error','socket-closed'].includes(e.type)){showBanner('Reconnecting…');scheduleReconnect();}
-    else if(e.type==='peer-unavailable'){toast('That ID is offline');stopOutTone();if(currentCall){endCall();}else{showScreen('screen-chats');}}
+    else if(e.type==='peer-unavailable'){toast('⚠️ That ID is offline or doesn\'t exist');stopOutTone();if(currentCall){endCall();}else{showScreen('screen-chats');}}
     else{showBanner('Error: '+e.type);scheduleReconnect();}
   });
   peer.on('disconnected',function(){peerReady=false;setOnlineDot('yellow');showBanner('Reconnecting…');scheduleReconnect();});
@@ -1677,7 +1729,7 @@ function renderChats(filter){
     body.appendChild(item);
   });
   var badge=document.getElementById('tab-badge-chats');
-  if(total>0){badge.textContent=total>99?'99+':total;badge.style.display='flex';}else{badge.style.display='none';}
+  if(total>0){badge.textContent=total>99?'99+':total;badge.style.display='flex';}else{badge.style.display='none';} updateWindowTitle();
 }
 
 // ── OPEN DM CHAT ──
@@ -1692,15 +1744,9 @@ function openDMChat(pid){
   // load messages
   var msgs=document.getElementById('chat-msgs'); msgs.innerHTML='';
   var hist=dmHistory[pid]||[];
-  if(!hist.length){
-    msgs.innerHTML='<div class="empty-state"><div class="empty-icon">👋</div><div class="empty-title">Say hello!</div><div class="empty-sub">Messages are end-to-end peer-to-peer.</div></div>';
-  } else {
-    hist.forEach(function(m){
-      if(m.file)appendMsg(m.me,null,m.time,true,Object.assign({},m.file,{url:fileBlobs[m.file.transferId],progress:100}),m);
-      else appendMsg(m.me,m.text,m.time,true,null,m);
-    });
-    setTimeout(function(){msgs.scrollTop=msgs.scrollHeight;},60);
-  }
+  chatPageLoaded = 1;
+  renderChatHistory(hist, msgs);
+  setTimeout(function(){msgs.scrollTop=msgs.scrollHeight;},80);
   // send read receipts
   if(chatConn&&chatConn.peer===pid&&chatConn.open){
     var unread=(hist||[]).filter(function(m){return !m.me&&!m._read;});
@@ -1785,7 +1831,7 @@ function onChatTyping(){
   if(chatMode==='dm'&&chatConn&&chatConn.open){
     try{chatConn.send({type:'typing',isTyping:true});}catch(e){}
     clearTimeout(typingTimer);
-    typingTimer=setTimeout(function(){try{if(chatConn&&chatConn.open)chatConn.send({type:'typing',isTyping:false});}catch(e){}},2000);
+    typingTimer=setTimeout(function(){try{if(chatConn&&chatConn.open)chatConn.send({type:'typing',isTyping:false});}catch(e){}},1500);
   }
 }
 
@@ -2468,7 +2514,7 @@ document.addEventListener('visibilitychange',async function(){
 function showBanner(msg){document.getElementById('conn-text').textContent=msg;document.getElementById('conn-banner').classList.add('show');}
 function hideBanner(){document.getElementById('conn-banner').classList.remove('show');}
 function fmtTime(){var d=new Date();return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');}
 function removeEmpty(containerId){var el=document.getElementById(containerId);if(el){var e=el.querySelector('.empty-state');if(e)e.remove();}}
 var toastTm;
 function toast(msg){var el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTm);toastTm=setTimeout(function(){el.classList.remove('show');},3400);}
@@ -2632,6 +2678,82 @@ function startChatFromModal(){
   closeNewChatModal();openDMChat(v);
 }
 
+
+// ── DEEPLINK / SHORTCUT URL HANDLER ──
+function handleStartupURL() {
+  var params = new URLSearchParams(window.location.search);
+  var tab = params.get('tab');
+  var action = params.get('action');
+  var peer = params.get('peer');
+  var notif = params.get('notif');
+  var from = params.get('from');
+  var act = params.get('action');
+  if (peer) { openDMChat(peer); return; }
+  if (from && notif === 'message') { openDMChat(from); return; }
+  if (from && notif === 'call' && act === 'accept') { /* handled by SW message */ return; }
+  if (tab) switchTab(tab);
+}
+
+// ── SW UPDATE ──
+var pendingSW = null;
+function swUpdate() {
+  if (pendingSW) {
+    pendingSW.postMessage({ type: 'SKIP_WAITING' });
+    window.location.reload();
+  }
+}
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.ready.then(function(reg) {
+    reg.addEventListener('updatefound', function() {
+      var newSW = reg.installing;
+      if (!newSW) return;
+      newSW.addEventListener('statechange', function() {
+        if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+          pendingSW = newSW;
+          var bar = document.getElementById('sw-update-bar');
+          if (bar) bar.style.display = 'flex';
+        }
+      });
+    });
+  });
+  // Check for updates every 60 seconds while app is open
+  setInterval(function() {
+    navigator.serviceWorker.ready.then(function(reg) {
+      reg.update().catch(function() {});
+    });
+  }, 60000);
+}
+
+// ── HANDLE BACK BUTTON (Android hardware back) ──
+document.addEventListener('backbutton', function() {
+  var active = document.querySelector('.screen.active');
+  if (!active) return;
+  var id = active.id;
+  if (id === 'screen-chat' || id === 'screen-search' || id === 'screen-call' || id === 'screen-conf') {
+    history.back();
+    if (id === 'screen-chat') { chatMode=''; chatPeerId=''; chatConn=null; showScreen('screen-chats'); switchTab('chats'); }
+    else if (id === 'screen-search') { showScreen('screen-chats'); switchTab('chats'); }
+  }
+}, false);
+
+// ── STARTUP URL ──
+setTimeout(handleStartupURL, 500);
+
+
+// ── CAPACITOR INTEGRATION ──
+document.addEventListener('deviceready', function() {
+  // Fix Android status bar
+  if (window.StatusBar) {
+    StatusBar.styleLightContent();
+    StatusBar.backgroundColorByHexString('#2563EB');
+  }
+  // Keyboard scroll fix
+  if (window.Keyboard) {
+    Keyboard.shrinkView(false);
+    Keyboard.disableScrollingInShrinkView(false);
+  }
+}, false);
+
 // ── MAIN ENTRY POINT ──
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',boot);
@@ -2641,6 +2763,3 @@ if(document.readyState==='loading'){
 </script>
 </body>
 </html>
-HTMLEOF
-echo "Written: $(wc -c < /home/claude/unifest/www/index.html) bytes"
-Output
