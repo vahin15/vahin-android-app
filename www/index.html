@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,10 +8,10 @@
            script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com;
            connect-src 'self' wss: https:;
            img-src 'self' blob: data: https:;
-           media-src 'self' blob: mediastream:;
+           media-src 'self' blob: mediastream: data:;
            style-src 'self' 'unsafe-inline';">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover"/>
-<meta name="theme-color" content="#2563EB"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content"/>
+<meta name="theme-color" content="#6D28D9"/>
 <title>Unifest</title>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -21,21 +22,22 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
-  --bg:#F0FBFA;--surface:#FFFFFF;--surface2:#F1F5F9;--surface3:#E2E8F0;
-  --accent:#0D9488;--accent2:#0F766E;--accent-light:#CCFBF1;
-  --grad-a:#0D9488;--grad-b:#FB7185;
-  --green:#059669;--red:#DC2626;--yellow:#D97706;--orange:#FB7185;
-  --text:#0F172A;--text2:#475569;--text3:#94A3B8;
-  --border:#E2E8F0;--border2:#CBD5E1;
+  --bg:#F5F3FB;--surface:#FFFFFF;--surface2:#F1EEFA;--surface3:#E3DEF5;
+  --accent:#7C3AED;--accent2:#6D28D9;--accent-light:#EDE7FC;
+  --grad-a:#7C3AED;--grad-b:#F59E0B;
+  --green:#059669;--red:#DC2626;--yellow:#D97706;--orange:#F59E0B;
+  --text:#150F2E;--text2:#4B4468;--text3:#948FA8;
+  --border:#E6E1F5;--border2:#D3CBEE;
   --radius:16px;--radius-sm:12px;
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);
   --nav-h:62px;
+  --banner-h:0px;
 }
 html.dark{
-  --bg:#0F172A;--surface:#1E293B;--surface2:#334155;--surface3:#475569;
-  --text:#F1F5F9;--text2:#CBD5E1;--text3:#94A3B8;
-  --border:#334155;--border2:#475569;--accent-light:#134E4A;
+  --bg:#0E0A1E;--surface:#181230;--surface2:#221A42;--surface3:#2E2454;
+  --text:#F3F1FA;--text2:#C6BFDE;--text3:#8B84A6;
+  --border:#2C2450;--border2:#3B3168;--accent-light:#2A1F55;
 }
 html,body{height:100%;overflow:hidden;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;
@@ -44,7 +46,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sa
 button,input,textarea{font-family:inherit;}
 .screen{display:none!important;position:absolute;inset:0;flex-direction:column;padding-top:var(--safe-top);}
 .screen.active{display:flex!important;}
-.screen.tabbed{padding-bottom:calc(var(--nav-h) + var(--safe-bottom));}
+.screen.tabbed{padding-bottom:calc(var(--nav-h) + var(--safe-bottom) + var(--banner-h));}
 #tab-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + var(--safe-bottom));padding-bottom:var(--safe-bottom);
   background:var(--surface);border-top:1px solid var(--border);display:none;align-items:stretch;z-index:90;box-shadow:0 -4px 20px rgba(0,0,0,.07);}
 #tab-nav.visible{display:flex;}
@@ -56,12 +58,12 @@ button,input,textarea{font-family:inherit;}
 .tab-badge{position:absolute;top:6px;right:calc(50% - 20px);background:var(--red);color:#fff;font-size:9px;font-weight:800;
   border-radius:8px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--surface);}
 #screen-id{flex-direction:column;align-items:center;justify-content:center;overflow-y:auto;
-  background:radial-gradient(ellipse at 20% 0%,rgba(251,113,133,.16),transparent 55%),
-    radial-gradient(ellipse at 85% 100%,rgba(13,148,136,.16),transparent 50%),var(--bg);}
+  background:radial-gradient(ellipse at 20% 0%,rgba(245,158,11,.14),transparent 55%),
+    radial-gradient(ellipse at 85% 100%,rgba(124,58,237,.20),transparent 50%),var(--bg);}
 .land-wrap{width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;gap:26px;padding:32px 24px;
   padding-top:calc(32px + var(--safe-top));padding-bottom:calc(32px + var(--safe-bottom));}
-.logo-circle{width:88px;height:88px;border-radius:50%;overflow:hidden;border:3px solid rgba(251,113,133,.35);
-  box-shadow:0 0 40px rgba(13,148,136,.3);background:var(--surface);}
+.logo-circle{width:88px;height:88px;border-radius:50%;overflow:hidden;border:3px solid rgba(245,158,11,.35);
+  box-shadow:0 0 40px rgba(124,58,237,.35);background:var(--surface);}
 .logo-circle img{width:100%;height:100%;object-fit:cover;}
 .logo-fallback{width:100%;height:100%;background:linear-gradient(135deg,var(--grad-a),var(--grad-b));
   display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:900;color:#fff;}
@@ -76,13 +78,13 @@ button,input,textarea{font-family:inherit;}
 .id-input:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-light);}
 .id-hint{font-size:12px;color:var(--text3);text-align:center;line-height:1.6;}
 .btn-primary{background:linear-gradient(135deg,var(--grad-a),var(--grad-b));border:none;border-radius:var(--radius-sm);padding:17px;
-  font-size:16px;font-weight:700;color:#fff;cursor:pointer;width:100%;min-height:54px;touch-action:manipulation;box-shadow:0 8px 24px rgba(13,148,136,.35);}
+  font-size:16px;font-weight:700;color:#fff;cursor:pointer;width:100%;min-height:54px;touch-action:manipulation;box-shadow:0 8px 24px rgba(124,58,237,.35);}
 .btn-primary:active{opacity:.85;transform:scale(.98);}
 .feature-pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
 .pill{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:7px 14px;font-size:11.5px;color:var(--text2);
   display:flex;align-items:center;gap:6px;font-weight:600;}
 .pill-dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
-#screen-onboard{background:linear-gradient(160deg,#0F2D2A 0%,#0F172A 100%);z-index:70;}
+#screen-onboard{background:linear-gradient(160deg,#1E1240 0%,#0E0A1E 100%);z-index:70;}
 .ob-wrap{display:flex;flex-direction:column;align-items:center;justify-content:space-between;height:100%;padding:40px 28px;
   padding-top:calc(50px + var(--safe-top));padding-bottom:calc(32px + var(--safe-bottom));}
 .ob-hero{display:flex;flex-direction:column;align-items:center;gap:22px;flex:1;justify-content:center;}
@@ -143,9 +145,9 @@ button,input,textarea{font-family:inherit;}
 .cli-call-btn{width:38px;height:38px;border-radius:50%;background:var(--accent-light);border:none;display:flex;
   align-items:center;justify-content:center;cursor:pointer;color:var(--accent2);touch-action:manipulation;font-size:16px;flex-shrink:0;}
 .cli-call-btn:active{background:var(--accent);color:#fff;}
-.fab{position:absolute;bottom:calc(var(--nav-h) + var(--safe-bottom) + 16px);right:18px;width:56px;height:56px;border-radius:50%;
+.fab{position:absolute;bottom:calc(var(--nav-h) + var(--safe-bottom) + var(--banner-h) + 16px);right:18px;width:56px;height:56px;border-radius:50%;
   background:linear-gradient(135deg,var(--grad-a),var(--grad-b));border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;
-  box-shadow:0 8px 24px rgba(13,148,136,.45);z-index:50;touch-action:manipulation;color:#fff;font-size:24px;}
+  box-shadow:0 8px 24px rgba(124,58,237,.45);z-index:50;touch-action:manipulation;color:#fff;font-size:24px;}
 .fab:active{transform:scale(.88);}
 .call-log-item{display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--border);min-height:72px;}
 .call-log-av{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--surface3),var(--border2));
@@ -160,12 +162,12 @@ button,input,textarea{font-family:inherit;}
 .group-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;align-items:center;
   gap:14px;cursor:pointer;transition:all .15s;touch-action:manipulation;}
 .group-card:active{border-color:var(--accent);background:var(--surface2);}
-.group-card-icon{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,var(--accent-light),rgba(251,113,133,.15));
+.group-card-icon{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,var(--accent-light),rgba(245,158,11,.15));
   display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
 .group-card-name{font-size:16px;font-weight:700;color:var(--text);}
 .group-card-sub{font-size:13px;color:var(--text3);margin-top:3px;}
 .settings-body{flex:1;overflow-y:auto;padding-bottom:16px;}
-.settings-profile{padding:24px 18px;display:flex;align-items:center;gap:16px;background:linear-gradient(135deg,var(--accent-light),rgba(251,113,133,.08));
+.settings-profile{padding:24px 18px;display:flex;align-items:center;gap:16px;background:linear-gradient(135deg,var(--accent-light),rgba(245,158,11,.08));
   border-bottom:1px solid var(--border);}
 .settings-av{width:68px;height:68px;border-radius:50%;overflow:hidden;border:3px solid var(--accent-light);flex-shrink:0;background:var(--surface2);
   display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:var(--accent2);}
@@ -226,15 +228,15 @@ button,input,textarea{font-family:inherit;}
 .msg-row.them{align-self:flex-start;align-items:flex-start;}
 .msg-row.sys{align-self:center;max-width:90%;}
 .msg-bubble{padding:10px 14px;border-radius:18px;font-size:15.5px;line-height:1.55;word-break:break-word;}
-.msg-row.me .msg-bubble{background:linear-gradient(135deg,var(--grad-a),var(--grad-b));color:#fff;border-bottom-right-radius:4px;box-shadow:0 2px 10px rgba(13,148,136,.25);}
+.msg-row.me .msg-bubble{background:linear-gradient(135deg,var(--grad-a),var(--grad-b));color:#fff;border-bottom-right-radius:4px;box-shadow:0 2px 10px rgba(124,58,237,.3);}
 .msg-row.them .msg-bubble{background:var(--surface);color:var(--text);border-bottom-left-radius:4px;border:1px solid var(--border);}
-.msg-row.sys .msg-bubble{background:rgba(13,148,136,.08);color:var(--text2);font-size:12px;padding:6px 14px;border-radius:12px;border:1px solid rgba(13,148,136,.15);}
+.msg-row.sys .msg-bubble{background:rgba(124,58,237,.08);color:var(--text2);font-size:12px;padding:6px 14px;border-radius:12px;border:1px solid rgba(124,58,237,.15);}
 .msg-time{font-size:11px;color:var(--text3);margin-top:3px;padding:0 4px;display:flex;align-items:center;gap:3px;}
 .msg-tick{font-size:12px;color:var(--text3);}
-.msg-tick.read{color:#0D9488;}
+.msg-tick.read{color:#7C3AED;}
 .msg-sender{font-size:12px;color:var(--accent2);margin-bottom:3px;padding:0 4px;font-weight:600;}
 .msg-quote{border-left:3px solid rgba(255,255,255,.5);padding:5px 10px;margin-bottom:6px;border-radius:0 8px 8px 0;background:rgba(255,255,255,.12);font-size:12.5px;}
-.msg-row.them .msg-quote{border-left-color:var(--accent);background:rgba(13,148,136,.08);color:var(--text2);}
+.msg-row.them .msg-quote{border-left-color:var(--accent);background:rgba(124,58,237,.08);color:var(--text2);}
 .msg-quote-sender{font-size:11px;font-weight:700;opacity:.8;margin-bottom:2px;}
 .msg-row.them .msg-quote-sender{color:var(--accent);}
 .typing-dots{display:inline-flex;align-items:center;gap:3px;}
@@ -252,24 +254,24 @@ button,input,textarea{font-family:inherit;}
 .file-prog{height:3px;background:rgba(255,255,255,.15);border-radius:2px;margin-top:6px;overflow:hidden;}
 .msg-row.them .file-prog{background:var(--border);}
 .file-prog-fill{height:100%;background:currentColor;border-radius:2px;transition:width .2s;}
-.chat-input-wrap{flex-shrink:0;background:var(--surface);border-top:1px solid var(--border);position:relative;}
+.chat-input-wrap{flex-shrink:0;background:var(--surface);border-top:1px solid var(--border);position:relative;z-index:20;}
 .chat-input-bar{padding:10px 12px;padding-bottom:calc(10px + var(--safe-bottom));display:flex;gap:8px;align-items:flex-end;}
 .attach-btn-group{display:flex;gap:6px;flex-shrink:0;}
 .attach-btn{background:var(--surface2);border:1.5px solid var(--border);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;
   justify-content:center;font-size:18px;cursor:pointer;flex-shrink:0;touch-action:manipulation;transition:all .2s;color:var(--text2);}
 .attach-btn:active,.attach-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
-.attach-btn.file-attach{background:linear-gradient(135deg,rgba(13,148,136,.1),rgba(251,113,133,.1));border-color:rgba(13,148,136,.3);color:var(--accent);}
+.attach-btn.file-attach{background:linear-gradient(135deg,rgba(124,58,237,.1),rgba(245,158,11,.1));border-color:rgba(124,58,237,.3);color:var(--accent);}
 .attach-btn.voice-rec{background:linear-gradient(135deg,rgba(220,38,38,.08),rgba(234,88,12,.08));border-color:rgba(220,38,38,.25);color:var(--red);}
 .attach-btn.voice-rec.recording{background:var(--red);color:#fff;border-color:var(--red);animation:rp 1s ease-in-out infinite;}
 .chat-inp-wrapper{flex:1;min-width:0;position:relative;}
-.chat-inp{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:22px;padding:11px 16px;font-size:16px;
-  line-height:1.4;color:var(--text);outline:none;transition:border-color .2s;-webkit-appearance:none;min-height:44px;max-height:120px;resize:none;
-  display:block;overflow-y:auto;}
-.chat-inp:focus{border-color:var(--accent);}
+.chat-inp{width:100%;background:var(--surface2);border:1.5px solid var(--border2);border-radius:22px;padding:11px 16px;font-size:16px;
+  line-height:1.4;color:var(--text)!important;outline:none;transition:border-color .2s;-webkit-appearance:none;min-height:44px;max-height:120px;resize:none;
+  display:block;overflow-y:auto;caret-color:var(--accent);}
+.chat-inp:focus{border-color:var(--accent);background:var(--surface);}
 .chat-inp::placeholder{color:var(--text3);}
 .send-btn{background:linear-gradient(135deg,var(--grad-a),var(--grad-b));border:none;border-radius:50%;width:44px;height:44px;display:flex;
   align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:#fff;touch-action:manipulation;font-size:18px;
-  box-shadow:0 4px 14px rgba(13,148,136,.4);transition:opacity .15s;}
+  box-shadow:0 4px 14px rgba(124,58,237,.4);transition:opacity .15s;}
 .send-btn:active{opacity:.8;}
 #blocked-bar{display:none;flex-direction:column;align-items:center;gap:12px;padding:20px 24px;
   background:linear-gradient(135deg,rgba(220,38,38,.06),rgba(234,88,12,.04));border-top:2px solid rgba(220,38,38,.2);flex-shrink:0;}
@@ -278,7 +280,7 @@ button,input,textarea{font-family:inherit;}
 .blocked-sub{font-size:12px;color:var(--text3);text-align:center;}
 .blocked-actions{display:flex;gap:10px;}
 .unblock-btn-main{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;padding:11px 24px;
-  font-size:14px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(13,148,136,.3);}
+  font-size:14px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(124,58,237,.3);}
 .report-btn{background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:11px 20px;font-size:14px;font-weight:600;
   color:var(--text2);cursor:pointer;}
 #rec-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:400;display:none;align-items:flex-end;justify-content:center;}
@@ -300,7 +302,7 @@ button,input,textarea{font-family:inherit;}
 .rec-hint{font-size:13px;color:var(--text3);margin-bottom:22px;}
 .rec-btns{display:flex;gap:14px;justify-content:center;}
 .rec-stop{background:linear-gradient(135deg,var(--grad-a),var(--grad-b));border:none;border-radius:14px;padding:14px 28px;font-size:15px;font-weight:700;
-  color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(13,148,136,.4);}
+  color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(124,58,237,.4);}
 .rec-cancel-btn{background:var(--surface2);border:1.5px solid var(--border2);border-radius:14px;padding:14px 22px;font-size:14px;font-weight:600;
   color:var(--text2);cursor:pointer;}
 #screen-call{background:#05050a;z-index:60;}
@@ -308,6 +310,12 @@ button,input,textarea{font-family:inherit;}
 #video-local{position:absolute;bottom:calc(96px + var(--safe-bottom));right:14px;width:86px;height:124px;object-fit:cover;border-radius:16px;
   border:2.5px solid rgba(255,255,255,.2);background:#1a1a2e;z-index:5;box-shadow:0 8px 28px rgba(0,0,0,.6);}
 #video-local.mirror{transform:scaleX(-1);}
+#screen-call.voice-mode #video-remote,#screen-call.voice-mode #video-local{display:none;}
+#voice-call-avatar{display:none;position:absolute;inset:0;z-index:2;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  background:radial-gradient(ellipse at 50% 30%,rgba(124,58,237,.28),transparent 60%),linear-gradient(180deg,#120c26,#05050a);}
+#screen-call.voice-mode #voice-call-avatar{display:flex;}
+.voice-av-circle{width:128px;height:128px;border-radius:50%;background:linear-gradient(135deg,#6D28D9,#F59E0B);display:flex;align-items:center;
+  justify-content:center;font-size:50px;font-weight:900;color:#fff;box-shadow:0 0 60px rgba(124,58,237,.5);}
 .call-header{position:absolute;top:0;left:0;right:0;z-index:10;padding:calc(16px + var(--safe-top)) 18px 28px;display:flex;
   align-items:flex-start;justify-content:space-between;background:linear-gradient(rgba(0,0,0,.6),transparent);}
 .call-peer-name{font-size:18px;font-weight:700;color:#fff;}
@@ -324,11 +332,11 @@ button,input,textarea{font-family:inherit;}
   background:linear-gradient(180deg,#0a0a0f,#05050a);}
 .outgoing-wrap.show{display:flex;}
 .ring-container{position:relative;width:150px;height:150px;display:flex;align-items:center;justify-content:center;}
-.ring-wave{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(13,148,136,.5);animation:ring-expand 1.9s ease-out infinite;}
+.ring-wave{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(124,58,237,.5);animation:ring-expand 1.9s ease-out infinite;}
 .ring-wave.w2{animation-delay:.63s;}.ring-wave.w3{animation-delay:1.26s;}
 @keyframes ring-expand{0%{transform:scale(.65);opacity:.9;}100%{transform:scale(2);opacity:0;}}
 .ring-circle{width:110px;height:110px;border-radius:50%;background:linear-gradient(135deg,var(--surface3),var(--surface2));
-  border:2.5px solid var(--accent);display:flex;align-items:center;justify-content:center;position:relative;z-index:2;box-shadow:0 0 50px rgba(13,148,136,.4);
+  border:2.5px solid var(--accent);display:flex;align-items:center;justify-content:center;position:relative;z-index:2;box-shadow:0 0 50px rgba(124,58,237,.4);
   font-size:40px;font-weight:800;color:var(--text);}
 .ring-name{font-size:24px;font-weight:800;color:#fff;letter-spacing:-.5px;}
 .ring-sub{font-size:14px;color:rgba(255,255,255,.6);}
@@ -342,7 +350,7 @@ button,input,textarea{font-family:inherit;}
 .ctrl-end{background:var(--red);box-shadow:0 6px 22px rgba(220,38,38,.55);width:64px;height:64px;color:#fff;font-size:24px;}
 .incoming-overlay{position:absolute;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;justify-content:space-between;
   padding-top:calc(48px + var(--safe-top));padding-bottom:calc(48px + var(--safe-bottom));padding-left:24px;padding-right:24px;
-  background:radial-gradient(ellipse at 50% 10%,rgba(13,148,136,.35),transparent 65%),linear-gradient(180deg,#080814 0%,#05050a 100%);}
+  background:radial-gradient(ellipse at 50% 10%,rgba(124,58,237,.35),transparent 65%),linear-gradient(180deg,#0a0818 0%,#05050a 100%);}
 .incoming-overlay.show{display:flex;}
 .inc-top{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;}
 .inc-app-badge{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:6px 16px;font-size:11px;font-weight:700;
@@ -350,13 +358,13 @@ button,input,textarea{font-family:inherit;}
 .inc-call-type{font-size:13px;color:rgba(255,255,255,.5);font-weight:600;margin-top:4px;}
 .inc-avatar-section{display:flex;flex-direction:column;align-items:center;gap:16px;}
 .inc-ring-wrap{position:relative;width:160px;height:160px;display:flex;align-items:center;justify-content:center;}
-.inc-ring-pulse{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(13,148,136,.4);animation:inc-expand 2s ease-out infinite;}
-.inc-ring-pulse.p2{animation-delay:.67s;border-color:rgba(13,148,136,.25);}
-.inc-ring-pulse.p3{animation-delay:1.33s;border-color:rgba(13,148,136,.15);}
+.inc-ring-pulse{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(124,58,237,.4);animation:inc-expand 2s ease-out infinite;}
+.inc-ring-pulse.p2{animation-delay:.67s;border-color:rgba(124,58,237,.25);}
+.inc-ring-pulse.p3{animation-delay:1.33s;border-color:rgba(124,58,237,.15);}
 @keyframes inc-expand{0%{transform:scale(.7);opacity:1;}100%{transform:scale(1.9);opacity:0;}}
-.inc-av-circle{width:120px;height:120px;border-radius:50%;position:relative;z-index:2;background:linear-gradient(135deg,#0F766E,#9F1239);
+.inc-av-circle{width:120px;height:120px;border-radius:50%;position:relative;z-index:2;background:linear-gradient(135deg,#6D28D9,#F59E0B);
   border:3px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:900;color:#fff;
-  box-shadow:0 0 60px rgba(13,148,136,.5),0 20px 50px rgba(0,0,0,.6);}
+  box-shadow:0 0 60px rgba(124,58,237,.5),0 20px 50px rgba(0,0,0,.6);}
 .inc-caller-name{font-size:30px;font-weight:800;color:#fff;letter-spacing:-.5px;text-align:center;}
 .inc-caller-sub{font-size:14px;color:rgba(255,255,255,.45);text-align:center;}
 .inc-actions-row{width:100%;display:flex;flex-direction:column;gap:16px;align-items:center;}
@@ -452,11 +460,11 @@ button,input,textarea{font-family:inherit;}
 .sr-text mark{background:var(--accent-light);color:var(--accent);border-radius:3px;padding:0 2px;font-style:normal;}
 .sr-time{font-size:11px;color:var(--text3);margin-top:3px;}
 .search-empty{padding:60px 24px;text-align:center;color:var(--text3);font-size:14px;}
-#conn-banner{position:fixed;top:calc(var(--safe-top) + 64px);left:0;right:0;z-index:80;background:rgba(10,10,15,.97);backdrop-filter:blur(12px);
+#conn-banner{position:fixed;top:calc(var(--safe-top) + 64px);left:0;right:0;z-index:80;background:rgba(10,8,20,.97);backdrop-filter:blur(12px);
   border-bottom:1px solid var(--border);padding:9px 18px;display:none;align-items:center;gap:10px;font-size:12.5px;color:var(--text2);}
 #conn-banner.show{display:flex;}
 .banner-dot{width:9px;height:9px;border-radius:50%;background:var(--yellow);animation:pulse 1s infinite;flex-shrink:0;}
-#notif-banner{background:linear-gradient(135deg,var(--accent-light),rgba(251,113,133,.08));border:1px solid rgba(13,148,136,.2);border-radius:var(--radius-sm);
+#notif-banner{background:linear-gradient(135deg,var(--accent-light),rgba(245,158,11,.08));border:1px solid rgba(124,58,237,.2);border-radius:var(--radius-sm);
   padding:14px 16px;display:none;align-items:center;gap:12px;margin:10px 14px 0;}
 #notif-banner.show{display:flex;}
 .nb-icon{font-size:22px;flex-shrink:0;}
@@ -464,8 +472,8 @@ button,input,textarea{font-family:inherit;}
 .nb-text b{color:var(--text);}
 .nb-enable{background:var(--accent);border:none;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;white-space:nowrap;}
 .nb-close{background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;flex-shrink:0;}
-#toast{position:fixed;bottom:calc(var(--nav-h) + var(--safe-bottom) + 14px);left:50%;transform:translateX(-50%);background:rgba(15,23,42,.97);
-  backdrop-filter:blur(16px);border:1px solid var(--border2);border-radius:26px;padding:12px 24px;font-size:13.5px;color:#F1F5F9;z-index:500;opacity:0;
+#toast{position:fixed;bottom:calc(var(--nav-h) + var(--safe-bottom) + 14px);left:50%;transform:translateX(-50%);background:rgba(15,10,30,.97);
+  backdrop-filter:blur(16px);border:1px solid var(--border2);border-radius:26px;padding:12px 24px;font-size:13.5px;color:#F3F1FA;z-index:500;opacity:0;
   transition:opacity .25s;pointer-events:none;white-space:nowrap;font-weight:600;max-width:90vw;overflow:hidden;text-overflow:ellipsis;
   box-shadow:0 8px 32px rgba(0,0,0,.4);}
 #toast.show{opacity:1;}
@@ -491,6 +499,17 @@ button,input,textarea{font-family:inherit;}
 ::-webkit-scrollbar{width:2px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+#admob-banner-slot{position:fixed;left:0;right:0;bottom:calc(var(--nav-h) + var(--safe-bottom));height:50px;z-index:85;
+  background:var(--surface2);border-top:1px solid var(--border);display:none;align-items:center;justify-content:center;
+  font-size:11px;color:var(--text3);letter-spacing:.5px;}
+#admob-banner-slot.show{display:flex;}
+.preview-sheet-media{width:100%;max-height:46vh;border-radius:14px;overflow:hidden;background:var(--surface2);
+  display:flex;align-items:center;justify-content:center;margin-bottom:4px;}
+.preview-sheet-media img,.preview-sheet-media video{width:100%;max-height:46vh;object-fit:contain;display:block;}
+.preview-file-row{display:flex;align-items:center;gap:14px;padding:8px 4px;}
+.preview-cap-inp{background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;
+  font-size:15px;color:var(--text);outline:none;width:100%;-webkit-appearance:none;}
+.preview-cap-inp:focus{border-color:var(--accent);}
 </style>
 </head>
 <body>
@@ -537,7 +556,7 @@ button,input,textarea{font-family:inherit;}
       <div class="pill"><span class="pill-dot"></span>File Sharing</div>
       <div class="pill"><span class="pill-dot"></span>Voice Notes</div>
     </div>
-    <div style="font-size:11px;color:var(--text3);text-align:center;">Unifest v3.3 · WebRTC End-to-End</div>
+    <div style="font-size:11px;color:var(--text3);text-align:center;">Unifest v3.4 · WebRTC End-to-End</div>
   </div>
 </div>
 <div id="screen-chats" class="screen tabbed">
@@ -584,7 +603,7 @@ button,input,textarea{font-family:inherit;}
       <div class="settings-section-title">Appearance</div>
       <div class="settings-group">
         <div class="settings-row" style="cursor:default;">
-          <div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(13,148,136,.1);">🌓</div><div><div class="s-label">Theme</div><div class="s-sub" id="theme-sub-text">System default</div></div></div>
+          <div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(124,58,237,.1);">🌓</div><div><div class="s-label">Theme</div><div class="s-sub" id="theme-sub-text">System default</div></div></div>
           <div class="theme-row"><button class="theme-opt active" id="to-auto">Auto</button><button class="theme-opt" id="to-light">☀️</button><button class="theme-opt" id="to-dark">🌙</button></div>
         </div>
       </div>
@@ -592,15 +611,16 @@ button,input,textarea{font-family:inherit;}
     <div class="settings-section">
       <div class="settings-section-title">Account</div>
       <div class="settings-group">
-        <div class="settings-row" id="switch-account-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(13,148,136,.1);">🔄</div><div><div class="s-label">Switch Account</div><div class="s-sub">Log in as a different ID</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="switch-account-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(124,58,237,.1);">🔄</div><div><div class="s-label">Switch Account</div><div class="s-sub">Log in as a different ID</div></div></div><div class="chevron">›</div></div>
       </div>
     </div>
     <div class="settings-section">
       <div class="settings-section-title">Notifications</div>
       <div class="settings-group">
         <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(5,150,105,.1);">🔔</div><div><div class="s-label">Ringtone</div><div class="s-sub">Sound on incoming calls</div></div></div><div class="toggle-sw on" id="ringtone-sw"></div></div>
+        <div class="settings-row" id="custom-ringtone-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(124,58,237,.1);">🎵</div><div><div class="s-label">Custom Ringtone</div><div class="s-sub" id="ringtone-sub-text">Default tone</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(245,158,11,.1);">📳</div><div><div class="s-label">Vibrate on call</div></div></div><div class="toggle-sw on" id="vibrate-sw"></div></div>
-        <div class="settings-row" id="push-toggle-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(251,113,133,.1);">📲</div><div><div class="s-label">Push Notifications</div><div class="s-sub" id="push-status-sub">Not enabled</div></div></div><div class="toggle-sw" id="push-sw"></div></div>
+        <div class="settings-row" id="push-toggle-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(245,158,11,.1);">📲</div><div><div class="s-label">Push Notifications</div><div class="s-sub" id="push-status-sub">Not enabled</div></div></div><div class="toggle-sw" id="push-sw"></div></div>
       </div>
     </div>
     <div class="settings-section">
@@ -619,7 +639,8 @@ button,input,textarea{font-family:inherit;}
     <div class="settings-section">
       <div class="settings-section-title">About</div>
       <div class="settings-group">
-        <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(13,148,136,.1);">✨</div><div><div class="s-label">Unifest</div><div class="s-sub">Version 3.3 · P2P Encrypted</div></div></div></div>
+        <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(124,58,237,.1);">✨</div><div><div class="s-label">Unifest</div><div class="s-sub">Version 3.4 · P2P Encrypted</div></div></div></div>
+        <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(245,158,11,.12);">👤</div><div><div class="s-label">Created by</div><div class="s-sub">Vahin Saxena</div></div></div></div>
         <div class="settings-row" id="clear-calls-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(220,38,38,.08);">🗑</div><div><div class="s-label">Clear Call History</div></div></div><div class="chevron">›</div></div>
       </div>
     </div>
@@ -664,6 +685,7 @@ button,input,textarea{font-family:inherit;}
 <div id="screen-call" class="screen">
   <video id="video-remote" autoplay playsinline webkit-playsinline></video>
   <video id="video-local" autoplay playsinline webkit-playsinline muted></video>
+  <div id="voice-call-avatar"><div class="voice-av-circle" id="voice-call-avatar-letter">?</div><div class="ring-name" id="voice-call-avatar-name">—</div><div class="ring-sub">Voice call</div></div>
   <div class="call-quality" id="call-quality">
     <div class="q-bars"><div class="q-bar on" style="height:5px;"></div><div class="q-bar on" style="height:9px;"></div><div class="q-bar on" id="qb3" style="height:13px;"></div><div class="q-bar on" id="qb4" style="height:17px;"></div></div>
     <span class="q-lbl" id="q-lbl">Good</span>
@@ -730,11 +752,12 @@ button,input,textarea{font-family:inherit;}
   <div class="search-results" id="search-results"><div class="search-empty">Type to search all conversations</div></div>
 </div>
 <input type="file" id="file-input" style="display:none;"/>
+<input type="file" id="ringtone-file-input" accept="audio/*" style="display:none;"/>
 <div class="overlay" id="attach-overlay">
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="attach-opt" id="attach-image-btn"><div class="attach-opt-icon" style="background:rgba(5,150,105,.12);">🖼️</div><div><div class="attach-opt-name">Photo / Video</div><div class="attach-opt-desc">Send from your gallery</div></div></div>
-    <div class="attach-opt" id="attach-doc-btn"><div class="attach-opt-icon" style="background:rgba(13,148,136,.12);">📄</div><div><div class="attach-opt-name">Document</div><div class="attach-opt-desc">Any file up to 50 MB</div></div></div>
+    <div class="attach-opt" id="attach-doc-btn"><div class="attach-opt-icon" style="background:rgba(124,58,237,.12);">📄</div><div><div class="attach-opt-name">Document</div><div class="attach-opt-desc">Any file up to 50 MB</div></div></div>
     <div class="attach-opt" id="attach-cancel-btn"><div class="attach-opt-icon" style="background:var(--surface2);">✕</div><div><div class="attach-opt-name">Cancel</div></div></div>
   </div>
 </div>
@@ -752,12 +775,24 @@ button,input,textarea{font-family:inherit;}
     <div class="modal-btn-row"><button class="modal-btn-cancel" style="flex:1;" id="blocked-modal-close-btn">Done</button></div>
   </div>
 </div>
+<div class="modal-overlay" id="ringtone-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div><div class="modal-title">Custom Ringtone</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.6;">Upload an MP3/audio file (max 1&nbsp;MB) to use as your incoming-call ringtone instead of the default tone.</div>
+    <button class="btn-primary" id="ringtone-pick-btn" style="background:var(--surface2);color:var(--text);box-shadow:none;border:1.5px solid var(--border2);">📁 Choose audio file…</button>
+    <div id="ringtone-current" style="font-size:13px;color:var(--text2);"></div>
+    <div class="modal-btn-row">
+      <button class="modal-btn-cancel" id="ringtone-reset-btn">Use Default</button>
+      <button class="btn-primary" style="flex:1;" id="ringtone-done-btn">Done</button>
+    </div>
+  </div>
+</div>
 <div class="ctx-overlay" id="ctx-overlay">
   <div class="ctx-sheet">
     <div class="ctx-preview" id="ctx-preview"></div>
-    <div class="ctx-row" id="ctx-reply-btn"><div class="ctx-ico" style="background:rgba(13,148,136,.1);">↩</div><span class="ctx-lbl">Reply</span></div>
+    <div class="ctx-row" id="ctx-reply-btn"><div class="ctx-ico" style="background:rgba(124,58,237,.1);">↩</div><span class="ctx-lbl">Reply</span></div>
     <div class="ctx-row" id="ctx-copy-btn"><div class="ctx-ico" style="background:rgba(5,150,105,.1);">📋</div><span class="ctx-lbl">Copy</span></div>
-    <div class="ctx-row" id="ctx-forward-btn"><div class="ctx-ico" style="background:rgba(251,113,133,.1);">↪</div><span class="ctx-lbl">Forward</span></div>
+    <div class="ctx-row" id="ctx-forward-btn"><div class="ctx-ico" style="background:rgba(245,158,11,.1);">↪</div><span class="ctx-lbl">Forward</span></div>
     <div class="ctx-row" id="ctx-delete-btn" style="color:var(--red);"><div class="ctx-ico" style="background:rgba(220,38,38,.1);">🗑</div><span class="ctx-lbl" style="color:var(--red);">Delete</span></div>
   </div>
 </div>
@@ -769,14 +804,31 @@ button,input,textarea{font-family:inherit;}
     <div class="rec-btns"><button class="rec-stop" id="rec-stop-btn">⏹ Stop &amp; Send</button><button class="rec-cancel-btn" id="rec-cancel-btn">✕ Cancel</button></div>
   </div>
 </div>
-<div id="sw-update-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:999;background:linear-gradient(135deg,#0D9488,#FB7185);color:#fff;padding:12px 18px;
+<div id="sw-update-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:999;background:linear-gradient(135deg,#7C3AED,#F59E0B);color:#fff;padding:12px 18px;
   align-items:center;justify-content:space-between;gap:12px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.3);">
   <span>✨ New version available!</span>
   <button onclick="swUpdate()" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:7px 16px;color:#fff;cursor:pointer;font-weight:700;font-size:12px;">Update Now</button>
 </div>
+<audio id="custom-ringtone-audio" loop preload="auto" style="display:none;"></audio>
+<div id="admob-banner-slot">Ad space — AdMob banner renders here (see setup notes)</div>
+<div class="modal-overlay" id="preview-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div><div class="modal-title" id="preview-modal-title">Send file</div>
+    <div class="preview-sheet-media" id="preview-media-wrap"></div>
+    <div class="preview-file-row" id="preview-file-row" style="display:none;">
+      <div class="attach-opt-icon" id="preview-file-icon" style="background:var(--accent-light);">📄</div>
+      <div><div class="s-label" id="preview-file-name">file</div><div class="s-sub" id="preview-file-size"></div></div>
+    </div>
+    <input class="preview-cap-inp" id="preview-caption-inp" placeholder="Add a caption (optional)…" autocomplete="off" maxlength="300"/>
+    <div class="modal-btn-row">
+      <button class="modal-btn-cancel" id="preview-cancel-btn">Cancel</button>
+      <button class="btn-primary" style="flex:1;" id="preview-send-btn">➤ Send</button>
+    </div>
+  </div>
+</div>
 <div id="toast"></div>
 <script>
-/* Unifest v3.3 */
+/* Unifest v3.4 · by Vahin Saxena */
 var PEER_LOADED=false;
 function loadPeerJS(cb){
   if(window.Peer){PEER_LOADED=true;if(cb)cb();return;}
@@ -798,7 +850,7 @@ var PEER_CONFIG={debug:0,config:{iceServers:[
   {urls:'turn:freeturn.net:3478',username:'free',credential:'free'}
 ],iceCandidatePoolSize:10}};
 var SK={MYID:'uf_myid_v3',CONTACTS:'uf_contacts_v3',DM:'uf_dm_v3',GRPH:'uf_grp_hist_v3',GRPM:'uf_grp_members_v3',
-  CALLS:'uf_calls_v3',SETTINGS:'uf_settings_v3',BLOCKED:'uf_blocked_v3',PINNED:'uf_pinned_v3',ONBOARDED:'uf_onboarded_v1'};
+  CALLS:'uf_calls_v3',SETTINGS:'uf_settings_v3',BLOCKED:'uf_blocked_v3',PINNED:'uf_pinned_v3',ONBOARDED:'uf_onboarded_v1',RINGTONE:'uf_ringtone_v1'};
 var myId='',peer=null,peerReady=false,reconnTimer=null;
 var localStream=null,currentCall=null,callPeerId='';
 var callConn=null,callTimer=null,callSecs=0;
@@ -811,6 +863,7 @@ var dmHistory={},groupHistory=[],groupMembers=[],callHistory=[];
 var recentPeers=[],onlinePeers={},unreadDM={};
 var blockedUsers=[],pinnedChats=[];
 var settings={ringtone:true,vibrate:true,backcam:false,confLimit:6,theme:'auto'};
+var customRingtoneDataUrl='';
 var incomingCall=null;
 var replyingTo=null,ctxMsg=null;
 var typingTimer=null,remoteTypingTimer=null;
@@ -820,7 +873,7 @@ var ringInterval=null,ringtoneMuted=false,vibrateInterval=null,outToneInterval=n
 var ringtoneCtx=null;
 var presenceInterval=null;
 var fileBlobs={};
-var FILE_CHUNK=16384,FILE_MAX=50*1024*1024;
+var FILE_CHUNK=16384,FILE_MAX=50*1024*1024,RINGTONE_MAX=1024*1024;
 var incomingFiles={};
 var currentTab='chats',obStep=0;
 var hunTimer=null;
@@ -836,7 +889,7 @@ var OB=[
 ];
 
 function ls_get(k,def){try{var v=localStorage.getItem(k);return v!==null?JSON.parse(v):def;}catch(e){return def;}}
-function ls_set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function ls_set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}}
 function saveAll(){
   ls_set(SK.CONTACTS,recentPeers);
   var dm2={};Object.keys(dmHistory).forEach(function(p){dm2[p]=(dmHistory[p]||[]).slice(-200);});
@@ -858,6 +911,9 @@ function loadAll(){
   pinnedChats=ls_get(SK.PINNED,[]);
   var s=ls_get(SK.SETTINGS,{});
   settings=Object.assign({ringtone:true,vibrate:true,backcam:false,confLimit:6,theme:'auto'},s);
+  customRingtoneDataUrl=localStorage.getItem(SK.RINGTONE)||'';
+  var ra=document.getElementById('custom-ringtone-audio');
+  if(ra&&customRingtoneDataUrl)ra.src=customRingtoneDataUrl;
 }
 function applyTheme(){
   var t=localStorage.getItem('uf_theme')||settings.theme||'auto';
@@ -876,6 +932,29 @@ function showScreen(id){
   var screens=document.querySelectorAll('.screen');
   for(var i=0;i<screens.length;i++)screens[i].classList.remove('active');
   var el=document.getElementById(id);if(el)el.classList.add('active');
+  setAdmobBannerVisible(!!(el&&el.classList.contains('tabbed')));
+}
+/* ── ADMOB PLACEHOLDER ──
+   This <div id="admob-banner-slot"> is a *visual placeholder only* — a real
+   AdMob banner cannot render as an HTML element inside a WebView (Google
+   policy forbids ads shown via WebView-injected content). In the Capacitor
+   Android build, wire up an actual banner using the community plugin:
+     npm install @capacitor-community/admob
+     npx cap sync
+   Then in AndroidManifest.xml add your AdMob App ID:
+     <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID"
+                android:value="ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY"/>
+   and in your Capacitor native bootstrap code (e.g. a small native plugin
+   call fired once on app start) call AdMob.initialize() then
+   AdMob.showBanner({adId:'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ', position:'BOTTOM_CENTER', ...})
+   — both the App ID and the Banner Ad Unit ID come from your AdMob console
+   (admob.google.com → Apps → your app → Ad units). The native banner will
+   dock itself right where this placeholder reserves space, since we already
+   size the tab bar / FAB / screen padding around --banner-h below. */
+function setAdmobBannerVisible(show){
+  var slot=document.getElementById('admob-banner-slot');if(!slot)return;
+  slot.classList.toggle('show',show);
+  document.documentElement.style.setProperty('--banner-h',show?'50px':'0px');
 }
 function obRender(){
   var s=OB[obStep];
@@ -953,7 +1032,7 @@ function startPeer(){
       }else{
         if(currentCall||(incomingCall&&!incomingCall.isConf)){try{mc.close();}catch(e){}return;}
         if(isBlocked(mc.peer)){try{mc.close();}catch(e){}return;}
-        incomingCall=mc;showIncoming(mc.peer,'call');
+        incomingCall=mc;showIncoming(mc.peer,(meta&&meta.voiceOnly)?'voice':'call');
       }
       addRecentSilent(mc.peer);notifyPeer(mc.peer,mc.metadata&&mc.metadata.type==='conf'?'conf':'call');
     });
@@ -1186,8 +1265,8 @@ function renderChats(filter){
     var meta=document.createElement('div');meta.className='cli-meta';
     if(last&&last.time){var td=document.createElement('div');td.className='cli-time';td.textContent=last.time;meta.appendChild(td);}
     if(u){var badge=document.createElement('div');badge.className='cli-badge';badge.textContent=u>99?'99+':u;meta.appendChild(badge);}
-    var cb=document.createElement('button');cb.className='cli-call-btn';cb.title='Call';cb.textContent='📞';
-    cb.onclick=function(p){return function(e){e.stopPropagation();startCall(p);};}(pid);
+    var cb=document.createElement('button');cb.className='cli-call-btn';cb.title='Voice call';cb.textContent='📞';
+    cb.onclick=function(p){return function(e){e.stopPropagation();startCall(p,true);};}(pid);
     item.appendChild(av);item.appendChild(info);item.appendChild(meta);item.appendChild(cb);
     body.appendChild(item);
   });
@@ -1247,7 +1326,8 @@ function buildChatHeader(pid){
   var hdr=document.getElementById('chat-header-actions');hdr.innerHTML='';
   function mkBtn(icon,title,fn){var b=document.createElement('button');b.className='chat-act-btn';b.title=title;b.textContent=icon;b.onclick=fn;return b;}
   hdr.appendChild(mkBtn('🔍','Search',openChatSearch));
-  hdr.appendChild(mkBtn('📞','Call',function(){startCall(pid);}));
+  hdr.appendChild(mkBtn('📞','Voice call',function(){startCall(pid,true);}));
+  hdr.appendChild(mkBtn('🎥','Video call',function(){startCall(pid,false);}));
   hdr.appendChild(mkBtn('⋮','More',function(){showChatOptions(pid);}));
 }
 function showChatOptions(pid){
@@ -1449,7 +1529,47 @@ function triggerFilePick(kind){
   inp.click();closeAttachMenu();
 }
 function genTfId(){return 'f'+Date.now()+'_'+Math.random().toString(36).slice(2,8);}
-async function sendFile(file){
+var pendingPreviewFile=null,pendingPreviewUrl=null;
+function openFilePreview(file){
+  if(!file)return;
+  if(file.size>FILE_MAX){toast('File too large — max 50 MB');return;}
+  pendingPreviewFile=file;
+  var isImage=file.type&&(file.type.startsWith('image/')||file.type.startsWith('video/'));
+  var mediaWrap=document.getElementById('preview-media-wrap'),fileRow=document.getElementById('preview-file-row');
+  document.getElementById('preview-caption-inp').value='';
+  document.getElementById('preview-modal-title').textContent=isImage?'Preview & send':'Send file';
+  if(pendingPreviewUrl){try{URL.revokeObjectURL(pendingPreviewUrl);}catch(e){}pendingPreviewUrl=null;}
+  mediaWrap.innerHTML='';
+  if(isImage){
+    fileRow.style.display='none';mediaWrap.style.display='flex';
+    pendingPreviewUrl=URL.createObjectURL(file);
+    if(file.type.startsWith('video/')){
+      var v=document.createElement('video');v.src=pendingPreviewUrl;v.controls=true;v.playsInline=true;mediaWrap.appendChild(v);
+    }else{
+      var im=document.createElement('img');im.src=pendingPreviewUrl;mediaWrap.appendChild(im);
+    }
+  }else{
+    mediaWrap.style.display='none';fileRow.style.display='flex';
+    document.getElementById('preview-file-icon').textContent=fileIcon(file.name||'');
+    document.getElementById('preview-file-name').textContent=file.name||'file';
+    document.getElementById('preview-file-size').textContent=fmtSize(file.size);
+  }
+  document.getElementById('preview-modal').classList.add('show');
+}
+function closeFilePreview(){
+  document.getElementById('preview-modal').classList.remove('show');
+  if(pendingPreviewUrl){try{URL.revokeObjectURL(pendingPreviewUrl);}catch(e){}pendingPreviewUrl=null;}
+  pendingPreviewFile=null;
+}
+function confirmFilePreview(){
+  if(!pendingPreviewFile)return;
+  var cap=document.getElementById('preview-caption-inp').value.trim();
+  var f=pendingPreviewFile;
+  document.getElementById('preview-modal').classList.remove('show');
+  pendingPreviewFile=null;pendingPreviewUrl=null;
+  sendFile(f,cap);
+}
+async function sendFile(file,caption){
   if(!file)return;
   if(file.size>FILE_MAX){toast('File too large — max 50 MB');return;}
   var tfId=genTfId();
@@ -1492,6 +1612,22 @@ async function sendFile(file){
       }
       conn2.send({type:'file-end',transferId:tfId});
     }catch(e){toast('File send failed: '+e.message);}
+  }
+  if(caption){
+    var capNow=fmtTime();
+    if(chatMode==='dm'){
+      var capMid='m'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+      var capMo={me:true,text:caption,time:capNow,_id:capMid,replyTo:null};
+      dmHistory[chatPeerId].push(capMo);ls_set(SK.DM,dmHistory);
+      removeEmpty('chat-msgs');appendMsg(true,caption,capNow,false,null,capMo);
+      var capPl={type:'chat-dm',text:caption,time:capNow,msgId:capMid,replyTo:null};
+      if(chatConn&&chatConn.open)try{chatConn.send(capPl);}catch(e){}
+      notifyPeerMsg(chatPeerId,caption);
+    }else{
+      groupHistory.push({sender:myId,text:caption,time:capNow});ls_set(SK.GRPH,groupHistory);
+      removeEmpty('chat-msgs');appendGroupMsg(myId,caption,capNow);
+      Object.keys(groupConns).forEach(function(pid){var c=groupConns[pid];if(c&&c.open)try{c.send({type:'chat-group',text:caption,time:capNow});}catch(e){};});
+    }
   }
 }
 function handleFileMeta(from,meta){
@@ -1613,7 +1749,7 @@ function renderCallHistory(){
     mt.innerHTML='<span style="color:'+color+';">'+icon+'</span> <span style="color:'+color+';font-weight:600;">'+label+'</span> <span>· '+ds+'</span>';
     info.appendChild(nm);info.appendChild(mt);
     var btn=document.createElement('button');btn.className='call-log-btn';btn.title='Call back';btn.textContent='📞';
-    btn.onclick=function(p){return function(){startCall(p);};}(h.pid);
+    btn.onclick=function(p){return function(){startCall(p,true);};}(h.pid);
     item.appendChild(av);item.appendChild(info);item.appendChild(btn);body.appendChild(item);
   });
 }
@@ -1622,6 +1758,7 @@ function applySettingsToUI(){
   var rs=document.getElementById('ringtone-sw');if(rs)rs.classList.toggle('on',settings.ringtone);
   var vs=document.getElementById('vibrate-sw');if(vs)vs.classList.toggle('on',settings.vibrate);
   var cs=document.getElementById('backcam-sw');if(cs)cs.classList.toggle('on',settings.backcam);
+  var rt=document.getElementById('ringtone-sub-text');if(rt)rt.textContent=customRingtoneDataUrl?'Custom tone set ✓':'Default tone';
   renderGroupDesc();
 }
 function toggleSetting(key){
@@ -1633,18 +1770,17 @@ function toggleSetting(key){
 function syncSettingsUI(){
   var el=document.getElementById('settings-uname');if(el)el.textContent=myId;
   el=document.getElementById('settings-uid-text');if(el)el.textContent=myId;
-  refreshPushUI();updateBlockedCountUI();
+  refreshPushUI();updateBlockedCountUI();applySettingsToUI();
 }
 function getAudioCtx(){
   if(!ringtoneCtx){try{ringtoneCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}}
   if(ringtoneCtx.state==='suspended')try{ringtoneCtx.resume();}catch(e){}
   return ringtoneCtx;
 }
-/* ── SMARTWATCH-STYLE ESCALATING RING ──
-   Mimics wearable ringing: starts gentle (short double-tap buzz + soft tone),
-   then escalates in intensity/frequency every ~6s if unanswered, same pattern
-   watches (Wear OS / watchOS) use to make sure you don't miss a call. */
-var ringEscalateStep=0,ringEscalateTimer=null;
+/* ── RINGTONE ──
+   Uses the user's uploaded MP3 (looped <audio>) if set, otherwise falls back
+   to a smartwatch-style escalating synthesized tone + vibration pattern. */
+var ringEscalateStep=0;
 var RING_PATTERNS=[
   {vib:[220,120,220],tone:0.16,gap:2200},
   {vib:[260,110,260,110,260],tone:0.20,gap:1700},
@@ -1668,6 +1804,13 @@ function doVibratePattern(pattern){
 }
 function startRing(){
   stopRing();ringEscalateStep=0;
+  if(customRingtoneDataUrl&&settings.ringtone&&!ringtoneMuted){
+    var ra=document.getElementById('custom-ringtone-audio');
+    try{ra.currentTime=0;ra.play().catch(function(){});}catch(e){}
+    doVibratePattern(RING_PATTERNS[0].vib);
+    vibrateInterval=setInterval(function(){doVibratePattern(RING_PATTERNS[Math.min(ringEscalateStep,2)].vib);if(ringEscalateStep<2)ringEscalateStep++;},2200);
+    return;
+  }
   runRingStep();
 }
 function runRingStep(){
@@ -1681,13 +1824,48 @@ function runRingStep(){
 }
 function stopRing(){
   clearTimeout(ringInterval);ringInterval=null;
-  clearTimeout(ringEscalateTimer);ringEscalateTimer=null;
+  clearInterval(vibrateInterval);vibrateInterval=null;
+  var ra=document.getElementById('custom-ringtone-audio');
+  try{if(ra){ra.pause();ra.currentTime=0;}}catch(e){}
   try{if(navigator.vibrate)navigator.vibrate(0);}catch(e){}
 }
 function toggleRingMute(){
   ringtoneMuted=!ringtoneMuted;
   document.getElementById('ring-toggle-btn').textContent=ringtoneMuted?'🔇 Muted':'🔊 Sound';
   if(ringtoneMuted)stopRing();else startRing();
+}
+function openRingtoneModal(){
+  var cur=document.getElementById('ringtone-current');
+  cur.textContent=customRingtoneDataUrl?'✓ Custom ringtone is active':'Using the default Unifest tone';
+  document.getElementById('ringtone-modal').classList.add('show');
+}
+function closeRingtoneModal(){document.getElementById('ringtone-modal').classList.remove('show');}
+function pickRingtoneFile(){document.getElementById('ringtone-file-input').click();}
+function handleRingtoneFile(file){
+  if(!file)return;
+  if(!file.type.startsWith('audio/')){toast('Please choose an audio file');return;}
+  if(file.size>RINGTONE_MAX){toast('Ringtone must be under 1 MB');return;}
+  var reader=new FileReader();
+  reader.onload=function(){
+    var dataUrl=reader.result;
+    var ok=false;
+    try{localStorage.setItem(SK.RINGTONE,dataUrl);ok=true;}catch(e){ok=false;}
+    if(!ok){toast('Could not save ringtone — file too large for storage');return;}
+    customRingtoneDataUrl=dataUrl;
+    var ra=document.getElementById('custom-ringtone-audio');if(ra)ra.src=dataUrl;
+    applySettingsToUI();
+    var cur=document.getElementById('ringtone-current');if(cur)cur.textContent='✓ Custom ringtone is active';
+    toast('Ringtone updated 🎵');
+  };
+  reader.onerror=function(){toast('Could not read file');};
+  reader.readAsDataURL(file);
+}
+function resetRingtone(){
+  customRingtoneDataUrl='';localStorage.removeItem(SK.RINGTONE);
+  var ra=document.getElementById('custom-ringtone-audio');if(ra)ra.removeAttribute('src');
+  applySettingsToUI();
+  var cur=document.getElementById('ringtone-current');if(cur)cur.textContent='Using the default Unifest tone';
+  toast('Reset to default tone');
 }
 function playOutToneOnce(){
   var ctx=getAudioCtx();if(!ctx)return;
@@ -1721,22 +1899,35 @@ async function getStream(facing){
   for(var i=0;i<tries.length;i++){try{return await navigator.mediaDevices.getUserMedia(tries[i]);}catch(e){lastErr=e;}}
   throw lastErr||new Error('No camera');
 }
-async function startCall(pid){
+async function getAudioOnlyStream(){return navigator.mediaDevices.getUserMedia({audio:true,video:false});}
+var callIsVoiceOnly=false;
+function setVoiceMode(on,pid){
+  var sc=document.getElementById('screen-call');sc.classList.toggle('voice-mode',!!on);
+  if(on){
+    document.getElementById('voice-call-avatar-letter').textContent=(pid||'?')[0].toUpperCase();
+    document.getElementById('voice-call-avatar-name').textContent=pid||'—';
+  }
+  var camBtn=document.getElementById('btn-cam');if(camBtn)camBtn.style.display=on?'none':'flex';
+  var flipBtn=document.getElementById('btn-flip');if(flipBtn)flipBtn.style.display=on?'none':'flex';
+}
+async function startCall(pid,voiceOnly){
   if(!pid){toast('Enter an ID');return;}if(pid===myId){toast("Can't call yourself");return;}
   if(!peer||!peerReady){toast('Not connected yet');return;}if(currentCall){toast('Already in a call');return;}
   if(isBlocked(pid)){toast('You have blocked this user');return;}
-  callPeerId=pid;addRecentSilent(pid);facingMode=settings.backcam?'environment':'user';
-  try{localStream=await getStream(facingMode);}catch(e){toast('Camera/mic access denied');return;}
-  showScreen('screen-call');requestWakeLock();
+  callPeerId=pid;addRecentSilent(pid);callIsVoiceOnly=!!voiceOnly;
+  facingMode=settings.backcam?'environment':'user';
+  try{localStream=voiceOnly?await getAudioOnlyStream():await getStream(facingMode);}
+  catch(e){toast(voiceOnly?'Microphone access denied':'Camera/mic access denied');return;}
+  showScreen('screen-call');setVoiceMode(voiceOnly,pid);requestWakeLock();
   document.getElementById('call-peer-name').textContent=pid;
   document.getElementById('call-status').textContent='Calling…';
   var lv=document.getElementById('video-local');lv.srcObject=localStream;applyMirror(lv,facingMode);
   document.getElementById('out-avatar').textContent=pid[0].toUpperCase();
   document.getElementById('out-name').textContent=pid;
   document.getElementById('outgoing-wrap').classList.add('show');
-  startOutTone();notifyPeer(pid,'call');
+  startOutTone();notifyPeer(pid,voiceOnly?'voice-call':'call');
   try{
-    currentCall=peer.call(pid,localStream,{metadata:{facing:facingMode}});
+    currentCall=peer.call(pid,localStream,{metadata:{facing:facingMode,voiceOnly:!!voiceOnly}});
     currentCall.on('stream',function(rs){
       stopOutTone();var rv=document.getElementById('video-remote');rv.srcObject=rs;
       document.getElementById('call-status').textContent='Connected ✓';
@@ -1750,19 +1941,19 @@ async function startCall(pid){
   }catch(e){toast('Call error: '+e.message);endCall();}
 }
 function showIncoming(pid,kind){
-  showScreen('screen-call');
+  showScreen('screen-call');setVoiceMode(kind==='voice',pid);
   document.getElementById('outgoing-wrap').classList.remove('show');
   document.getElementById('inc-avatar').textContent=pid[0].toUpperCase();
   document.getElementById('inc-name').textContent=pid;
   document.getElementById('inc-sub').textContent='Unifest · P2P Encrypted';
-  document.getElementById('inc-call-type').textContent=kind==='conf'?'Conference Call Invite':'Incoming Video Call';
+  document.getElementById('inc-call-type').textContent=kind==='conf'?'Conference Call Invite':(kind==='voice'?'Incoming Voice Call':'Incoming Video Call');
   document.getElementById('call-peer-name').textContent=pid;
   document.getElementById('call-status').textContent=kind==='conf'?'Conference invite':'Incoming call';
   ringtoneMuted=false;
   document.getElementById('ring-toggle-btn').textContent='🔊 Sound';
   document.getElementById('incoming-overlay').classList.add('show');
   startRing();
-  showHUN('call',pid,kind==='conf'?'Conference invite':'Incoming video call',function(){showScreen('screen-call');},function(){declineCall();});
+  showHUN('call',pid,kind==='conf'?'Conference invite':(kind==='voice'?'Incoming voice call':'Incoming video call'),function(){showScreen('screen-call');},function(){declineCall();});
 }
 async function acceptCall(){
   document.getElementById('incoming-overlay').classList.remove('show');
@@ -1784,8 +1975,9 @@ async function acceptCall(){
     return;
   }
   try{
+    var incMeta=incomingCall.metadata||{};callIsVoiceOnly=!!incMeta.voiceOnly;
     facingMode=settings.backcam?'environment':'user';
-    var stream=await getStream(facingMode);localStream=stream;
+    var stream=callIsVoiceOnly?await getAudioOnlyStream():await getStream(facingMode);localStream=stream;
     var lv=document.getElementById('video-local');lv.srcObject=localStream;applyMirror(lv,facingMode);
     incomingCall.answer(localStream);currentCall=incomingCall;callPeerId=currentCall.peer;
     document.getElementById('call-status').textContent='Connected ✓';
@@ -1813,7 +2005,7 @@ function endCall(){
   document.getElementById('call-chat-panel').classList.remove('show');
   document.getElementById('cc-msgs').innerHTML='';
   document.getElementById('call-quality').classList.remove('show');
-  mutedAudio=false;mutedVideo=false;
+  mutedAudio=false;mutedVideo=false;callIsVoiceOnly=false;setVoiceMode(false);
   document.getElementById('btn-mute').style.background='';document.getElementById('btn-mute').textContent='🎤';
   document.getElementById('btn-cam').style.background='';document.getElementById('btn-cam').textContent='📷';
   releaseWakeLock();showScreen('screen-chats');switchTab('chats');renderChats();
@@ -2034,10 +2226,19 @@ function notifyPeerMsg(toId,text){
   if(!toId)return;
   try{fetch(NOTIF_API+'/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:toId,type:'message',from:myId,text:text})}).catch(function(){});}catch(e){}
 }
-/* ── WEB PUSH (works when app/tab is closed) ──
-   Uses the browser Push API + VAPID (free, no Firebase billing needed).
-   Requires: VAPID keys generated once, backend /subscribe + /notify-push routes
-   using the "web-push" npm package. See setup notes given separately. */
+/* ── WEB PUSH ──
+   Works while the browser/WebView process is alive (even tab backgrounded).
+   NOTE for the native Android/Capacitor build: a true "ring until answered"
+   experience when the app is fully killed needs a native call-style
+   notification (Android CallStyle / full-screen-intent) driven by FCM data
+   messages, not something achievable from page JS alone. Pair this web-push
+   handler with a native plugin (e.g. capacitor-android full-screen-intent
+   or a dedicated VoIP/call-notification plugin) that: (1) receives the FCM
+   data payload directly in a background service, (2) posts a high-priority
+   notification on a channel with importance IMPORTANCE_HIGH + a custom
+   ringtone sound + setFullScreenIntent(), so Android shows the accept/decline
+   UI over the lock screen exactly like WhatsApp, even if this page was never
+   loaded. */
 function urlB64ToUint8Array(base64String){
   var padding='='.repeat((4-base64String.length%4)%4);
   var base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
@@ -2085,15 +2286,30 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function removeEmpty(containerId){var el=document.getElementById(containerId);if(el){var e=el.querySelector('.empty-state');if(e)e.remove();}}
 var toastTm;
 function toast(msg){var el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTm);toastTm=setTimeout(function(){el.classList.remove('show');},3400);}
+/* ── KEYBOARD / VISIBLE-INPUT FIX ──
+   On Android (esp. inside a Capacitor WebView) a fixed-position body plus a
+   resizing on-screen keyboard can leave the message input hidden behind the
+   keyboard. We keep the layout pinned to the *visual* viewport height (not
+   the layout viewport), which is what actually shrinks when the keyboard
+   opens, and re-anchor scroll after every resize so the input bar + the
+   text you're typing stay on-screen. */
 function setupKeyboardFix(){
   var chatInp=document.getElementById('chat-input');if(!chatInp)return;
   chatInp.addEventListener('input',function(){autoResizeTA();onChatTyping();});
   chatInp.addEventListener('focus',function(){setTimeout(function(){var msgs=document.getElementById('chat-msgs');if(msgs)msgs.scrollTop=msgs.scrollHeight;},400);});
   if(window.visualViewport){
-    window.visualViewport.addEventListener('resize',function(){
-      var screen=document.getElementById('screen-chat');if(!screen||!screen.classList.contains('active'))return;
-      var msgs=document.getElementById('chat-msgs');if(msgs){setTimeout(function(){msgs.scrollTop=msgs.scrollHeight;},150);}
-    });
+    var vv=window.visualViewport;
+    function syncViewport(){
+      document.documentElement.style.setProperty('--app-h',vv.height+'px');
+      document.body.style.height=vv.height+'px';
+      var screen=document.getElementById('screen-chat');
+      if(screen&&screen.classList.contains('active')){
+        var msgs=document.getElementById('chat-msgs');
+        if(msgs)setTimeout(function(){msgs.scrollTop=msgs.scrollHeight;},60);
+      }
+    }
+    vv.addEventListener('resize',syncViewport);
+    vv.addEventListener('scroll',syncViewport);
   }
 }
 function bindEvents(){
@@ -2130,6 +2346,12 @@ function bindEvents(){
   document.getElementById('ringtone-sw').addEventListener('click',function(){toggleSetting('ringtone');});
   document.getElementById('vibrate-sw').addEventListener('click',function(){toggleSetting('vibrate');});
   document.getElementById('backcam-sw').addEventListener('click',function(){toggleSetting('backcam');});
+  document.getElementById('custom-ringtone-row').addEventListener('click',openRingtoneModal);
+  document.getElementById('ringtone-pick-btn').addEventListener('click',pickRingtoneFile);
+  document.getElementById('ringtone-file-input').addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRingtoneFile(f);});
+  document.getElementById('ringtone-reset-btn').addEventListener('click',resetRingtone);
+  document.getElementById('ringtone-done-btn').addEventListener('click',closeRingtoneModal);
+  document.getElementById('ringtone-modal').addEventListener('click',function(e){if(e.target===this)closeRingtoneModal();});
   document.getElementById('push-toggle-row').addEventListener('click',enableNotifs);
   document.getElementById('conf-limit-minus').addEventListener('click',function(){settings.confLimit=Math.max(2,settings.confLimit-1);saveAll();applySettingsToUI();});
   document.getElementById('conf-limit-plus').addEventListener('click',function(){settings.confLimit=Math.min(12,settings.confLimit+1);saveAll();applySettingsToUI();});
@@ -2153,7 +2375,10 @@ function bindEvents(){
   document.getElementById('attach-image-btn').addEventListener('click',function(){triggerFilePick('image');});
   document.getElementById('attach-doc-btn').addEventListener('click',function(){triggerFilePick('any');});
   document.getElementById('attach-cancel-btn').addEventListener('click',closeAttachMenu);
-  document.getElementById('file-input').addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];e.target.value='';if(f)sendFile(f);});
+  document.getElementById('file-input').addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];e.target.value='';if(f)openFilePreview(f);});
+  document.getElementById('preview-cancel-btn').addEventListener('click',closeFilePreview);
+  document.getElementById('preview-send-btn').addEventListener('click',confirmFilePreview);
+  document.getElementById('preview-modal').addEventListener('click',function(e){if(e.target===this)closeFilePreview();});
   document.getElementById('new-chat-modal').addEventListener('click',function(e){if(e.target===this)closeNewChatModal();});
   document.getElementById('new-chat-cancel-btn').addEventListener('click',closeNewChatModal);
   document.getElementById('new-chat-start-btn').addEventListener('click',startChatFromModal);
