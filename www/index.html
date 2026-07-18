@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -939,23 +940,7 @@ function showScreen(id){
   var el=document.getElementById(id);if(el)el.classList.add('active');
   setAdmobBannerVisible(!!(el&&el.classList.contains('tabbed')));
 }
-/* ── ADMOB PLACEHOLDER ──
-   This <div id="admob-banner-slot"> is a *visual placeholder only* — a real
-   AdMob banner cannot render as an HTML element inside a WebView (Google
-   policy forbids ads shown via WebView-injected content). In the Capacitor
-   Android build, wire up an actual banner using the community plugin:
-     npm install @capacitor-community/admob
-     npx cap sync
-   Then in AndroidManifest.xml add your AdMob App ID:
-     <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID"
-                android:value="ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY"/>
-   and in your Capacitor native bootstrap code (e.g. a small native plugin
-   call fired once on app start) call AdMob.initialize() then
-   AdMob.showBanner({adId:'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ', position:'BOTTOM_CENTER', ...})
-   — both the App ID and the Banner Ad Unit ID come from your AdMob console
-   (admob.google.com → Apps → your app → Ad units). The native banner will
-   dock itself right where this placeholder reserves space, since we already
-   size the tab bar / FAB / screen padding around --banner-h below. */
+/* AdMob: real banner needs a native plugin (@capacitor-community/admob) — this div is just layout space. */
 function setAdmobBannerVisible(show){
   var slot=document.getElementById('admob-banner-slot');if(slot)slot.classList.toggle('show',show);
   var vslot=document.getElementById('admob-vertical-slot');if(vslot)vslot.classList.toggle('show',show);
@@ -1086,12 +1071,9 @@ var keepAliveInterval=null;
 function startKeepAlive(){
   if(keepAliveInterval)clearInterval(keepAliveInterval);
   keepAliveInterval=setInterval(function(){
-    try{
-      if(peer&&!peer.destroyed&&peer.disconnected)peer.reconnect();
-      [chatConn].concat(Object.values(groupConns||{})).concat(Object.values(confConns||{})).forEach(function(c){
-        if(c&&c.open)try{c.send({type:'ka'});}catch(e){}
-      });
-    }catch(e){}
+    if(currentCall||incomingCall||Object.keys(confCalls).length)return;
+    showBanner('Reconnecting…');
+    startPeerRobust();
   },30000);
 }
 function checkPresence(){
@@ -1184,7 +1166,6 @@ function handleData(from,data,conn){
     case 'file-meta':handleFileMeta(from,data);break;
     case 'file-chunk':handleFileChunk(data);break;
     case 'file-end':handleFileEnd(data.transferId);break;
-    case 'ka':break;
   }
 }
 function isBlocked(pid){return blockedUsers.indexOf(pid)>-1;}
@@ -1795,9 +1776,7 @@ function getAudioCtx(){
   if(ringtoneCtx.state==='suspended')try{ringtoneCtx.resume();}catch(e){}
   return ringtoneCtx;
 }
-/* ── RINGTONE ──
-   Uses the user's uploaded MP3 (looped <audio>) if set, otherwise falls back
-   to a smartwatch-style escalating synthesized tone + vibration pattern. */
+/* Ringtone: custom MP3 if set, else synthesized escalating tone + vibration. */
 var ringEscalateStep=0;
 var RING_PATTERNS=[
   {vib:[220,120,220],tone:0.16,gap:2200},
@@ -2244,19 +2223,7 @@ function notifyPeerMsg(toId,text){
   if(!toId)return;
   try{fetch(NOTIF_API+'/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:toId,type:'message',from:myId,text:text})}).catch(function(){});}catch(e){}
 }
-/* ── WEB PUSH ──
-   Works while the browser/WebView process is alive (even tab backgrounded).
-   NOTE for the native Android/Capacitor build: a true "ring until answered"
-   experience when the app is fully killed needs a native call-style
-   notification (Android CallStyle / full-screen-intent) driven by FCM data
-   messages, not something achievable from page JS alone. Pair this web-push
-   handler with a native plugin (e.g. capacitor-android full-screen-intent
-   or a dedicated VoIP/call-notification plugin) that: (1) receives the FCM
-   data payload directly in a background service, (2) posts a high-priority
-   notification on a channel with importance IMPORTANCE_HIGH + a custom
-   ringtone sound + setFullScreenIntent(), so Android shows the accept/decline
-   UI over the lock screen exactly like WhatsApp, even if this page was never
-   loaded. */
+/* Web Push: works while the WebView process is alive. Full killed-app ringing needs a native FCM full-screen-intent plugin. */
 function urlB64ToUint8Array(base64String){
   var padding='='.repeat((4-base64String.length%4)%4);
   var base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
@@ -2304,13 +2271,7 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function removeEmpty(containerId){var el=document.getElementById(containerId);if(el){var e=el.querySelector('.empty-state');if(e)e.remove();}}
 var toastTm;
 function toast(msg){var el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTm);toastTm=setTimeout(function(){el.classList.remove('show');},3400);}
-/* ── KEYBOARD / VISIBLE-INPUT FIX ──
-   On Android (esp. inside a Capacitor WebView) a fixed-position body plus a
-   resizing on-screen keyboard can leave the message input hidden behind the
-   keyboard. We keep the layout pinned to the *visual* viewport height (not
-   the layout viewport), which is what actually shrinks when the keyboard
-   opens, and re-anchor scroll after every resize so the input bar + the
-   text you're typing stay on-screen. */
+/* Keeps layout pinned to the visual viewport so the input bar stays above the on-screen keyboard. */
 function setupKeyboardFix(){
   var chatInp=document.getElementById('chat-input');if(!chatInp)return;
   chatInp.addEventListener('input',function(){autoResizeTA();onChatTyping();});
