@@ -94,14 +94,21 @@ self.addEventListener('push', (event) => {
   }
 
   event.waitUntil(
-    self.registration.getNotifications({ tag }).then((existing) => {
-      existing.forEach((n) => n.close());
-      return self.registration.showNotification(title, {
-        body, icon, badge: icon, tag, renotify: true,
-        requireInteraction, actions, vibrate, silent: false,
-        data: { type, from, text, ts: Date.now() },
-      });
-    })
+    Promise.all([
+      self.registration.getNotifications({ tag }).then((existing) => {
+        existing.forEach((n) => n.close());
+        return self.registration.showNotification(title, {
+          body, icon, badge: icon, tag, renotify: true,
+          requireInteraction, actions, vibrate, silent: false,
+          data: { type, from, text, ts: Date.now() },
+        });
+      }),
+      (type === 'call' || type === 'conf')
+        ? self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) =>
+            clients.forEach((c) => c.postMessage({ kind: 'reconnect-now', notifType: type, from }))
+          )
+        : Promise.resolve(),
+    ])
   );
 });
 
