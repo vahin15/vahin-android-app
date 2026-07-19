@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "877018616752",
+    "project_id": "unifest-99468",
+    "storage_bucket": "unifest-99468.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:877018616752:android:7144783551cc8ec7133c75",
+        "android_client_info": {
+          "package_name": "com.vahin.connect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDgrQoTDZYlzdlL6Kl4i9-Tya-twpjiOJM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
