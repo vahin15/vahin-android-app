@@ -25,7 +25,7 @@ const config: CapacitorConfig = {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
     Keyboard: {
-      resize: 'body',
+      resize: 'none',
       resizeOnFullScreen: true,
     },
     StatusBar: {

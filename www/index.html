@@ -34,6 +34,7 @@
   --nav-h:62px;
   --banner-h:0px;
   --ads-right:0px;
+  --kb-h:0px;
 }
 html.dark{
   --bg:#0C0918;--surface:#161029;--surface2:#1F1840;--surface3:#2B2150;
@@ -202,7 +203,7 @@ button,input,textarea{font-family:inherit;}
 .stepper-btn{width:34px;height:34px;border-radius:10px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-size:20px;font-weight:700;
   cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .stepper-val{font-size:18px;font-weight:800;color:var(--text);min-width:24px;text-align:center;}
-#screen-chat{z-index:40;}
+#screen-chat{z-index:40;padding-bottom:var(--kb-h,0px);transition:padding-bottom .12s ease;}
 .chat-top{background:var(--surface);border-bottom:1px solid var(--border);height:66px;padding:0 10px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .chat-back{background:none;border:none;color:var(--text);font-size:30px;font-weight:700;cursor:pointer;min-width:36px;min-height:48px;display:flex;align-items:center;touch-action:manipulation;}
 .chat-peer-av{width:42px;height:42px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--surface3),var(--border2));
@@ -851,6 +852,7 @@ function loadPeerJS(cb){
   }
   tryNext();
 }
+window.VAHIN_VAPID_PUBLIC='BPTwiaqMEsx1_hbuySGED8xn1n8KXoWzpZmjnKwHZpIl_sbrEi-LpDPSCgiBXRg96gUkmDXQYbPx5Z_C1f937IU';
 var NOTIF_API=(window.VAHIN_NOTIF_API||'https://vahin-backend.onrender.com');
 var PEER_CONFIG={debug:0,config:{iceServers:[
   {urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'},
@@ -882,7 +884,7 @@ var ringInterval=null,ringtoneMuted=false,vibrateInterval=null,outToneInterval=n
 var ringtoneCtx=null;
 var presenceInterval=null;
 var fileBlobs={};
-var FILE_CHUNK=16384,FILE_MAX=50*1024*1024,RINGTONE_MAX=1024*1024;
+var FILE_CHUNK=16384,FILE_MAX=50*1024*1024,RINGTONE_MAX=5*1024*1024;
 var incomingFiles={};
 var currentTab='chats',obStep=0;
 var hunTimer=null;
@@ -1894,7 +1896,7 @@ function looksLikeAudio(file){
 function handleRingtoneFile(file){
   if(!file)return;
   if(!looksLikeAudio(file)){toast('Please choose an audio/MP3 file');return;}
-  if(file.size>RINGTONE_MAX){toast('Ringtone must be under 1 MB');return;}
+  if(file.size>RINGTONE_MAX){toast('That file is '+(file.size/1024/1024).toFixed(1)+' MB — ringtones must be under 5 MB. Try trimming the clip.');return;}
   var reader=new FileReader();
   reader.onload=function(){
     var dataUrl=reader.result;
@@ -2375,21 +2377,39 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function removeEmpty(containerId){var el=document.getElementById(containerId);if(el){var e=el.querySelector('.empty-state');if(e)e.remove();}}
 var toastTm;
 function toast(msg){var el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTm);toastTm=setTimeout(function(){el.classList.remove('show');},3400);}
-/* Keeps layout pinned to the visual viewport so the input bar stays above the on-screen keyboard. */
+/* Keeps the input bar (and attach button) visible above the on-screen keyboard.
+   Prefers the native Capacitor Keyboard plugin (accurate on Android WebView);
+   falls back to visualViewport for the PWA/Electron builds where the plugin isn't present. */
 function setupKeyboardFix(){
   var chatInp=document.getElementById('chat-input');if(!chatInp)return;
   chatInp.addEventListener('input',function(){autoResizeTA();onChatTyping();});
   chatInp.addEventListener('focus',function(){setTimeout(function(){var msgs=document.getElementById('chat-msgs');if(msgs)msgs.scrollTop=msgs.scrollHeight;},400);});
-  if(window.visualViewport){
+
+  function setKbHeight(px){
+    document.documentElement.style.setProperty('--kb-h',Math.max(0,px)+'px');
+    var screen=document.getElementById('screen-chat');
+    if(screen&&screen.classList.contains('active')){
+      var msgs=document.getElementById('chat-msgs');
+      if(msgs)setTimeout(function(){msgs.scrollTop=msgs.scrollHeight;},60);
+    }
+  }
+
+  var Cap=window.Capacitor;
+  if(Cap&&Cap.Plugins&&Cap.Plugins.Keyboard){
+    var KB=Cap.Plugins.Keyboard;
+    try{
+      KB.addListener('keyboardWillShow',function(info){setKbHeight(info&&info.keyboardHeight||0);});
+      KB.addListener('keyboardDidShow',function(info){setKbHeight(info&&info.keyboardHeight||0);});
+      KB.addListener('keyboardWillHide',function(){setKbHeight(0);});
+      KB.addListener('keyboardDidHide',function(){setKbHeight(0);});
+    }catch(e){console.warn('Keyboard plugin listener failed',e);}
+  }else if(window.visualViewport){
     var vv=window.visualViewport;
     function syncViewport(){
+      var kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);
       document.documentElement.style.setProperty('--app-h',vv.height+'px');
       document.body.style.height=vv.height+'px';
-      var screen=document.getElementById('screen-chat');
-      if(screen&&screen.classList.contains('active')){
-        var msgs=document.getElementById('chat-msgs');
-        if(msgs)setTimeout(function(){msgs.scrollTop=msgs.scrollHeight;},60);
-      }
+      setKbHeight(kb);
     }
     vv.addEventListener('resize',syncViewport);
     vv.addEventListener('scroll',syncViewport);
