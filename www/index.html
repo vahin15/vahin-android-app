@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -22,22 +21,24 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
-  --bg:#F5F3FB;--surface:#FFFFFF;--surface2:#F1EEFA;--surface3:#E3DEF5;
-  --accent:#7C3AED;--accent2:#6D28D9;--accent-light:#EDE7FC;
-  --grad-a:#7C3AED;--grad-b:#F59E0B;
+  --bg:#F6F4FC;--surface:#FFFFFF;--surface2:#F0ECFA;--surface3:#E1D9F6;
+  --accent:#7C3AED;--accent2:#5B21B6;--accent-light:#EEE7FD;
+  --grad-a:#8B5CF6;--grad-b:#F59E0B;--grad-c:#EC4899;
   --green:#059669;--red:#DC2626;--yellow:#D97706;--orange:#F59E0B;
-  --text:#150F2E;--text2:#4B4468;--text3:#948FA8;
-  --border:#E6E1F5;--border2:#D3CBEE;
+  --text:#150F2E;--text2:#4B4468;--text3:#8F87A8;
+  --border:#E7E1F7;--border2:#D2C7F2;
   --radius:16px;--radius-sm:12px;
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);
   --nav-h:62px;
   --banner-h:0px;
+  --ads-right:0px;
 }
 html.dark{
-  --bg:#0E0A1E;--surface:#181230;--surface2:#221A42;--surface3:#2E2454;
-  --text:#F3F1FA;--text2:#C6BFDE;--text3:#8B84A6;
-  --border:#2C2450;--border2:#3B3168;--accent-light:#2A1F55;
+  --bg:#0C0918;--surface:#161029;--surface2:#1F1840;--surface3:#2B2150;
+  --text:#F5F3FC;--text2:#CBC3E6;--text3:#8F86AE;
+  --border:#2A2150;--border2:#3A2E68;--accent-light:#291F52;
+  --accent:#9163F0;--accent2:#7C3AED;--surface:#161029;
 }
 html,body{height:100%;overflow:hidden;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;
@@ -65,7 +66,7 @@ button,input,textarea{font-family:inherit;}
 .logo-circle{width:88px;height:88px;border-radius:50%;overflow:hidden;border:3px solid rgba(245,158,11,.35);
   box-shadow:0 0 40px rgba(124,58,237,.35);background:var(--surface);}
 .logo-circle img{width:100%;height:100%;object-fit:cover;}
-.logo-fallback{width:100%;height:100%;background:linear-gradient(135deg,var(--grad-a),var(--grad-b));
+.logo-fallback{width:100%;height:100%;background:linear-gradient(135deg,var(--grad-a),var(--grad-c) 55%,var(--grad-b));
   display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:900;color:#fff;}
 .brand-name{font-size:34px;font-weight:900;letter-spacing:-1.5px;}
 .brand-name span{background:linear-gradient(135deg,var(--accent),var(--grad-b));-webkit-background-clip:text;background-clip:text;color:transparent;}
@@ -77,7 +78,7 @@ button,input,textarea{font-family:inherit;}
   font-weight:700;color:var(--text);outline:none;letter-spacing:.5px;text-align:center;width:100%;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;}
 .id-input:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-light);}
 .id-hint{font-size:12px;color:var(--text3);text-align:center;line-height:1.6;}
-.btn-primary{background:linear-gradient(135deg,var(--grad-a),var(--grad-b));border:none;border-radius:var(--radius-sm);padding:17px;
+.btn-primary{background:linear-gradient(135deg,var(--grad-a),var(--grad-c) 55%,var(--grad-b));border:none;border-radius:var(--radius-sm);padding:17px;
   font-size:16px;font-weight:700;color:#fff;cursor:pointer;width:100%;min-height:54px;touch-action:manipulation;box-shadow:0 8px 24px rgba(124,58,237,.35);}
 .btn-primary:active{opacity:.85;transform:scale(.98);}
 .feature-pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
@@ -146,7 +147,7 @@ button,input,textarea{font-family:inherit;}
   align-items:center;justify-content:center;cursor:pointer;color:var(--accent2);touch-action:manipulation;font-size:16px;flex-shrink:0;}
 .cli-call-btn:active{background:var(--accent);color:#fff;}
 .fab{position:absolute;bottom:calc(var(--nav-h) + var(--safe-bottom) + var(--banner-h) + 16px);right:18px;width:56px;height:56px;border-radius:50%;
-  background:linear-gradient(135deg,var(--grad-a),var(--grad-b));border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  background:linear-gradient(135deg,var(--grad-a),var(--grad-c) 55%,var(--grad-b));border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;
   box-shadow:0 8px 24px rgba(124,58,237,.45);z-index:50;touch-action:manipulation;color:#fff;font-size:24px;}
 .fab:active{transform:scale(.88);}
 .call-log-item{display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--border);min-height:72px;}
@@ -228,7 +229,7 @@ button,input,textarea{font-family:inherit;}
 .msg-row.them{align-self:flex-start;align-items:flex-start;}
 .msg-row.sys{align-self:center;max-width:90%;}
 .msg-bubble{padding:10px 14px;border-radius:18px;font-size:15.5px;line-height:1.55;word-break:break-word;}
-.msg-row.me .msg-bubble{background:linear-gradient(135deg,var(--grad-a),var(--grad-b));color:#fff;border-bottom-right-radius:4px;box-shadow:0 2px 10px rgba(124,58,237,.3);}
+.msg-row.me .msg-bubble{background:linear-gradient(135deg,var(--grad-a),var(--grad-c) 55%,var(--grad-b));color:#fff;border-bottom-right-radius:4px;box-shadow:0 2px 10px rgba(124,58,237,.3);}
 .msg-row.them .msg-bubble{background:var(--surface);color:var(--text);border-bottom-left-radius:4px;border:1px solid var(--border);}
 .msg-row.sys .msg-bubble{background:rgba(124,58,237,.08);color:var(--text2);font-size:12px;padding:6px 14px;border-radius:12px;border:1px solid rgba(124,58,237,.15);}
 .msg-time{font-size:11px;color:var(--text3);margin-top:3px;padding:0 4px;display:flex;align-items:center;gap:3px;}
@@ -269,7 +270,7 @@ button,input,textarea{font-family:inherit;}
   display:block;overflow-y:auto;caret-color:var(--accent);}
 .chat-inp:focus{border-color:var(--accent);background:var(--surface);}
 .chat-inp::placeholder{color:var(--text3);}
-.send-btn{background:linear-gradient(135deg,var(--grad-a),var(--grad-b));border:none;border-radius:50%;width:44px;height:44px;display:flex;
+.send-btn{background:linear-gradient(135deg,var(--grad-a),var(--grad-c) 55%,var(--grad-b));border:none;border-radius:50%;width:44px;height:44px;display:flex;
   align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:#fff;touch-action:manipulation;font-size:18px;
   box-shadow:0 4px 14px rgba(124,58,237,.4);transition:opacity .15s;}
 .send-btn:active{opacity:.8;}
@@ -301,7 +302,7 @@ button,input,textarea{font-family:inherit;}
 .rec-time{font-size:40px;font-weight:800;color:var(--text);margin-bottom:4px;font-variant-numeric:tabular-nums;letter-spacing:-1px;}
 .rec-hint{font-size:13px;color:var(--text3);margin-bottom:22px;}
 .rec-btns{display:flex;gap:14px;justify-content:center;}
-.rec-stop{background:linear-gradient(135deg,var(--grad-a),var(--grad-b));border:none;border-radius:14px;padding:14px 28px;font-size:15px;font-weight:700;
+.rec-stop{background:linear-gradient(135deg,var(--grad-a),var(--grad-c) 55%,var(--grad-b));border:none;border-radius:14px;padding:14px 28px;font-size:15px;font-weight:700;
   color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(124,58,237,.4);}
 .rec-cancel-btn{background:var(--surface2);border:1.5px solid var(--border2);border-radius:14px;padding:14px 22px;font-size:14px;font-weight:600;
   color:var(--text2);cursor:pointer;}
@@ -460,10 +461,11 @@ button,input,textarea{font-family:inherit;}
 .sr-text mark{background:var(--accent-light);color:var(--accent);border-radius:3px;padding:0 2px;font-style:normal;}
 .sr-time{font-size:11px;color:var(--text3);margin-top:3px;}
 .search-empty{padding:60px 24px;text-align:center;color:var(--text3);font-size:14px;}
-#conn-banner{position:fixed;top:calc(var(--safe-top) + 64px);left:0;right:0;z-index:80;background:rgba(10,8,20,.97);backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--border);padding:9px 18px;display:none;align-items:center;gap:10px;font-size:12.5px;color:var(--text2);}
+#conn-banner{position:fixed;top:calc(var(--safe-top) + 72px);right:12px;z-index:80;background:rgba(15,10,28,.95);backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:7px 12px 7px 10px;display:none;align-items:center;gap:7px;
+  font-size:11.5px;color:#EFEAFB;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.3);pointer-events:none;max-width:180px;}
 #conn-banner.show{display:flex;}
-.banner-dot{width:9px;height:9px;border-radius:50%;background:var(--yellow);animation:pulse 1s infinite;flex-shrink:0;}
+.banner-dot{width:7px;height:7px;border-radius:50%;background:var(--yellow);animation:pulse 1s infinite;flex-shrink:0;}
 #notif-banner{background:linear-gradient(135deg,var(--accent-light),rgba(245,158,11,.08));border:1px solid rgba(124,58,237,.2);border-radius:var(--radius-sm);
   padding:14px 16px;display:none;align-items:center;gap:12px;margin:10px 14px 0;}
 #notif-banner.show{display:flex;}
@@ -503,11 +505,7 @@ button,input,textarea{font-family:inherit;}
   background:var(--surface2);border-top:1px solid var(--border);display:none;align-items:center;justify-content:center;
   font-size:11px;color:var(--text3);letter-spacing:.5px;}
 #admob-banner-slot.show{display:flex;}
-#admob-vertical-slot{position:fixed;top:calc(var(--safe-top) + 70px);right:0;width:44px;
-  bottom:calc(var(--nav-h) + var(--safe-bottom) + 90px);z-index:40;background:var(--surface2);
-  border-left:1px solid var(--border);display:none;align-items:center;justify-content:center;
-  writing-mode:vertical-rl;font-size:10px;color:var(--text3);}
-#admob-vertical-slot.show{display:flex;}
+
 .preview-sheet-media{width:100%;max-height:46vh;border-radius:14px;overflow:hidden;background:var(--surface2);
   display:flex;align-items:center;justify-content:center;margin-bottom:4px;}
 .preview-sheet-media img,.preview-sheet-media video{width:100%;max-height:46vh;object-fit:contain;display:block;}
@@ -783,9 +781,10 @@ button,input,textarea{font-family:inherit;}
 <div class="modal-overlay" id="ringtone-modal">
   <div class="modal-sheet">
     <div class="modal-handle"></div><div class="modal-title">Custom Ringtone</div>
-    <div style="font-size:13px;color:var(--text2);line-height:1.6;">Upload an MP3/audio file (max 1&nbsp;MB) to use as your incoming-call ringtone instead of the default tone.</div>
-    <button class="btn-primary" id="ringtone-pick-btn" style="background:var(--surface2);color:var(--text);box-shadow:none;border:1.5px solid var(--border2);">📁 Choose audio file…</button>
+    <div style="font-size:13px;color:var(--text2);line-height:1.6;">Upload an <b>MP3</b> (or any audio file, max 1&nbsp;MB) to use as your incoming-call ringtone instead of the default tone.</div>
+    <button class="btn-primary" id="ringtone-pick-btn" style="background:var(--surface2);color:var(--text);box-shadow:none;border:1.5px solid var(--border2);">📁 Choose MP3 / audio file…</button>
     <div id="ringtone-current" style="font-size:13px;color:var(--text2);"></div>
+    <button class="btn-primary" id="ringtone-test-btn" style="background:var(--surface2);color:var(--accent2);box-shadow:none;border:1.5px solid var(--border2);display:none;">▶️ Test ringtone</button>
     <div class="modal-btn-row">
       <button class="modal-btn-cancel" id="ringtone-reset-btn">Use Default</button>
       <button class="btn-primary" style="flex:1;" id="ringtone-done-btn">Done</button>
@@ -816,7 +815,6 @@ button,input,textarea{font-family:inherit;}
 </div>
 <audio id="custom-ringtone-audio" loop preload="auto" style="display:none;"></audio>
 <div id="admob-banner-slot">Ad space — AdMob banner renders here (see setup notes)</div>
-<div id="admob-vertical-slot">Vertical ad</div>
 <div class="modal-overlay" id="preview-modal">
   <div class="modal-sheet">
     <div class="modal-handle"></div><div class="modal-title" id="preview-modal-title">Send file</div>
@@ -943,7 +941,8 @@ function showScreen(id){
 /* AdMob: real banner needs a native plugin (@capacitor-community/admob) — this div is just layout space. */
 function setAdmobBannerVisible(show){
   var slot=document.getElementById('admob-banner-slot');if(slot)slot.classList.toggle('show',show);
-  var vslot=document.getElementById('admob-vertical-slot');if(vslot)vslot.classList.toggle('show',show);
+  /* --banner-h is read by .screen.tabbed padding-bottom and the FAB position, so
+     real content (chat list, FAB, tab bar) reflows around the ad and nothing gets hidden. */
   document.documentElement.style.setProperty('--banner-h',show?'50px':'0px');
 }
 function obRender(){
@@ -1028,6 +1027,11 @@ function startPeer(){
     });
     peer.on('connection',function(conn){setupConn(conn);});
     peer.on('error',function(e){
+      if(e.type==='peer-unavailable'){
+        /* Per-call error only — our own broker connection is still fine, so we
+           deliberately do NOT touch peerReady / the online dot / the reconnect banner here. */
+        handlePeerUnavailable();return;
+      }
       peerReady=false;setOnlineDot('red');
       if(e.type==='unavailable-id'){
         hideBanner();showBanner('Reconnecting (ID busy)…');
@@ -1037,9 +1041,6 @@ function startPeer(){
         },500);
       }else if(['network','server-error','socket-error','socket-closed'].includes(e.type)){
         showBanner('Reconnecting…');scheduleReconnect();
-      }else if(e.type==='peer-unavailable'){
-        toast("⚠️ That ID is offline or doesn't exist");stopOutTone();
-        if(currentCall){endCall();}else{showScreen('screen-chats');}
       }else{showBanner('Error: '+e.type);scheduleReconnect();}
     });
     peer.on('disconnected',function(){
@@ -1067,14 +1068,24 @@ function startPresence(){
   if(presenceInterval)clearInterval(presenceInterval);
   checkPresence();presenceInterval=setInterval(checkPresence,25000);
 }
-var keepAliveInterval=null;
+var keepAliveInterval=null,reconnCountdown=30;
 function startKeepAlive(){
   if(keepAliveInterval)clearInterval(keepAliveInterval);
+  reconnCountdown=30;
   keepAliveInterval=setInterval(function(){
-    if(currentCall||incomingCall||Object.keys(confCalls).length)return;
-    showBanner('Reconnecting…');
-    startPeerRobust();
-  },30000);
+    if(peerReady){hideBanner();reconnCountdown=30;return;}
+    reconnCountdown--;
+    if(reconnCountdown<=0){
+      reconnCountdown=30;
+      if(!(currentCall||incomingCall||Object.keys(confCalls).length)){startPeerRobust();}
+    }
+    if(!peerReady)showReconnectChip(reconnCountdown);
+  },1000);
+}
+function showReconnectChip(secs){
+  var el=document.getElementById('conn-banner');
+  document.getElementById('conn-text').textContent='Reconnecting · next try in '+secs+'s';
+  el.classList.add('show');
 }
 function checkPresence(){
   if(!peerReady||!peer)return;
@@ -1266,7 +1277,10 @@ function renderChats(filter){
     if(u){var badge=document.createElement('div');badge.className='cli-badge';badge.textContent=u>99?'99+':u;meta.appendChild(badge);}
     var cb=document.createElement('button');cb.className='cli-call-btn';cb.title='Voice call';cb.textContent='📞';
     cb.onclick=function(p){return function(e){e.stopPropagation();startCall(p,true);};}(pid);
-    item.appendChild(av);item.appendChild(info);item.appendChild(meta);item.appendChild(cb);
+    var vb=document.createElement('button');vb.className='cli-call-btn';vb.title='Video call';vb.textContent='🎥';
+    vb.style.marginLeft='4px';
+    vb.onclick=function(p){return function(e){e.stopPropagation();startCall(p,false);};}(pid);
+    item.appendChild(av);item.appendChild(info);item.appendChild(meta);item.appendChild(cb);item.appendChild(vb);
     body.appendChild(item);
   });
   var badge=document.getElementById('tab-badge-chats');
@@ -1747,9 +1761,12 @@ function renderCallHistory(){
     var mt=document.createElement('div');mt.className='call-log-meta';
     mt.innerHTML='<span style="color:'+color+';">'+icon+'</span> <span style="color:'+color+';font-weight:600;">'+label+'</span> <span>· '+ds+'</span>';
     info.appendChild(nm);info.appendChild(mt);
-    var btn=document.createElement('button');btn.className='call-log-btn';btn.title='Call back';btn.textContent='📞';
+    var btn=document.createElement('button');btn.className='call-log-btn';btn.title='Voice call back';btn.textContent='📞';
     btn.onclick=function(p){return function(){startCall(p,true);};}(h.pid);
-    item.appendChild(av);item.appendChild(info);item.appendChild(btn);body.appendChild(item);
+    var vbtn=document.createElement('button');vbtn.className='call-log-btn';vbtn.title='Video call back';vbtn.textContent='🎥';
+    vbtn.style.marginLeft='6px';
+    vbtn.onclick=function(p){return function(){startCall(p,false);};}(h.pid);
+    item.appendChild(av);item.appendChild(info);item.appendChild(btn);item.appendChild(vbtn);body.appendChild(item);
   });
 }
 function applySettingsToUI(){
@@ -1834,9 +1851,21 @@ function toggleRingMute(){
 function openRingtoneModal(){
   var cur=document.getElementById('ringtone-current');
   cur.textContent=customRingtoneDataUrl?'✓ Custom ringtone is active':'Using the default Unifest tone';
+  document.getElementById('ringtone-test-btn').style.display=customRingtoneDataUrl?'block':'none';
   document.getElementById('ringtone-modal').classList.add('show');
 }
-function closeRingtoneModal(){document.getElementById('ringtone-modal').classList.remove('show');}
+function closeRingtoneModal(){
+  var ra=document.getElementById('custom-ringtone-audio');
+  try{if(ra&&!document.getElementById('incoming-overlay').classList.contains('show')){ra.pause();ra.currentTime=0;}}catch(e){}
+  document.getElementById('ringtone-modal').classList.remove('show');
+}
+function testRingtone(){
+  if(!customRingtoneDataUrl){toast('No custom ringtone set');return;}
+  var ra=document.getElementById('custom-ringtone-audio');
+  try{ra.currentTime=0;ra.play().catch(function(){toast('Tap again to preview');});
+    setTimeout(function(){try{if(ra)ra.pause();}catch(e){}},6000);
+  }catch(e){}
+}
 function pickRingtoneFile(){document.getElementById('ringtone-file-input').click();}
 function handleRingtoneFile(file){
   if(!file)return;
@@ -1852,6 +1881,7 @@ function handleRingtoneFile(file){
     var ra=document.getElementById('custom-ringtone-audio');if(ra)ra.src=dataUrl;
     applySettingsToUI();
     var cur=document.getElementById('ringtone-current');if(cur)cur.textContent='✓ Custom ringtone is active';
+    var tb=document.getElementById('ringtone-test-btn');if(tb)tb.style.display='block';
     toast('Ringtone updated 🎵');
   };
   reader.onerror=function(){toast('Could not read file');};
@@ -1862,6 +1892,7 @@ function resetRingtone(){
   var ra=document.getElementById('custom-ringtone-audio');if(ra)ra.removeAttribute('src');
   applySettingsToUI();
   var cur=document.getElementById('ringtone-current');if(cur)cur.textContent='Using the default Unifest tone';
+  var tb=document.getElementById('ringtone-test-btn');if(tb)tb.style.display='none';
   toast('Reset to default tone');
 }
 function playOutToneOnce(){
@@ -1923,6 +1954,14 @@ async function startCall(pid,voiceOnly){
   document.getElementById('out-name').textContent=pid;
   document.getElementById('outgoing-wrap').classList.add('show');
   startOutTone();notifyPeer(pid,voiceOnly?'voice-call':'call');
+  callRetryCount=0;placeCallAttempt(pid,voiceOnly);
+  callConn=peer.connect(pid,{reliable:true,metadata:{type:'dm'}});
+  if(callConn){callConn.on('data',function(data){handleData(pid,data,callConn);});callConn.on('error',function(){});}
+  setTimeout(function(){var s=document.getElementById('call-status');if(s&&s.textContent==='Calling…'){toast('No answer');logCall(pid,'missed','out');endCall();}},35000);
+}
+var callRetryCount=0,MAX_CALL_RETRIES=2;
+function placeCallAttempt(pid,voiceOnly){
+  if(!localStream)return;
   try{
     currentCall=peer.call(pid,localStream,{metadata:{facing:facingMode,voiceOnly:!!voiceOnly}});
     currentCall.on('stream',function(rs){
@@ -1931,11 +1970,27 @@ async function startCall(pid,voiceOnly){
       startCallTimer();logCall(pid,'connected','out');startQual();
     });
     currentCall.on('close',function(){endCall();});
-    currentCall.on('error',function(){toast('Call failed');endCall();});
-    callConn=peer.connect(pid,{reliable:true,metadata:{type:'dm'}});
-    if(callConn){callConn.on('data',function(data){handleData(pid,data,callConn);});callConn.on('error',function(){});}
-    setTimeout(function(){var s=document.getElementById('call-status');if(s&&s.textContent==='Calling…'){toast('No answer');logCall(pid,'missed','out');endCall();}},35000);
+    currentCall.on('error',function(){});
   }catch(e){toast('Call error: '+e.message);endCall();}
+}
+/* A "peer-unavailable" error just means the other ID wasn't reachable at that instant —
+   it does NOT mean our own connection dropped. We quietly retry a couple of times
+   (the callee's own reconnect loop may just be mid-cycle) before telling the user. */
+function handlePeerUnavailable(){
+  var s=document.getElementById('call-status');
+  var stillCalling=currentCall&&s&&s.textContent==='Calling…';
+  if(stillCalling&&callRetryCount<MAX_CALL_RETRIES){
+    callRetryCount++;
+    setTimeout(function(){
+      if(!currentCall)return;
+      try{currentCall.close();}catch(e){}
+      placeCallAttempt(callPeerId,callIsVoiceOnly);
+    },1500);
+    return;
+  }
+  callRetryCount=0;
+  toast("⚠️ That ID is offline or doesn't exist");stopOutTone();
+  if(currentCall){endCall();}else{showScreen('screen-chats');}
 }
 function showIncoming(pid,kind){
   showScreen('screen-call');setVoiceMode(kind==='voice',pid);
@@ -2264,6 +2319,30 @@ function switchTab(tab){
   if(tab==='calls')renderCallHistory();
   if(tab==='settings')syncSettingsUI();
 }
+var TAB_ORDER=['chats','calls','groups','settings'];
+var swipeStartX=0,swipeStartY=0,swipeActive=false;
+function setupTabSwipe(){
+  var wrap=document.body;
+  wrap.addEventListener('touchstart',function(e){
+    var active=document.querySelector('.screen.tabbed.active');
+    if(!active||e.touches.length!==1){swipeActive=false;return;}
+    var t=e.target;
+    if(t.closest('.chats-body,#chats-body,.groups-body,.settings-body,#calls-body,.search-bar,input,textarea,button')){
+      // allow swipe to still start unless inside a horizontally-scrollable pinned strip
+      if(t.closest('.pinned-chips')){swipeActive=false;return;}
+    }
+    swipeActive=true;swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;
+  },{passive:true});
+  wrap.addEventListener('touchend',function(e){
+    if(!swipeActive)return;swipeActive=false;
+    var t=e.changedTouches[0];
+    var dx=t.clientX-swipeStartX,dy=t.clientY-swipeStartY;
+    if(Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.5)return;
+    var idx=TAB_ORDER.indexOf(currentTab);if(idx<0)return;
+    if(dx<0&&idx<TAB_ORDER.length-1)switchTab(TAB_ORDER[idx+1]);
+    else if(dx>0&&idx>0)switchTab(TAB_ORDER[idx-1]);
+  },{passive:true});
+}
 function showBanner(msg){document.getElementById('conn-text').textContent=msg;document.getElementById('conn-banner').classList.add('show');}
 function hideBanner(){document.getElementById('conn-banner').classList.remove('show');}
 function fmtTime(){var d=new Date();return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');}
@@ -2329,6 +2408,7 @@ function bindEvents(){
   document.getElementById('ringtone-pick-btn').addEventListener('click',pickRingtoneFile);
   document.getElementById('ringtone-file-input').addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRingtoneFile(f);});
   document.getElementById('ringtone-reset-btn').addEventListener('click',resetRingtone);
+  document.getElementById('ringtone-test-btn').addEventListener('click',testRingtone);
   document.getElementById('ringtone-done-btn').addEventListener('click',closeRingtoneModal);
   document.getElementById('ringtone-modal').addEventListener('click',function(e){if(e.target===this)closeRingtoneModal();});
   document.getElementById('push-toggle-row').addEventListener('click',enableNotifs);
@@ -2419,7 +2499,7 @@ function bindEvents(){
   function unlockAudio(){getAudioCtx();document.removeEventListener('touchstart',unlockAudio);document.removeEventListener('click',unlockAudio);}
   document.addEventListener('touchstart',unlockAudio,{once:true,passive:true});
   document.addEventListener('click',unlockAudio,{once:true});
-  setupKeyboardFix();registerSW();
+  setupKeyboardFix();registerSW();setupTabSwipe();
 }
 function openNewChatModal(){
   document.getElementById('new-chat-inp').value='';
