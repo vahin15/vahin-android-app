@@ -47,7 +47,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sa
   background:var(--bg);color:var(--text);position:fixed;width:100%;height:100%;
   -webkit-font-smoothing:antialiased;}
 button,input,textarea{font-family:inherit;}
-.screen{display:none!important;position:absolute;inset:0;flex-direction:column;padding-top:var(--safe-top);}
+.screen{display:none!important;position:absolute;inset:0;flex-direction:column;padding-top:var(--safe-top);transition:transform .28s cubic-bezier(.4,0,.2,1);}
 .screen.active{display:flex!important;}
 .screen.tabbed{padding-bottom:calc(var(--nav-h) + var(--safe-bottom) + var(--banner-h));}
 #tab-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + var(--safe-bottom));padding-bottom:var(--safe-bottom);
@@ -836,6 +836,33 @@ button,input,textarea{font-family:inherit;}
     </div>
   </div>
 </div>
+<div class="modal-overlay" id="chat-opts-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div><div class="modal-title" id="chat-opts-title">Chat options</div>
+    <div id="chat-opts-list"></div>
+    <div class="modal-btn-row"><button class="modal-btn-cancel" style="flex:1;" id="chat-opts-cancel-btn">Cancel</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="generic-confirm-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div><div class="modal-title" id="generic-confirm-title">Confirm</div>
+    <div style="font-size:14px;color:var(--text2);line-height:1.6;" id="generic-confirm-msg"></div>
+    <div class="modal-btn-row">
+      <button class="modal-btn-cancel" style="flex:1;" id="generic-confirm-cancel-btn">Cancel</button>
+      <button class="btn-primary" style="flex:1;" id="generic-confirm-ok-btn">OK</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="generic-prompt-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div><div class="modal-title" id="generic-prompt-title">Enter value</div>
+    <input class="preview-cap-inp" id="generic-prompt-inp" placeholder="" autocomplete="off"/>
+    <div class="modal-btn-row">
+      <button class="modal-btn-cancel" style="flex:1;" id="generic-prompt-cancel-btn">Cancel</button>
+      <button class="btn-primary" style="flex:1;" id="generic-prompt-ok-btn">OK</button>
+    </div>
+  </div>
+</div>
 <div id="toast"></div>
 <script>
 /* Unifest v3.4 · by Vahin Saxena */
@@ -857,7 +884,16 @@ var PEER_CONFIG={debug:0,config:{iceServers:[
   {urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'},
   {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
   {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
-  {urls:'turn:freeturn.net:3478',username:'free',credential:'free'}
+  /* TCP/TLS variants: plain-UDP TURN (above) gets silently dropped on a lot of Indian
+     mobile carrier networks and campus/office wifi. These fall back to looking like
+     normal HTTPS traffic over port 443, which almost nothing blocks. Without these,
+     two people both on mobile data (the most common real case for this app) is
+     exactly the scenario most likely to fail — UDP relay is where "call connects on
+     wifi but not on mobile data" bugs come from. */
+  {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'},
+  {urls:'turns:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'},
+  {urls:'turn:freeturn.net:3478',username:'free',credential:'free'},
+  {urls:'turn:freeturn.net:3478?transport=tcp',username:'free',credential:'free'}
 ],iceCandidatePoolSize:10}};
 var SK={MYID:'uf_myid_v3',CONTACTS:'uf_contacts_v3',DM:'uf_dm_v3',GRPH:'uf_grp_hist_v3',GRPM:'uf_grp_members_v3',
   CALLS:'uf_calls_v3',SETTINGS:'uf_settings_v3',BLOCKED:'uf_blocked_v3',PINNED:'uf_pinned_v3',ONBOARDED:'uf_onboarded_v1',RINGTONE:'uf_ringtone_v1'};
@@ -938,17 +974,45 @@ function setTheme(t){
 }
 window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',applyTheme);
 
-function showScreen(id){
+function showScreen(id,dir){
+  dir=dir||'forward';
+  var next=document.getElementById(id);if(!next)return;
   var screens=document.querySelectorAll('.screen');
-  for(var i=0;i<screens.length;i++)screens[i].classList.remove('active');
-  var el=document.getElementById(id);if(el)el.classList.add('active');
-  var isTabbed=!!(el&&el.classList.contains('tabbed'));
+  var current=null;
+  for(var i=0;i<screens.length;i++){if(screens[i].classList.contains('active')&&screens[i]!==next){current=screens[i];break;}}
+  var isTabbed=!!(next.classList.contains('tabbed'));
   setAdmobBannerVisible(isTabbed);
   /* screen-chat/call/conf/search are full-screen overlays; the fixed bottom tab bar
      (z-index 90) must be hidden on them or it visually sits on top of the chat
      input / typing status row, especially once the keyboard opens and re-layouts. */
   var nav=document.getElementById('tab-nav');
   if(nav)nav.classList.toggle('visible',isTabbed);
+
+  if(!current||current===next||next.classList.contains('active')){
+    for(var j=0;j<screens.length;j++)screens[j].classList.remove('active');
+    next.classList.add('active');
+    return;
+  }
+  /* WhatsApp-style page slide: the incoming screen slides in from the right on a
+     forward navigation (or from the left on 'back'), while the outgoing screen
+     slides partway out underneath it — instead of the old hard display:none cut. */
+  var enterFrom=dir==='back'?'-100%':'100%';
+  var exitTo=dir==='back'?'100%':'-30%';
+  next.style.transition='none';
+  next.style.transform='translateX('+enterFrom+')';
+  next.classList.add('active');
+  void next.offsetWidth; /* force reflow so the start position is registered before animating */
+  next.style.transition='';
+  current.style.zIndex='5';next.style.zIndex='6';
+  requestAnimationFrame(function(){
+    next.style.transform='translateX(0)';
+    current.style.transform='translateX('+exitTo+')';
+  });
+  setTimeout(function(){
+    current.classList.remove('active');
+    current.style.transform='';current.style.transition='';current.style.zIndex='';
+    next.style.zIndex='';
+  },320);
 }
 /* AdMob: real banner needs a native plugin (@capacitor-community/admob) — this div is just layout space. */
 function setAdmobBannerVisible(show){
@@ -1186,12 +1250,12 @@ function handleData(from,data,conn){
     case 'call-cancel':
       if(incomingCall&&(incomingCall.peer===from||incomingCall.peerId===from)){
         stopRing();document.getElementById('incoming-overlay').classList.remove('show');
-        incomingCall=null;logCall(from,'missed','in');showScreen('screen-chats');
+        incomingCall=null;logCall(from,'missed','in');showScreen('screen-chats','back');
         toast(from+' cancelled the call');
       }
       break;
     case 'conf-invite':
-      incomingCall={isConf:true,peerId:from,mc:null};showIncoming(from,'conf');
+      incomingCall={isConf:true,peerId:from,mc:null,members:data.members||[]};showIncoming(from,'conf');
       break;
     case 'file-meta':handleFileMeta(from,data);break;
     case 'file-chunk':handleFileChunk(data);break;
@@ -1362,14 +1426,69 @@ function buildChatHeader(pid){
   hdr.appendChild(mkBtn('🎥','Video call',function(){startCall(pid,false);}));
   hdr.appendChild(mkBtn('⋮','More',function(){showChatOptions(pid);}));
 }
+/* Styled stand-ins for window.confirm()/prompt() — native browser dialogs render as
+   an unstyled system popup that breaks the app's look. Both return a Promise so call
+   sites just add "await". */
+function styledConfirm(message,opts){
+  opts=opts||{};
+  return new Promise(function(resolve){
+    document.getElementById('generic-confirm-title').textContent=opts.title||'Confirm';
+    document.getElementById('generic-confirm-msg').textContent=message||'';
+    var okBtn=document.getElementById('generic-confirm-ok-btn');
+    okBtn.textContent=opts.okText||'OK';
+    okBtn.style.background=opts.danger?'#dc2626':'';
+    var modal=document.getElementById('generic-confirm-modal');
+    function done(v){modal.classList.remove('show');okBtn.onclick=null;cancelBtn.onclick=null;overlayHandler=null;resolve(v);}
+    var cancelBtn=document.getElementById('generic-confirm-cancel-btn');
+    okBtn.onclick=function(){done(true);};
+    cancelBtn.onclick=function(){done(false);};
+    var overlayHandler=function(e){if(e.target===modal)done(false);};
+    modal.onclick=overlayHandler;
+    modal.classList.add('show');
+  });
+}
+function styledPrompt(message,opts){
+  opts=opts||{};
+  return new Promise(function(resolve){
+    document.getElementById('generic-prompt-title').textContent=message||'Enter value';
+    var inp=document.getElementById('generic-prompt-inp');
+    inp.value=opts.value||'';inp.placeholder=opts.placeholder||'';
+    var modal=document.getElementById('generic-prompt-modal');
+    function done(v){modal.classList.remove('show');okBtn.onclick=null;cancelBtn.onclick=null;inp.onkeydown=null;modal.onclick=null;resolve(v);}
+    var okBtn=document.getElementById('generic-prompt-ok-btn');
+    var cancelBtn=document.getElementById('generic-prompt-cancel-btn');
+    okBtn.onclick=function(){done(inp.value.trim()||null);};
+    cancelBtn.onclick=function(){done(null);};
+    inp.onkeydown=function(e){if(e.key==='Enter')done(inp.value.trim()||null);};
+    modal.onclick=function(e){if(e.target===modal)done(null);};
+    modal.classList.add('show');
+    setTimeout(function(){inp.focus();},80);
+  });
+}
 function showChatOptions(pid){
   var isPinned=pinnedChats.includes(pid);
-  var opts=['1. '+(isPinned?'Unpin chat':'Pin chat'),'2. '+(isBlocked(pid)?'Unblock':'Block')+' '+pid,'3. Clear chat history'];
-  var c=prompt(opts.join('\n')+'\n\nEnter number:');
-  if(c==='1'){isPinned?unpinChat(pid):pinChat(pid);}
-  else if(c==='2'){isBlocked(pid)?unblockUser(pid):(confirm('Block '+pid+'?')&&blockUser(pid));}
-  else if(c==='3'){if(confirm('Clear all messages with '+pid+'?')){delete dmHistory[pid];saveAll();openDMChat(pid);toast('Cleared');}}
+  var isBlk=isBlocked(pid);
+  var list=document.getElementById('chat-opts-list');
+  document.getElementById('chat-opts-title').textContent=pid;
+  list.innerHTML='';
+  function row(icon,label,sub,danger,fn){
+    var r=document.createElement('div');r.className='settings-row';
+    r.innerHTML='<div class="settings-row-left"><div class="settings-row-icon" style="background:'+(danger?'rgba(220,38,38,.1)':'var(--accent-light)')+';'+(danger?'color:#dc2626;':'')+'">'+icon+'</div>'
+      +'<div><div class="s-label"'+(danger?' style="color:#dc2626;"':'')+'>'+label+'</div>'+(sub?'<div class="s-sub">'+sub+'</div>':'')+'</div></div>';
+    r.onclick=function(){closeChatOptions();fn();};
+    list.appendChild(r);
+  }
+  row(isPinned?'📌':'📍',isPinned?'Unpin chat':'Pin chat',null,false,function(){isPinned?unpinChat(pid):pinChat(pid);});
+  row(isBlk?'🔓':'🚫',(isBlk?'Unblock':'Block')+' '+pid,isBlk?'Allow calls & messages again':'They won\u2019t be able to call or message you',true,async function(){
+    if(isBlk){unblockUser(pid);return;}
+    if(await styledConfirm('Block '+pid+'?',{danger:true,okText:'Block'}))blockUser(pid);
+  });
+  row('🗑️','Clear chat history','Deletes messages on this device only',true,async function(){
+    if(await styledConfirm('Clear all messages with '+pid+'?',{danger:true,okText:'Clear'})){delete dmHistory[pid];saveAll();openDMChat(pid);toast('Cleared');}
+  });
+  document.getElementById('chat-opts-modal').classList.add('show');
 }
+function closeChatOptions(){document.getElementById('chat-opts-modal').classList.remove('show');}
 function openGroupChat(){
   chatMode='group';
   document.getElementById('chat-peer-av').textContent='G';
@@ -1392,8 +1511,8 @@ function openGroupChat(){
   cancelReply();showScreen('screen-chat');
   setTimeout(function(){try{document.getElementById('chat-input').focus();}catch(e){}},300);
 }
-function addGroupMember(){
-  var pid=prompt('Enter their Unifest ID:');if(!pid)return;
+async function addGroupMember(){
+  var pid=await styledPrompt('Enter their Unifest ID:',{placeholder:'e.g. john123'});if(!pid)return;
   var p=pid.trim().toLowerCase().replace(/[^a-z0-9_\-]/g,'');
   if(!p)return;if(p===myId){toast("That's you!");return;}
   if(groupMembers.includes(p)){toast(p+' already in group');return;}
@@ -1487,15 +1606,16 @@ function sendMsg(){
     dmHistory[chatPeerId].push(mo);ls_set(SK.DM,dmHistory);
     removeEmpty('chat-msgs');appendMsg(true,t,now,false,null,mo);cancelReply();
     var pl={type:'chat-dm',text:t,time:now,msgId:mid,replyTo:mo.replyTo};
-    var doSend=function(){try{chatConn.send(pl);}catch(e){}};
-    if(chatConn&&chatConn.open){doSend();}
+    var doSend=function(conn){(conn||chatConn).send(pl);};
+    if(chatConn&&chatConn.open){try{doSend();}catch(e){}}
     else{
-      try{
-        chatConn=peer&&peer.connect(chatPeerId,{reliable:true,metadata:{type:'dm'}});
-        if(chatConn){chatConn.on('open',doSend);chatConn.on('data',function(data){handleData(chatPeerId,data,chatConn);});chatConn.on('error',function(){});}
-      }catch(e){toast('Send failed');}
+      notifyPeerMsg(chatPeerId,t); // wake their device via FCM right away, don't wait
+      connectWithWake(chatPeerId,'dm',function(conn){
+        chatConn=conn;chatConn.on('data',function(data){handleData(chatPeerId,data,chatConn);});chatConn.on('error',function(){});
+        try{doSend(conn);}catch(e){}
+      },function(){toast(chatPeerId+' is unreachable — they may be offline');});
     }
-    notifyPeerMsg(chatPeerId,t);
+    if(chatConn&&chatConn.open)notifyPeerMsg(chatPeerId,t);
   }else if(chatMode==='group'){
     groupHistory.push({sender:myId,text:t,time:now});ls_set(SK.GRPH,groupHistory);
     removeEmpty('chat-msgs');appendGroupMsg(myId,t,now);
@@ -1624,15 +1744,14 @@ async function sendFile(file,caption){
     var pid=targets[i];
     var conn2=(chatMode==='dm'?chatConn:groupConns[pid]);
     if(!conn2||!conn2.open){
+      notifyPeerMsg(pid,'📎 Sent you a file'); // wake their device via FCM right away
       try{
-        conn2=peer&&peer.connect(pid,{reliable:true,metadata:{type:chatMode==='dm'?'dm':'group'}});
-        await new Promise(function(res,rej){
-          if(!conn2){rej(new Error('no peer'));return;}
-          conn2.on('open',res);conn2.on('error',rej);setTimeout(rej,8000);
+        conn2=await new Promise(function(res,rej){
+          connectWithWake(pid,chatMode==='dm'?'dm':'group',res,function(){rej(new Error('unreachable'));});
         });
         conn2.on('data',function(d){handleData(pid,d,conn2);});conn2.on('error',function(){});
         if(chatMode==='dm')chatConn=conn2;else groupConns[pid]=conn2;
-      }catch(e){toast('Could not reach '+pid);continue;}
+      }catch(e){toast(pid+' is unreachable — they may be offline');continue;}
     }
     try{
       conn2.send(meta);
@@ -2053,8 +2172,8 @@ async function acceptCall(){
         incomingCall.mc.on('stream',function(rs){addConfSlot(incomingCall.mc.peer,rs);});
         incomingCall.mc.on('close',function(){removeConfSlot(incomingCall.mc.peer);});
         updateConfGrid();showScreen('screen-conf');incomingCall=null;requestWakeLock();
-      }catch(e){toast('Camera/mic denied');showScreen('screen-chats');}
-    }else{joinConf(incomingCall.peerId);incomingCall=null;}
+      }catch(e){toast('Camera/mic denied');showScreen('screen-chats','back');}
+    }else{joinConf(incomingCall.peerId,incomingCall.members);incomingCall=null;}
     return;
   }
   try{
@@ -2073,7 +2192,7 @@ function declineCall(){
   document.getElementById('incoming-overlay').classList.remove('show');
   hideHUN();stopRing();
   if(incomingCall&&!incomingCall.isConf){logCall(incomingCall.peer,'declined','in');try{incomingCall.close();}catch(e){}}
-  incomingCall=null;showScreen('screen-chats');
+  incomingCall=null;showScreen('screen-chats','back');
 }
 function endCall(){
   stopOutTone();stopRing();hideHUN();
@@ -2091,7 +2210,7 @@ function endCall(){
   mutedAudio=false;mutedVideo=false;callIsVoiceOnly=false;setVoiceMode(false);
   document.getElementById('btn-mute').style.background='';document.getElementById('btn-mute').textContent='🎤';
   document.getElementById('btn-cam').style.background='';document.getElementById('btn-cam').textContent='📷';
-  releaseWakeLock();showScreen('screen-chats');switchTab('chats');renderChats();
+  releaseWakeLock();showScreen('screen-chats','back');switchTab('chats');renderChats();
 }
 function startCallTimer(){
   callSecs=0;clearInterval(callTimer);
@@ -2148,15 +2267,30 @@ async function openGroupConf(){
   document.getElementById('conf-label-local').textContent=myId;updateConfGrid();
   showScreen('screen-conf');requestWakeLock();
 }
-async function joinConf(initiator){
+/* Conference calls are a full mesh: every participant needs a direct connection to
+   every other participant, not just to whoever invited them. Previously, inviting a
+   3rd person only connected them to the host — the two guests never saw each other.
+   This helper is shared by joinConf() (a new joiner connecting out to the existing
+   roster) and inviteToConf() (the host adding someone new), so both sides of a
+   mesh link get built the same way. */
+function connectToConfPeer(pid){
+  if(pid===myId||confCalls[pid])return;
+  try{
+    var conn3=peer&&peer.connect(pid,{reliable:true,metadata:{type:'conf'}});
+    if(conn3){confConns[pid]=conn3;conn3.on('data',function(data){handleData(pid,data,conn3);});addRecentSilent(pid);}
+  }catch(e){}
+  try{
+    var mc2=peer&&peer.call(pid,confStream,{metadata:{type:'conf'}});
+    if(mc2){confCalls[pid]=mc2;mc2.on('stream',function(rs){addConfSlot(pid,rs);});mc2.on('close',function(){removeConfSlot(pid);});}
+  }catch(e){}
+}
+async function joinConf(initiator,members){
   confCalls={};confConns={};confFacing=settings.backcam?'environment':'user';
   try{confStream=await getStream(confFacing);}catch(e){toast('Camera/mic denied');return;}
   var le=document.getElementById('conf-video-local');le.srcObject=confStream;applyMirror(le,confFacing);
   document.getElementById('conf-label-local').textContent=myId;
-  try{
-    var mc=peer&&peer.call(initiator,confStream,{metadata:{type:'conf'}});
-    if(mc){confCalls[initiator]=mc;mc.on('stream',function(rs){addConfSlot(initiator,rs);});mc.on('close',function(){removeConfSlot(initiator);});addRecentSilent(initiator);}
-  }catch(e){}
+  connectToConfPeer(initiator);
+  (members||[]).forEach(function(pid){connectToConfPeer(pid);});
   updateConfGrid();showScreen('screen-conf');requestWakeLock();
 }
 function inviteToConf(){
@@ -2164,16 +2298,12 @@ function inviteToConf(){
   if(!pid){toast('Enter their ID');return;}if(pid===myId){toast("That's you!");return;}
   if(confCalls[pid]){toast(pid+' already in call');return;}
   if(Object.keys(confCalls).length+1>=settings.confLimit){toast('Conference limit reached');return;}
-  try{
-    var conn3=peer&&peer.connect(pid,{reliable:true,metadata:{type:'conf'}});
-    if(conn3){
-      confConns[pid]=conn3;
-      conn3.on('open',function(){try{conn3.send({type:'conf-invite',initiator:myId});}catch(e){};addRecentSilent(pid);});
-      conn3.on('data',function(data){handleData(pid,data,conn3);});
-    }
-    var mc2=peer&&peer.call(pid,confStream,{metadata:{type:'conf'}});
-    if(mc2){confCalls[pid]=mc2;mc2.on('stream',function(rs){addConfSlot(pid,rs);});mc2.on('close',function(){removeConfSlot(pid);});}
-  }catch(e){toast('Invite failed: '+e.message);return;}
+  var existingMembers=Object.keys(confCalls); /* the roster before adding pid, so the
+    invitee knows who else to mesh-connect to */
+  connectToConfPeer(pid);
+  if(confConns[pid]){
+    confConns[pid].on('open',function(){try{confConns[pid].send({type:'conf-invite',initiator:myId,members:existingMembers});}catch(e){}});
+  }
   notifyPeer(pid,'conf');
   document.getElementById('conf-invite-panel').classList.remove('show');
   document.getElementById('conf-invite-inp').value='';
@@ -2211,7 +2341,7 @@ function endConf(){
   confMutedAudio=false;confMutedVideo=false;
   document.getElementById('conf-mute-btn').style.background='';document.getElementById('conf-mute-btn').textContent='🎤';
   document.getElementById('conf-cam-btn').style.background='';document.getElementById('conf-cam-btn').textContent='📷';
-  releaseWakeLock();showScreen('screen-chats');switchTab('chats');
+  releaseWakeLock();showScreen('screen-chats','back');switchTab('chats');
 }
 function confToggleMute(){if(!confStream)return;confMutedAudio=!confMutedAudio;confStream.getAudioTracks().forEach(function(t){t.enabled=!confMutedAudio;});document.getElementById('conf-mute-btn').style.background=confMutedAudio?'var(--yellow)':'';document.getElementById('conf-mute-btn').textContent=confMutedAudio?'🔇':'🎤';}
 function confToggleCam(){if(!confStream)return;confMutedVideo=!confMutedVideo;confStream.getVideoTracks().forEach(function(t){t.enabled=!confMutedVideo;});document.getElementById('conf-cam-btn').style.background=confMutedVideo?'var(--yellow)':'';document.getElementById('conf-cam-btn').textContent=confMutedVideo?'📷':'📹';}
@@ -2300,6 +2430,32 @@ function showLocalNotif(type,from,text){
   if(!('Notification' in window)||Notification.permission!=='granted')return;
   if(document.visibilityState==='visible')return;
   try{var n=new Notification('💬 '+from,{body:text||'New message',icon:'/icons/icon-192.png',tag:'uf-'+from});n.onclick=function(){window.focus();openDMChat(from);n.close();};}catch(e){}
+}
+/* Text/file sends used to give up after one ~8s peer.connect() attempt, which fails
+   whenever the recipient's app is closed (nothing to connect to yet). Calls already
+   solved this with a wake-then-retry loop (see placeCallAttempt/MAX_CALL_RETRIES) —
+   this gives messages and files the same treatment: fire the FCM wake immediately,
+   then keep retrying the P2P handshake for a while to give a killed app time to
+   receive the push (Render's free tier can take 30-50s to spin up from sleep on top
+   of normal FCM delivery time) and re-register with the PeerJS broker. */
+function connectWithWake(pid,connType,onOpen,onFail,maxWaitMs){
+  maxWaitMs=maxWaitMs||40000;
+  var settled=false,startTs=Date.now();
+  function attempt(){
+    if(settled)return;
+    var c;
+    try{c=peer&&peer.connect(pid,{reliable:true,metadata:{type:connType}});}catch(e){c=null;}
+    if(!c){retryOrFail();return;}
+    var to=setTimeout(function(){if(settled)return;try{c.close();}catch(e){}retryOrFail();},3500);
+    c.on('open',function(){if(settled)return;settled=true;clearTimeout(to);onOpen(c);});
+    c.on('error',function(){if(settled)return;clearTimeout(to);retryOrFail();});
+  }
+  function retryOrFail(){
+    if(settled)return;
+    if(Date.now()-startTs<maxWaitMs){setTimeout(attempt,1500);}
+    else{settled=true;if(onFail)onFail();}
+  }
+  attempt();
 }
 function notifyPeer(toId,type){
   if(!toId)return;
@@ -2450,8 +2606,8 @@ function bindEvents(){
   document.getElementById('start-conf-btn').addEventListener('click',openGroupConf);
   document.getElementById('open-group-chat-btn').addEventListener('click',openGroupChat);
   document.getElementById('copy-id-btn').addEventListener('click',function(){if(navigator.clipboard)navigator.clipboard.writeText(myId).then(function(){toast('Copied ✓');});else toast('Your ID: '+myId);});
-  document.getElementById('switch-account-row').addEventListener('click',function(){
-    if(confirm('Switch account? You will need to enter a new ID.')){
+  document.getElementById('switch-account-row').addEventListener('click',async function(){
+    if(await styledConfirm('Switch account? You will need to enter a new ID.',{danger:true,okText:'Switch'})){
       localStorage.removeItem(SK.MYID);
       document.getElementById('tab-nav').classList.remove('visible');
       myId='';chatMode='';
@@ -2476,11 +2632,11 @@ function bindEvents(){
   document.getElementById('conf-limit-minus').addEventListener('click',function(){settings.confLimit=Math.max(2,settings.confLimit-1);saveAll();applySettingsToUI();});
   document.getElementById('conf-limit-plus').addEventListener('click',function(){settings.confLimit=Math.min(12,settings.confLimit+1);saveAll();applySettingsToUI();});
   document.getElementById('blocked-list-row').addEventListener('click',openBlockedModal);
-  document.getElementById('clear-calls-row').addEventListener('click',function(){if(confirm('Clear all call history?')){callHistory=[];saveAll();renderCallHistory();toast('Cleared');}});
+  document.getElementById('clear-calls-row').addEventListener('click',async function(){if(await styledConfirm('Clear all call history?',{danger:true,okText:'Clear'})){callHistory=[];saveAll();renderCallHistory();toast('Cleared');}});
   document.getElementById('to-auto').addEventListener('click',function(){setTheme('auto');});
   document.getElementById('to-light').addEventListener('click',function(){setTheme('light');});
   document.getElementById('to-dark').addEventListener('click',function(){setTheme('dark');});
-  document.getElementById('chat-back-btn').addEventListener('click',function(){chatMode='';chatPeerId='';chatConn=null;showScreen('screen-chats');switchTab('chats');renderChats();});
+  document.getElementById('chat-back-btn').addEventListener('click',function(){chatMode='';chatPeerId='';chatConn=null;showScreen('screen-chats','back');switchTab('chats');renderChats();});
   document.getElementById('reply-cancel-btn').addEventListener('click',cancelReply);
   document.getElementById('cs-close-btn').addEventListener('click',closeChatSearch);
   document.getElementById('cs-inp').addEventListener('input',function(){searchInChat(this.value);});
@@ -2507,6 +2663,8 @@ function bindEvents(){
   nci.addEventListener('keydown',function(e){if(e.key==='Enter')startChatFromModal();});
   document.getElementById('blocked-modal').addEventListener('click',function(e){if(e.target===this)document.getElementById('blocked-modal').classList.remove('show');});
   document.getElementById('blocked-modal-close-btn').addEventListener('click',function(){document.getElementById('blocked-modal').classList.remove('show');});
+  document.getElementById('chat-opts-modal').addEventListener('click',function(e){if(e.target===this)closeChatOptions();});
+  document.getElementById('chat-opts-cancel-btn').addEventListener('click',closeChatOptions);
   document.getElementById('ctx-overlay').addEventListener('click',function(e){if(e.target===this)closeCtx();});
   document.getElementById('ctx-reply-btn').addEventListener('click',function(){if(!ctxMsg)return;closeCtx();setReplyTo(ctxMsg);});
   document.getElementById('ctx-copy-btn').addEventListener('click',function(){
@@ -2514,17 +2672,17 @@ function bindEvents(){
     if(navigator.clipboard)navigator.clipboard.writeText(ctxMsg.text||'').then(function(){toast('Copied ✓');});else toast(ctxMsg.text||'');
     closeCtx();
   });
-  document.getElementById('ctx-forward-btn').addEventListener('click',function(){
+  document.getElementById('ctx-forward-btn').addEventListener('click',async function(){
     if(!ctxMsg)return;closeCtx();
-    var to=prompt('Forward to (Unifest ID):');if(!to)return;
+    var to=await styledPrompt('Forward to (Unifest ID):',{placeholder:'e.g. john123'});if(!to)return;
     var p=to.trim().toLowerCase().replace(/[^a-z0-9_\-]/g,'');if(!p)return;
     var c4=peer&&peer.connect(p,{reliable:true,metadata:{type:'dm'}});
     if(c4){c4.on('open',function(){c4.send({type:'chat-dm',text:ctxMsg.text||'',time:fmtTime()});toast('Forwarded to '+p);});c4.on('error',function(){toast('Could not reach '+p);});}
   });
-  document.getElementById('ctx-delete-btn').addEventListener('click',function(){
+  document.getElementById('ctx-delete-btn').addEventListener('click',async function(){
     if(!ctxMsg){closeCtx();return;}
     if(!ctxMsg.me){toast('Can only delete your own messages');closeCtx();return;}
-    if(!confirm('Delete this message?')){closeCtx();return;}
+    if(!(await styledConfirm('Delete this message?',{danger:true,okText:'Delete'}))){closeCtx();return;}
     var h=dmHistory[chatPeerId]||[];
     var i=h.findIndex(function(m){return m._id===ctxMsg._id||(m.time===ctxMsg.time&&m.text===ctxMsg.text);});
     if(i>-1){h.splice(i,1);saveAll();}
@@ -2551,7 +2709,7 @@ function bindEvents(){
   document.getElementById('conf-mute-btn').addEventListener('click',confToggleMute);
   document.getElementById('conf-cam-btn').addEventListener('click',confToggleCam);
   document.getElementById('conf-flip-btn').addEventListener('click',confFlipCamera);
-  document.getElementById('search-back-btn').addEventListener('click',function(){showScreen('screen-chats');switchTab('chats');});
+  document.getElementById('search-back-btn').addEventListener('click',function(){showScreen('screen-chats','back');switchTab('chats');});
   document.getElementById('g-search-input').addEventListener('input',function(){doGlobalSearch(this.value);});
   document.getElementById('headsup-notif').addEventListener('click',handleHUNTap);
   window.addEventListener('online',function(){toast('Back online 🟢');if(!peerReady)scheduleReconnect();});
@@ -2599,7 +2757,7 @@ document.addEventListener('backbutton',function(){
   var id=active.id;
   if(id==='screen-chat'||id==='screen-search'){
     if(id==='screen-chat'){chatMode='';chatPeerId='';chatConn=null;}
-    showScreen('screen-chats');switchTab('chats');
+    showScreen('screen-chats','back');switchTab('chats');
   }else if(id==='screen-call'&&!currentCall){declineCall();}
   else if(id==='screen-conf'){endConf();}
 },false);
