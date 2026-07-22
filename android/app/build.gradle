@@ -20,18 +20,18 @@ android {
     signingConfigs {
         release {
             def ksPath = rootProject.file('keystore/release.keystore')
-            if (ksPath.exists() && System.getenv("ANDROID_KEYSTORE_PASSWORD") != null) {
+            def hasSigningSecrets = ksPath.exists() && System.getenv("ANDROID_KEYSTORE_PASSWORD") != null
+            if (hasSigningSecrets) {
                 storeFile ksPath
                 storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
                 keyAlias System.getenv("ANDROID_KEY_ALIAS")
                 keyPassword System.getenv("ANDROID_KEY_PASSWORD")
-            } else {
-                throw new GradleException(
-                    "Release signing keystore not found at " + ksPath.getAbsolutePath() +
-                    " or ANDROID_KEYSTORE_PASSWORD is not set. Refusing to produce an " +
-                    "unsigned release build — set the GitHub repository secrets correctly."
-                )
             }
+            // NOTE: previously this threw a GradleException when the keystore/env
+            // vars were missing. That block ran during Gradle's configuration
+            // phase, so it fired for EVERY task (even a local `assembleDebug` or
+            // just opening the project) not just release builds — that was why
+            // the project wouldn't build outside of GitHub Actions.
         }
     }
 
@@ -39,7 +39,15 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            // Only attach real signing if secrets/keystore are actually present
+            // (true in GitHub Actions). Locally this leaves the release build
+            // using Android's default debug signing so `assembleRelease` still
+            // works on your machine instead of hard-failing.
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig signingConfigs.debug
+            }
         }
     }
 }
