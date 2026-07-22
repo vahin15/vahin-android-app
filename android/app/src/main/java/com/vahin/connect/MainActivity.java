@@ -1,12 +1,19 @@
 package com.vahin.connect;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
+import android.provider.Settings;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.BridgeActivity;
@@ -56,7 +63,97 @@ public class MainActivity extends BridgeActivity {
             new Handler(Looper.getMainLooper()).postDelayed(() -> deliverFcmToken(token), 1500);
         });
 
+        // Ask, once, to be exempted from battery optimization. Android kills background
+        // processes and can block FCM delivery unless the app is whitelisted — this is
+        // especially aggressive on Xiaomi (MIUI), Oppo (ColorOS), Vivo (FuntouchOS) and
+        // Samsung, which is why ringing can silently fail on those phones even though the
+        // code path is otherwise correct. Standard Android exposes one system API for
+        // this (REQUEST_IGNORE_BATTERY_OPTIMIZATIONS); OEM "autostart"/"protected apps"
+        // screens have no public API, so we best-effort deep-link to each vendor's known
+        // settings screen and silently do nothing if it's not present on the device.
+        new Handler(Looper.getMainLooper()).postDelayed(this::maybePromptBatteryExemption, 1200);
+
         handleIntentExtras(getIntent());
+    }
+
+    private void maybePromptBatteryExemption() {
+        if (isFinishing() || isDestroyed()) return;
+        String prefsName = "vahin_prefs";
+        android.content.SharedPreferences prefs = getSharedPreferences(prefsName, Context.MODE_PRIVATE);
+        if (prefs.getBoolean("battery_prompt_shown", false)) return;
+
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        boolean alreadyIgnoring = pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
+        if (alreadyIgnoring) {
+            prefs.edit().putBoolean("battery_prompt_shown", true).apply();
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+            .setTitle("Allow reliable ringing")
+            .setMessage("To make sure calls ring even when Vahin Connect is closed, please allow it " +
+                "to run without battery restrictions on the next screen.")
+            .setCancelable(true)
+            .setPositiveButton("Allow", (d, w) -> {
+                prefs.edit().putBoolean("battery_prompt_shown", true).apply();
+                requestIgnoreBatteryOptimizations();
+                requestOemAutoStartPermission();
+            })
+            .setNegativeButton("Not now", (d, w) -> prefs.edit().putBoolean("battery_prompt_shown", true).apply())
+            .show();
+    }
+
+    private void requestIgnoreBatteryOptimizations() {
+        try {
+            Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+            intent.setData(Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+        } catch (Exception ignored) {
+            // Some OEM builds strip this intent; fall through, nothing we can do.
+        }
+    }
+
+    // Best-effort deep link into each manufacturer's own "autostart" / "protected apps" /
+    // "battery" settings screen, since REQUEST_IGNORE_BATTERY_OPTIMIZATIONS alone is often
+    // not enough on these skins. Every component name is wrapped so an unrecognized device
+    // just silently no-ops instead of crashing.
+    private void requestOemAutoStartPermission() {
+        String manufacturer = Build.MANUFACTURER == null ? "" : Build.MANUFACTURER.toLowerCase();
+        String[][] candidates;
+        if (manufacturer.contains("xiaomi")) {
+            candidates = new String[][]{
+                {"com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"}
+            };
+        } else if (manufacturer.contains("oppo")) {
+            candidates = new String[][]{
+                {"com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"},
+                {"com.coloros.safecenter", "com.coloros.safecenter.startupapp.StartupAppListActivity"},
+                {"com.oppo.safe", "com.oppo.safe.permission.startup.StartupAppListActivity"}
+            };
+        } else if (manufacturer.contains("vivo")) {
+            candidates = new String[][]{
+                {"com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"},
+                {"com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity"}
+            };
+        } else if (manufacturer.contains("samsung")) {
+            candidates = new String[][]{
+                {"com.samsung.android.lool", "com.samsung.android.sm.ui.battery.BatteryActivity"}
+            };
+        } else {
+            candidates = new String[0][];
+        }
+
+        for (String[] c : candidates) {
+            try {
+                Intent intent = new Intent();
+                intent.setComponent(new ComponentName(c[0], c[1]));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                return; // stop at the first one that launches successfully
+            } catch (ActivityNotFoundException | SecurityException ignored) {
+                // try the next candidate
+            }
+        }
     }
 
     @Override

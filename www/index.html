@@ -50,16 +50,20 @@ button,input,textarea{font-family:inherit;}
 .screen{display:none!important;position:absolute;inset:0;flex-direction:column;padding-top:var(--safe-top);transition:transform .28s cubic-bezier(.4,0,.2,1);}
 .screen.active{display:flex!important;}
 .screen.tabbed{padding-bottom:calc(var(--nav-h) + var(--safe-bottom) + var(--banner-h));}
+.screen.tabbed.active{animation:tabFadeIn .22s cubic-bezier(.4,0,.2,1);}
+@keyframes tabFadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 #tab-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + var(--safe-bottom));padding-bottom:var(--safe-bottom);
   background:var(--surface);border-top:1px solid var(--border);display:none;align-items:stretch;z-index:90;box-shadow:0 -4px 20px rgba(0,0,0,.07);}
 #tab-nav.visible{display:flex;}
 .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border:none;background:none;
-  color:var(--text3);transition:color .15s;padding:8px 4px;position:relative;touch-action:manipulation;}
-.tab-btn.active{color:var(--accent);}
-.tab-btn .ti{font-size:22px;line-height:1;}
+  color:var(--text3);transition:color .18s ease,transform .18s ease;padding:8px 4px;position:relative;touch-action:manipulation;}
+.tab-btn.active{color:var(--accent);transform:translateY(-1px);}
+.tab-btn .ti{font-size:22px;line-height:1;transition:transform .18s cubic-bezier(.34,1.56,.64,1);}
+.tab-btn.active .ti{transform:scale(1.08);}
 .tab-btn .tl{font-size:10px;font-weight:600;}
-.tab-badge{position:absolute;top:6px;right:calc(50% - 20px);background:var(--red);color:#fff;font-size:9px;font-weight:800;
-  border-radius:8px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--surface);}
+.tab-badge{position:absolute;top:6px;right:calc(50% - 18px);background:var(--red);color:#fff;font-size:8px;font-weight:800;
+  border-radius:7px;min-width:13px;height:13px;display:flex;align-items:center;justify-content:center;padding:0 3px;border:2px solid var(--surface);
+  transition:transform .15s cubic-bezier(.34,1.56,.64,1);}
 #screen-id{flex-direction:column;align-items:center;justify-content:center;overflow-y:auto;
   background:radial-gradient(ellipse at 20% 0%,rgba(245,158,11,.14),transparent 55%),
     radial-gradient(ellipse at 85% 100%,rgba(124,58,237,.20),transparent 50%),var(--bg);}

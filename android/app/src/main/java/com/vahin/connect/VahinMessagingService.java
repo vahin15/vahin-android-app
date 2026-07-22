@@ -37,7 +37,7 @@ public class VahinMessagingService extends FirebaseMessagingService {
         String from = data.get("from");
         String text = data.get("text");
 
-        if ("call".equals(type) || "conf".equals(type)) {
+        if ("call".equals(type) || "voice-call".equals(type) || "conf".equals(type)) {
             showIncomingCallNotification(type, from);
         } else {
             showMessageNotification(from, text);
