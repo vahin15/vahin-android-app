@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -887,7 +889,7 @@ var currentTab='chats',obStep=0;
 var hunTimer=null;
 var chatPageSize=60,chatPageLoaded=1;
 var pushSub=null;
-var VAPID_PUBLIC_KEY=(window.VAHIN_VAPID_PUBLIC||'');
+var VAPID_PUBLIC_KEY=(window.VAHIN_VAPID_PUBLIC||'BCbUo6hM_8GiU9IgTFfCnQlH--QgDPUZrFTSdQgOofpOckv3b5vk9EJwmFUQ8czerb3YUmeC_KLO5UnE5UShasU');
 
 var OB=[
   {icon:'👋',title:'Welcome to Unifest',sub:'Free peer-to-peer calls & messaging. No phone number needed.'},
@@ -993,8 +995,9 @@ function enterApp(){
   updateBlockedCountUI();
   document.getElementById('tab-nav').classList.add('visible');
   switchTab('chats');showScreen('screen-chats');
-  loadPeerJS(function(){startPeerRobust();startPresence();startKeepAlive();startNotifServerKeepAlive();});
+  loadPeerJS(function(){startPeerRobust();startPresence();startKeepAlive();});
   maybeShowNotifBanner();
+  try{var cachedFcm=localStorage.getItem('uf_fcm_token_v1');if(cachedFcm)onFcmToken(cachedFcm);}catch(e){}
 }
 
 var peerStarting=false;
@@ -1023,15 +1026,9 @@ function startPeer(){
     peer.on('call',function(mc){
       var meta=mc.metadata||{};
       if(meta.type==='conf'){
-        if(isBlocked(mc.peer)){try{mc.close();}catch(e){}return;}
         if(confStream){
-          /* Already in a conference: this is a mesh leg from a peer who just joined
-             (or was invited) — auto-accept, but only if it doesn't push us past our
-             own configured conference limit. Reject cleanly instead of silently
-             over-filling the call. */
-          if(confJoinedCount()+1>=settings.confLimit){try{mc.close();}catch(e){}return;}
           mc.answer(confStream);confCalls[mc.peer]=mc;
-          mc.on('stream',function(s){addConfSlot(mc.peer,s);updateConfGrid();});
+          mc.on('stream',function(s){addConfSlot(mc.peer,s);});
           mc.on('close',function(){removeConfSlot(mc.peer);});
         }else{incomingCall={isConf:true,peerId:mc.peer,mc:mc};showIncoming(mc.peer,'conf');}
       }else{
@@ -1090,15 +1087,15 @@ function startPresence(){
   if(presenceInterval)clearInterval(presenceInterval);
   checkPresence();presenceInterval=setInterval(checkPresence,25000);
 }
-var keepAliveInterval=null,reconnCountdown=6;
+var keepAliveInterval=null,reconnCountdown=30;
 function startKeepAlive(){
   if(keepAliveInterval)clearInterval(keepAliveInterval);
-  reconnCountdown=6;
+  reconnCountdown=30;
   keepAliveInterval=setInterval(function(){
-    if(peerReady){hideBanner();reconnCountdown=6;return;}
+    if(peerReady){hideBanner();reconnCountdown=30;return;}
     reconnCountdown--;
     if(reconnCountdown<=0){
-      reconnCountdown=6;
+      reconnCountdown=30;
       if(!(currentCall||incomingCall||Object.keys(confCalls).length)){startPeerRobust();}
     }
     if(!peerReady)showReconnectChip(reconnCountdown);
@@ -1194,14 +1191,7 @@ function handleData(from,data,conn){
       }
       break;
     case 'conf-invite':
-      if(confStream||currentCall||(incomingCall&&!incomingCall.isConf))break;
-      incomingCall={isConf:true,peerId:from,mc:null,conn:conn,members:(data.members&&data.members.length?data.members:[from])};
-      showIncoming(from,'conf');
-      break;
-    case 'conf-decline':
-      /* Invitee declined (or was already busy) before ever joining — free the seat
-         right away instead of waiting on the 40s pending-invite safety timeout. */
-      removeConfSlot(from);
+      incomingCall={isConf:true,peerId:from,mc:null};showIncoming(from,'conf');
       break;
     case 'file-meta':handleFileMeta(from,data);break;
     case 'file-chunk':handleFileChunk(data);break;
@@ -1995,7 +1985,7 @@ async function startCall(pid,voiceOnly){
   if(callConn){callConn.on('data',function(data){handleData(pid,data,callConn);});callConn.on('error',function(){});}
   setTimeout(function(){var s=document.getElementById('call-status');if(s&&s.textContent==='Calling…'){toast('No answer');logCall(pid,'missed','out');endCall();}},35000);
 }
-var callRetryCount=0,MAX_CALL_RETRIES=6;
+var callRetryCount=0,MAX_CALL_RETRIES=24; /* ~1.5s apart, covers the full ~35s ring window so a phone woken up by FCM has time to reconnect before we give up */
 function placeCallAttempt(pid,voiceOnly){
   if(!localStream)return;
   try{
@@ -2018,21 +2008,20 @@ function handlePeerUnavailable(){
   if(!stillCalling)return; // call already connected (or none in progress) — this was a stray/unrelated error, ignore it entirely
   if(callRetryCount<MAX_CALL_RETRIES){
     callRetryCount++;
-    /* Space retries out (3s, 6s, 9s, 12s...) instead of hammering every 1.5s.
-       This gives a backgrounded/killed receiver real time to be woken by the
-       push notification and reconnect to the peer broker before we give up —
-       the old fixed 1.5s spacing gave up in ~3s total, well before that wake-up
-       path could ever complete. */
     setTimeout(function(){
       if(!currentCall)return;
       try{currentCall.close();}catch(e){}
       placeCallAttempt(callPeerId,callIsVoiceOnly);
-    },3000*callRetryCount);
+    },1500);
     return;
   }
   callRetryCount=0;
-  toast("⚠️ That ID is offline or doesn't exist");stopOutTone();
-  endCall();
+  // Retries exhausted (~35s of trying) — the "No answer" timeout already set up in
+  // startCall() will finish cleaning up and show the right message momentarily.
+  // We don't show a separate "offline" toast here anymore: on a real call, a phone
+  // that was fully closed can take several seconds to wake up via Firebase and
+  // reconnect, so bailing out early used to hang up on the caller before the
+  // callee's phone had even finished ringing.
 }
 function showIncoming(pid,kind){
   showScreen('screen-call');setVoiceMode(kind==='voice',pid);
@@ -2065,7 +2054,7 @@ async function acceptCall(){
         incomingCall.mc.on('close',function(){removeConfSlot(incomingCall.mc.peer);});
         updateConfGrid();showScreen('screen-conf');incomingCall=null;requestWakeLock();
       }catch(e){toast('Camera/mic denied');showScreen('screen-chats');}
-    }else{joinConf(incomingCall.members&&incomingCall.members.length?incomingCall.members:[incomingCall.peerId]);incomingCall=null;}
+    }else{joinConf(incomingCall.peerId);incomingCall=null;}
     return;
   }
   try{
@@ -2083,10 +2072,7 @@ async function acceptCall(){
 function declineCall(){
   document.getElementById('incoming-overlay').classList.remove('show');
   hideHUN();stopRing();
-  if(incomingCall&&incomingCall.isConf){
-    if(incomingCall.mc){try{incomingCall.mc.close();}catch(e){}}
-    else if(incomingCall.conn){try{if(incomingCall.conn.open)incomingCall.conn.send({type:'conf-decline'});}catch(e){}try{incomingCall.conn.close();}catch(e){}}
-  }else if(incomingCall){logCall(incomingCall.peer,'declined','in');try{incomingCall.close();}catch(e){}}
+  if(incomingCall&&!incomingCall.isConf){logCall(incomingCall.peer,'declined','in');try{incomingCall.close();}catch(e){}}
   incomingCall=null;showScreen('screen-chats');
 }
 function endCall(){
@@ -2162,68 +2148,36 @@ async function openGroupConf(){
   document.getElementById('conf-label-local').textContent=myId;updateConfGrid();
   showScreen('screen-conf');requestWakeLock();
 }
-async function joinConf(members){
-  var targets=(Array.isArray(members)?members:[members]).filter(function(p){return p&&p!==myId;});
-  if(targets.length+1>settings.confLimit)toast('Heads up: this call has more people than your conference limit ('+settings.confLimit+')');
+async function joinConf(initiator){
   confCalls={};confConns={};confFacing=settings.backcam?'environment':'user';
   try{confStream=await getStream(confFacing);}catch(e){toast('Camera/mic denied');return;}
   var le=document.getElementById('conf-video-local');le.srcObject=confStream;applyMirror(le,confFacing);
   document.getElementById('conf-label-local').textContent=myId;
-  /* Full mesh join: call every existing participant, not just whoever sent the
-     invite. Each of them already has confStream set, so peer.on('call') auto-
-     answers immediately — that's what actually makes it a group call instead of
-     everyone just being connected to one hub. */
-  targets.forEach(function(pid){
-    if(confCalls[pid])return;
-    try{
-      var mc=peer&&peer.call(pid,confStream,{metadata:{type:'conf'}});
-      if(mc){
-        confCalls[pid]=mc;mc._pending=true;
-        mc.on('stream',function(rs){mc._pending=false;addConfSlot(pid,rs);updateConfGrid();});
-        mc.on('close',function(){removeConfSlot(pid);});
-        addRecentSilent(pid);
-        setTimeout(function(){if(confCalls[pid]===mc&&mc._pending){removeConfSlot(pid);}},40000);
-      }
-    }catch(e){}
-  });
+  try{
+    var mc=peer&&peer.call(initiator,confStream,{metadata:{type:'conf'}});
+    if(mc){confCalls[initiator]=mc;mc.on('stream',function(rs){addConfSlot(initiator,rs);});mc.on('close',function(){removeConfSlot(initiator);});addRecentSilent(initiator);}
+  }catch(e){}
   updateConfGrid();showScreen('screen-conf');requestWakeLock();
 }
 function inviteToConf(){
   var pid=document.getElementById('conf-invite-inp').value.trim().toLowerCase().replace(/[^a-z0-9_\-]/g,'');
   if(!pid){toast('Enter their ID');return;}if(pid===myId){toast("That's you!");return;}
-  if(isBlocked(pid)){toast('You have blocked this user');return;}
   if(confCalls[pid]){toast(pid+' already in call');return;}
-  /* Count only people who actually joined — a pending/unanswered/declined invite
-     must not permanently occupy a seat in the conference limit. */
-  if(confJoinedCount()+2>settings.confLimit){toast('Conference limit reached');return;}
-  var members=Object.keys(confCalls).filter(function(k){return confCalls[k]&&!confCalls[k]._pending;});
-  members.push(myId);
+  if(Object.keys(confCalls).length+1>=settings.confLimit){toast('Conference limit reached');return;}
   try{
     var conn3=peer&&peer.connect(pid,{reliable:true,metadata:{type:'conf'}});
     if(conn3){
       confConns[pid]=conn3;
-      conn3.on('open',function(){try{conn3.send({type:'conf-invite',initiator:myId,members:members});}catch(e){};addRecentSilent(pid);});
+      conn3.on('open',function(){try{conn3.send({type:'conf-invite',initiator:myId});}catch(e){};addRecentSilent(pid);});
       conn3.on('data',function(data){handleData(pid,data,conn3);});
     }
     var mc2=peer&&peer.call(pid,confStream,{metadata:{type:'conf'}});
-    if(mc2){
-      confCalls[pid]=mc2;mc2._pending=true;
-      mc2.on('stream',function(rs){mc2._pending=false;addConfSlot(pid,rs);updateConfGrid();});
-      mc2.on('close',function(){removeConfSlot(pid);});
-      /* Safety net: if they never answer/decline and the callee side never sends a
-         close (e.g. flaky connection), don't let the ghost invite sit there forever
-         eating a seat in the limit. */
-      setTimeout(function(){if(confCalls[pid]===mc2&&mc2._pending){removeConfSlot(pid);}},40000);
-    }
+    if(mc2){confCalls[pid]=mc2;mc2.on('stream',function(rs){addConfSlot(pid,rs);});mc2.on('close',function(){removeConfSlot(pid);});}
   }catch(e){toast('Invite failed: '+e.message);return;}
   notifyPeer(pid,'conf');
   document.getElementById('conf-invite-panel').classList.remove('show');
   document.getElementById('conf-invite-inp').value='';
   toast('Calling '+pid+'…');
-  updateConfGrid();
-}
-function confJoinedCount(){
-  return Object.keys(confCalls).filter(function(k){return confCalls[k]&&!confCalls[k]._pending;}).length;
 }
 function addConfSlot(pid,stream){
   var existing=document.getElementById('cslot_'+pid);
@@ -2243,7 +2197,7 @@ function updateConfGrid(){
   var grid=document.getElementById('conf-grid');
   var n=grid.querySelectorAll('.conf-slot').length;
   grid.className='conf-grid p'+Math.min(n,9);
-  var ex=confJoinedCount();
+  var ex=Object.keys(confCalls).length;
   document.getElementById('conf-sub').textContent=ex===0?'You only':ex===1?'You + 1 person':'You + '+ex+' people';
 }
 function endConf(){
@@ -2318,12 +2272,6 @@ async function registerSW(){
       if(d.kind==='notification-action'){
         if(d.notifType==='call'){if(d.action==='accept'&&incomingCall)acceptCall();else if(d.action==='decline'&&incomingCall)declineCall();}
         else if(d.from)openDMChat(d.from);
-      }else if(d.kind==='reconnect-now'){
-        /* A call/conference push just arrived — if our peer socket had dropped
-           (e.g. the app was backgrounded), stop waiting on the slow keep-alive
-           countdown and reconnect right now so we're actually reachable before
-           the caller gives up. */
-        if(myId&&!peerReady&&!peerStarting)startPeerRobust();
       }
     });
   }catch(e){}
@@ -2353,44 +2301,43 @@ function showLocalNotif(type,from,text){
   if(document.visibilityState==='visible')return;
   try{var n=new Notification('💬 '+from,{body:text||'New message',icon:'/icons/icon-192.png',tag:'uf-'+from});n.onclick=function(){window.focus();openDMChat(from);n.close();};}catch(e){}
 }
-/* notifyPeer is what triggers the receiver's OS-level push notification (the
-   "ringing" the other person actually sees/hears when the app isn't in the
-   foreground). The old version fired a single fetch and swallowed any error —
-   so if the backend host was cold (Render free tier sleeps after ~15 min idle
-   and can take 30-50s to wake up), the request would just silently fail or hang
-   past the caller's 35s "no answer" timeout and the callee's phone would never
-   ring. This retries once with a generous timeout instead of giving up silently. */
-function postNotify(body,attemptsLeft,timeoutMs){
-  var ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
-  var t=ctrl?setTimeout(function(){ctrl.abort();},timeoutMs):null;
-  fetch(NOTIF_API+'/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl?ctrl.signal:undefined})
-    .then(function(){if(t)clearTimeout(t);})
-    .catch(function(){
-      if(t)clearTimeout(t);
-      if(attemptsLeft>1)setTimeout(function(){postNotify(body,attemptsLeft-1,timeoutMs);},1500);
-    });
-}
 function notifyPeer(toId,type){
   if(!toId)return;
-  try{postNotify({to:toId,type:type,from:myId},2,20000);}catch(e){}
+  try{fetch(NOTIF_API+'/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:toId,type:type,from:myId})}).catch(function(){});}catch(e){}
 }
 function notifyPeerMsg(toId,text){
   if(!toId)return;
-  try{postNotify({to:toId,type:'message',from:myId,text:text},2,20000);}catch(e){}
+  try{fetch(NOTIF_API+'/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:toId,type:'message',from:myId,text:text})}).catch(function(){});}catch(e){}
 }
-var notifKeepAliveInterval=null;
-function startNotifServerKeepAlive(){
-  /* Free-tier hosts like Render spin the backend down after ~15 min of no
-     traffic; the next request then has to cold-start it, which is exactly what
-     was making "someone calls someone" silently fail to ring. Pinging every
-     10 minutes while the app is open keeps it warm so /notify responds
-     immediately when an actual call comes in. */
-  if(notifKeepAliveInterval)clearInterval(notifKeepAliveInterval);
-  var ping=function(){try{fetch(NOTIF_API+'/',{method:'GET'}).catch(function(){});}catch(e){}};
-  ping();
-  notifKeepAliveInterval=setInterval(ping,10*60*1000);
+/* Native FCM bridge (Android): MainActivity.java calls window.onFcmToken() once it has
+   a token, and window.handleNativeCallAction() when the user taps Accept/Decline on the
+   native full-screen incoming-call UI (or taps a message notification). This is what
+   makes ringing work even when the app was fully killed. */
+function onFcmToken(token){
+  if(!token)return;
+  try{localStorage.setItem('uf_fcm_token_v1',token);}catch(e){}
+  if(!myId)return;
+  fetch(NOTIF_API+'/register-fcm',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id:myId,token:token})}).catch(function(){});
 }
-/* Web Push: works while the WebView process is alive. Full killed-app ringing needs a native FCM full-screen-intent plugin. */
+window.onFcmToken=onFcmToken;
+function getIncomingCallPeer(){if(!incomingCall)return null;return incomingCall.isConf?incomingCall.peerId:incomingCall.peer;}
+var nativeCallWaitTimer=null;
+function handleNativeCallAction(action,from){
+  if(action==='message'){if(from&&myId)openDMChat(from);return;}
+  clearInterval(nativeCallWaitTimer);
+  var tries=0;
+  nativeCallWaitTimer=setInterval(function(){
+    tries++;
+    var p=getIncomingCallPeer();
+    if(p&&(!from||p===from)){
+      clearInterval(nativeCallWaitTimer);
+      if(action==='decline')declineCall();else if(action==='accept')acceptCall();
+    }else if(tries>30){clearInterval(nativeCallWaitTimer);}
+  },400);
+}
+window.handleNativeCallAction=handleNativeCallAction;
+/* Web Push: works while the WebView process is alive. Native FCM (above) covers killed-app ringing. */
 function urlB64ToUint8Array(base64String){
   var padding='='.repeat((4-base64String.length%4)%4);
   var base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
