@@ -50,20 +50,16 @@ button,input,textarea{font-family:inherit;}
 .screen{display:none!important;position:absolute;inset:0;flex-direction:column;padding-top:var(--safe-top);transition:transform .28s cubic-bezier(.4,0,.2,1);}
 .screen.active{display:flex!important;}
 .screen.tabbed{padding-bottom:calc(var(--nav-h) + var(--safe-bottom) + var(--banner-h));}
-.screen.tabbed.active{animation:tabFadeIn .22s cubic-bezier(.4,0,.2,1);}
-@keyframes tabFadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 #tab-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + var(--safe-bottom));padding-bottom:var(--safe-bottom);
   background:var(--surface);border-top:1px solid var(--border);display:none;align-items:stretch;z-index:90;box-shadow:0 -4px 20px rgba(0,0,0,.07);}
 #tab-nav.visible{display:flex;}
 .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border:none;background:none;
-  color:var(--text3);transition:color .18s ease,transform .18s ease;padding:8px 4px;position:relative;touch-action:manipulation;}
-.tab-btn.active{color:var(--accent);transform:translateY(-1px);}
-.tab-btn .ti{font-size:22px;line-height:1;transition:transform .18s cubic-bezier(.34,1.56,.64,1);}
-.tab-btn.active .ti{transform:scale(1.08);}
+  color:var(--text3);transition:color .15s;padding:8px 4px;position:relative;touch-action:manipulation;}
+.tab-btn.active{color:var(--accent);}
+.tab-btn .ti{font-size:22px;line-height:1;}
 .tab-btn .tl{font-size:10px;font-weight:600;}
-.tab-badge{position:absolute;top:6px;right:calc(50% - 18px);background:var(--red);color:#fff;font-size:8px;font-weight:800;
-  border-radius:7px;min-width:13px;height:13px;display:flex;align-items:center;justify-content:center;padding:0 3px;border:2px solid var(--surface);
-  transition:transform .15s cubic-bezier(.34,1.56,.64,1);}
+.tab-badge{position:absolute;top:6px;right:calc(50% - 20px);background:var(--red);color:#fff;font-size:9px;font-weight:800;
+  border-radius:8px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--surface);}
 #screen-id{flex-direction:column;align-items:center;justify-content:center;overflow-y:auto;
   background:radial-gradient(ellipse at 20% 0%,rgba(245,158,11,.14),transparent 55%),
     radial-gradient(ellipse at 85% 100%,rgba(124,58,237,.20),transparent 50%),var(--bg);}
@@ -884,6 +880,15 @@ function loadPeerJS(cb){
   tryNext();
 }
 var NOTIF_API=(window.VAHIN_NOTIF_API||'https://vahin-backend.onrender.com');
+/* Must exactly match API_SHARED_SECRET on the backend (Render → Environment).
+   Leave both blank while testing; once you set one, set the other to match,
+   or every backend call below starts getting rejected with 401. */
+var API_SHARED_SECRET='';
+function apiHeaders(){
+  var h={'Content-Type':'application/json'};
+  if(API_SHARED_SECRET)h['x-vahin-key']=API_SHARED_SECRET;
+  return h;
+}
 var PEER_CONFIG={debug:0,config:{iceServers:[
   {urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'},
   {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
@@ -2463,11 +2468,11 @@ function connectWithWake(pid,connType,onOpen,onFail,maxWaitMs){
 }
 function notifyPeer(toId,type){
   if(!toId)return;
-  try{fetch(NOTIF_API+'/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:toId,type:type,from:myId})}).catch(function(){});}catch(e){}
+  try{fetch(NOTIF_API+'/notify',{method:'POST',headers:apiHeaders(),body:JSON.stringify({to:toId,type:type,from:myId})}).catch(function(){});}catch(e){}
 }
 function notifyPeerMsg(toId,text){
   if(!toId)return;
-  try{fetch(NOTIF_API+'/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:toId,type:'message',from:myId,text:text})}).catch(function(){});}catch(e){}
+  try{fetch(NOTIF_API+'/notify',{method:'POST',headers:apiHeaders(),body:JSON.stringify({to:toId,type:'message',from:myId,text:text})}).catch(function(){});}catch(e){}
 }
 /* Native FCM bridge (Android): MainActivity.java calls window.onFcmToken() once it has
    a token, and window.handleNativeCallAction() when the user taps Accept/Decline on the
@@ -2477,7 +2482,7 @@ function onFcmToken(token){
   if(!token)return;
   try{localStorage.setItem('uf_fcm_token_v1',token);}catch(e){}
   if(!myId)return;
-  fetch(NOTIF_API+'/register-fcm',{method:'POST',headers:{'Content-Type':'application/json'},
+  fetch(NOTIF_API+'/register-fcm',{method:'POST',headers:apiHeaders(),
     body:JSON.stringify({id:myId,token:token})}).catch(function(){});
 }
 window.onFcmToken=onFcmToken;
@@ -2513,7 +2518,7 @@ async function subscribePush(){
     var reg=await navigator.serviceWorker.ready;
     var existing=await reg.pushManager.getSubscription();
     pushSub=existing||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8Array(VAPID_PUBLIC_KEY)});
-    await fetch(NOTIF_API+'/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},
+    await fetch(NOTIF_API+'/subscribe',{method:'POST',headers:apiHeaders(),
       body:JSON.stringify({id:myId,subscription:pushSub})}).catch(function(){});
     refreshPushUI();
   }catch(e){console.warn('Push subscribe failed',e);}
