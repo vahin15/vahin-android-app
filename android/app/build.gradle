@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.vahin.connect"
+    namespace = "com.vahin.unifest"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "com.vahin.connect"
