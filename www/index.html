@@ -37,10 +37,12 @@
   --ads-right:0px;
 }
 html.dark{
-  --bg:#0C0918;--surface:#161029;--surface2:#1F1840;--surface3:#2B2150;
-  --text:#F5F3FC;--text2:#CBC3E6;--text3:#8F86AE;
-  --border:#2A2150;--border2:#3A2E68;--accent-light:#291F52;
-  --accent:#9163F0;--accent2:#7C3AED;--surface:#161029;
+  --bg:#0B0E17;--surface:#141A29;--surface2:#1B2333;--surface3:#252F45;
+  --text:#F1F3FB;--text2:#B9C1D9;--text3:#7C8AAB;
+  --border:#232C40;--border2:#333F5C;--accent-light:#26224A;
+  --accent:#A78BFA;--accent2:#8B5CF6;
+  --grad-a:#A78BFA;--grad-b:#FBBF24;--grad-c:#F472B6;
+  --green:#34D399;--red:#F87171;--yellow:#FBBF24;--orange:#FB923C;
 }
 html,body{height:100%;overflow:hidden;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;
@@ -343,6 +345,8 @@ button,input,textarea{font-family:inherit;}
   font-size:40px;font-weight:800;color:var(--text);}
 .ring-name{font-size:24px;font-weight:800;color:#fff;letter-spacing:-.5px;}
 .ring-sub{font-size:14px;color:rgba(255,255,255,.6);}
+.out-phase-timer{font-size:13px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.5px;
+  background:rgba(255,255,255,.08);border-radius:20px;padding:5px 14px;font-variant-numeric:tabular-nums;}
 .call-controls{position:absolute;bottom:0;left:0;right:0;z-index:10;padding:0 18px calc(30px + var(--safe-bottom));padding-top:36px;
   display:flex;justify-content:center;gap:14px;flex-wrap:wrap;background:linear-gradient(transparent,rgba(5,5,10,.95) 40%);}
 .ctrl-btn{width:56px;height:56px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;
@@ -697,7 +701,9 @@ button,input,textarea{font-family:inherit;}
   </div>
   <div class="outgoing-wrap" id="outgoing-wrap">
     <div class="ring-container"><div class="ring-wave"></div><div class="ring-wave w2"></div><div class="ring-wave w3"></div><div class="ring-circle" id="out-avatar">?</div></div>
-    <div class="ring-name" id="out-name">—</div><div class="ring-sub">Calling…</div>
+    <div class="ring-name" id="out-name">—</div>
+    <div class="ring-sub" id="out-phase-label">Calling…</div>
+    <div class="out-phase-timer" id="out-phase-timer">0:00</div>
   </div>
   <div class="call-header">
     <div><div class="call-peer-name" id="call-peer-name">—</div><div class="call-status-text" id="call-status">Connecting…</div></div>
@@ -908,7 +914,7 @@ var SK={MYID:'uf_myid_v3',CONTACTS:'uf_contacts_v3',DM:'uf_dm_v3',GRPH:'uf_grp_h
   CALLS:'uf_calls_v3',SETTINGS:'uf_settings_v3',BLOCKED:'uf_blocked_v3',PINNED:'uf_pinned_v3',ONBOARDED:'uf_onboarded_v1',RINGTONE:'uf_ringtone_v1'};
 var myId='',peer=null,peerReady=false,reconnTimer=null;
 var localStream=null,currentCall=null,callPeerId='';
-var callConn=null,callTimer=null,callSecs=0;
+var callConn=null,callTimer=null,callSecs=0,weAreCaller=false;
 var mutedAudio=false,mutedVideo=false,speakerOn=true,facingMode='user';
 var confStream=null,confCalls={},confConns={};
 var confMutedAudio=false,confMutedVideo=false,confFacing='user';
@@ -925,6 +931,7 @@ var typingTimer=null,remoteTypingTimer=null;
 var mediaRecorder=null,audioChunks=[],recTimer=null,recSecs=0,recCancelled=false;
 var callQualTimer=null,wakeLock=null;
 var ringInterval=null,ringtoneMuted=false,vibrateInterval=null,outToneInterval=null;
+var outPhaseTimer=null,outElapsedSecs=0,outServerWoke=false,outCallConnected=false;
 var ringtoneCtx=null;
 var presenceInterval=null;
 var fileBlobs={};
@@ -1059,6 +1066,22 @@ function setMyId(){
   if(v.length<2){toast('ID must be at least 2 characters');return;}
   myId=v;localStorage.setItem(SK.MYID,myId);loadAll();enterApp();
 }
+/* Render's free tier sleeps the backend after ~15 min idle — previously the very
+   first time it got woken was the moment a call/message actually needed it,
+   which is exactly the 35-50s delay users would sit through mid-call. Since
+   opening the app is a clear signal "I might call or be called soon", we wake
+   it the instant the app opens instead, and keep re-pinging it periodically
+   while the app stays open so it never has the chance to go back to sleep
+   during an active session. */
+function wakeBackendServer(){
+  try{fetch(NOTIF_API+'/',{method:'GET',cache:'no-store'}).catch(function(){});}catch(e){}
+}
+var backendKeepWarmInterval=null;
+function startBackendKeepWarm(){
+  wakeBackendServer();
+  if(backendKeepWarmInterval)clearInterval(backendKeepWarmInterval);
+  backendKeepWarmInterval=setInterval(wakeBackendServer,10*60*1000); /* well inside Render's ~15min idle window */
+}
 function enterApp(){
   var els={'topbar-myid':myId,'settings-uname':myId,'settings-uid-text':myId,'conf-label-local':myId};
   Object.keys(els).forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=els[id];});
@@ -1069,6 +1092,7 @@ function enterApp(){
   document.getElementById('tab-nav').classList.add('visible');
   switchTab('chats');showScreen('screen-chats');
   loadPeerJS(function(){startPeerRobust();startPresence();startKeepAlive();});
+  startBackendKeepWarm();
   maybeShowNotifBanner();
   try{var cachedFcm=localStorage.getItem('uf_fcm_token_v1');if(cachedFcm)onFcmToken(cachedFcm);}catch(e){}
 }
@@ -1261,6 +1285,8 @@ function handleData(from,data,conn){
         stopRing();document.getElementById('incoming-overlay').classList.remove('show');
         incomingCall=null;logCall(from,'missed','in');showScreen('screen-chats','back');
         toast(from+' cancelled the call');
+      }else if(weAreCaller&&!outCallConnected&&callPeerId===from){
+        toast(from+' declined the call');logCall(from,'declined','out');weAreCaller=false;endCall();
       }
       break;
     case 'conf-invite':
@@ -2059,6 +2085,35 @@ function playOutToneOnce(){
 }
 function startOutTone(){stopOutTone();playOutToneOnce();outToneInterval=setInterval(playOutToneOnce,2200);}
 function stopOutTone(){clearInterval(outToneInterval);outToneInterval=null;document.getElementById('outgoing-wrap').classList.remove('show');}
+/* Two-phase outgoing-call display: our backend (Render free tier) can take
+   ~35-50s to wake from a cold start before it can even relay the FCM ping that
+   wakes the other person's phone. So instead of a ring screen that just sits
+   there looking frozen, phase 1 (up to the first 50s, or until the wake
+   request actually comes back — whichever is first) tells the person the
+   server is waking up, with a running timer; phase 2 switches to a normal
+   "Ringing…" once the server has responded (or 50s have passed regardless).
+   Total ring window is 2 minutes before we give up as "No answer". */
+var OUT_WAKE_PHASE_CAP=50;
+function startOutPhaseTimer(){
+  outElapsedSecs=0;outServerWoke=false;outCallConnected=false;
+  var lbl=document.getElementById('out-phase-label'),tm=document.getElementById('out-phase-timer');
+  if(lbl)lbl.textContent='Waking up server…';
+  if(tm)tm.textContent='0:00';
+  clearInterval(outPhaseTimer);
+  outPhaseTimer=setInterval(function(){
+    outElapsedSecs++;
+    var m=Math.floor(outElapsedSecs/60),s=outElapsedSecs%60;
+    if(tm)tm.textContent=m+':'+(s<10?'0':'')+s;
+    if(!outServerWoke&&outElapsedSecs>=OUT_WAKE_PHASE_CAP)markServerWoke();
+  },1000);
+}
+function markServerWoke(){
+  if(outServerWoke)return;outServerWoke=true;
+  var lbl=document.getElementById('out-phase-label');
+  if(lbl&&!outCallConnected)lbl.textContent='Ringing…';
+}
+function markOutCallConnected(){outCallConnected=true;stopOutPhaseTimer();}
+function stopOutPhaseTimer(){clearInterval(outPhaseTimer);outPhaseTimer=null;}
 function startQual(){
   document.getElementById('call-quality').classList.add('show');
   callQualTimer=setInterval(async function(){
@@ -2096,7 +2151,7 @@ async function startCall(pid,voiceOnly){
   if(!pid){toast('Enter an ID');return;}if(pid===myId){toast("Can't call yourself");return;}
   if(!peer||!peerReady){toast('Not connected yet');return;}if(currentCall){toast('Already in a call');return;}
   if(isBlocked(pid)){toast('You have blocked this user');return;}
-  callPeerId=pid;addRecentSilent(pid);callIsVoiceOnly=!!voiceOnly;
+  callPeerId=pid;addRecentSilent(pid);callIsVoiceOnly=!!voiceOnly;weAreCaller=true;
   facingMode=settings.backcam?'environment':'user';
   try{localStream=voiceOnly?await getAudioOnlyStream():await getStream(facingMode);}
   catch(e){toast(voiceOnly?'Microphone access denied':'Camera/mic access denied');return;}
@@ -2107,19 +2162,21 @@ async function startCall(pid,voiceOnly){
   document.getElementById('out-avatar').textContent=pid[0].toUpperCase();
   document.getElementById('out-name').textContent=pid;
   document.getElementById('outgoing-wrap').classList.add('show');
-  startOutTone();notifyPeer(pid,voiceOnly?'voice-call':'call');
+  startOutTone();startOutPhaseTimer();
+  notifyPeer(pid,voiceOnly?'voice-call':'call',markServerWoke);
   callRetryCount=0;placeCallAttempt(pid,voiceOnly);
   callConn=peer.connect(pid,{reliable:true,metadata:{type:'dm'}});
   if(callConn){callConn.on('data',function(data){handleData(pid,data,callConn);});callConn.on('error',function(){});}
-  setTimeout(function(){var s=document.getElementById('call-status');if(s&&s.textContent==='Calling…'){toast('No answer');logCall(pid,'missed','out');endCall();}},35000);
+  setTimeout(function(){var s=document.getElementById('call-status');if(s&&s.textContent==='Calling…'){toast('No answer');logCall(pid,'missed','out');endCall();}},TOTAL_RING_MS);
 }
-var callRetryCount=0,MAX_CALL_RETRIES=24; /* ~1.5s apart, covers the full ~35s ring window so a phone woken up by FCM has time to reconnect before we give up */
+var TOTAL_RING_MS=120000; /* full 2-minute ring window, split into the wake-up phase (see startOutPhaseTimer) then plain ringing */
+var callRetryCount=0,MAX_CALL_RETRIES=Math.ceil(TOTAL_RING_MS/1500); /* ~1.5s apart, covers the full 2-minute ring window so a phone woken up by FCM has time to reconnect before we give up */
 function placeCallAttempt(pid,voiceOnly){
   if(!localStream)return;
   try{
     currentCall=peer.call(pid,localStream,{metadata:{facing:facingMode,voiceOnly:!!voiceOnly}});
     currentCall.on('stream',function(rs){
-      stopOutTone();var rv=document.getElementById('video-remote');rv.srcObject=rs;
+      stopOutTone();markOutCallConnected();var rv=document.getElementById('video-remote');rv.srcObject=rs;
       document.getElementById('call-status').textContent='Connected ✓';
       startCallTimer();logCall(pid,'connected','out');startQual();
     });
@@ -2152,6 +2209,7 @@ function handlePeerUnavailable(){
   // callee's phone had even finished ringing.
 }
 function showIncoming(pid,kind){
+  weAreCaller=false;outCallConnected=false;
   showScreen('screen-call');setVoiceMode(kind==='voice',pid);
   document.getElementById('outgoing-wrap').classList.remove('show');
   document.getElementById('inc-avatar').textContent=pid[0].toUpperCase();
@@ -2200,14 +2258,24 @@ async function acceptCall(){
 function declineCall(){
   document.getElementById('incoming-overlay').classList.remove('show');
   hideHUN();stopRing();
-  if(incomingCall&&!incomingCall.isConf){logCall(incomingCall.peer,'declined','in');try{incomingCall.close();}catch(e){}}
+  if(incomingCall&&!incomingCall.isConf){
+    logCall(incomingCall.peer,'declined','in');
+    if(chatConn&&chatConn.peer===incomingCall.peer&&chatConn.open){try{chatConn.send({type:'call-cancel'});}catch(e){}}
+    try{incomingCall.close();}catch(e){}
+  }
   incomingCall=null;showScreen('screen-chats','back');
 }
 function endCall(){
-  stopOutTone();stopRing();hideHUN();
+  stopOutTone();stopRing();hideHUN();stopOutPhaseTimer();
+  /* PeerJS's own close-propagation on the MediaConnection isn't reliable before
+     the call has actually connected (no negotiation has completed yet for it to
+     ride on) — that's the gap that used to leave the other person still ringing
+     after we'd hung up. Sending an explicit cancel over the data connection we
+     already opened for this call closes that gap. */
+  if(weAreCaller&&!outCallConnected&&callConn&&callConn.open){try{callConn.send({type:'call-cancel'});}catch(e){}}
   try{if(currentCall)currentCall.close();}catch(e){}
   try{if(callConn)callConn.close();}catch(e){}
-  currentCall=null;callConn=null;
+  currentCall=null;callConn=null;weAreCaller=false;outCallConnected=false;
   if(localStream){localStream.getTracks().forEach(function(t){try{t.stop();}catch(e){}});localStream=null;}
   clearInterval(callTimer);callTimer=null;callSecs=0;stopQual();
   document.getElementById('video-remote').srcObject=null;
@@ -2466,9 +2534,12 @@ function connectWithWake(pid,connType,onOpen,onFail,maxWaitMs){
   }
   attempt();
 }
-function notifyPeer(toId,type){
-  if(!toId)return;
-  try{fetch(NOTIF_API+'/notify',{method:'POST',headers:apiHeaders(),body:JSON.stringify({to:toId,type:type,from:myId})}).catch(function(){});}catch(e){}
+function notifyPeer(toId,type,onSettled){
+  if(!toId){if(onSettled)onSettled();return;}
+  try{
+    fetch(NOTIF_API+'/notify',{method:'POST',headers:apiHeaders(),body:JSON.stringify({to:toId,type:type,from:myId})})
+      .then(function(){if(onSettled)onSettled();}).catch(function(){if(onSettled)onSettled();});
+  }catch(e){if(onSettled)onSettled();}
 }
 function notifyPeerMsg(toId,text){
   if(!toId)return;
@@ -2529,19 +2600,47 @@ document.addEventListener('visibilitychange',async function(){
   if(wakeLock&&document.visibilityState==='visible')try{wakeLock=await navigator.wakeLock.request('screen');}catch(e){}
   if(document.visibilityState==='visible'&&ringtoneCtx&&ringtoneCtx.state==='suspended')try{ringtoneCtx.resume();}catch(e){}
   if(document.visibilityState==='visible'&&myId&&!peerReady){if(!reconnTimer)scheduleReconnect();}
+  if(document.visibilityState==='visible'&&myId)wakeBackendServer();
 });
 function switchTab(tab){
-  currentTab=tab;
-  ['chats','calls','groups','settings'].forEach(function(t){
-    var s=document.getElementById('screen-'+t+'s')||document.getElementById('screen-'+t);
-    if(s)s.classList.remove('active');
-  });
+  var prevTab=currentTab;currentTab=tab;
   var target=document.getElementById('screen-'+tab+'s')||document.getElementById('screen-'+tab);
-  if(target){target.classList.add('active');}
   var btns=document.querySelectorAll('.tab-btn');
   for(var i=0;i<btns.length;i++){btns[i].classList.toggle('active',btns[i].dataset.tab===tab);}
   if(tab==='calls')renderCallHistory();
   if(tab==='settings')syncSettingsUI();
+  if(!target)return;
+  var prevEl=prevTab?(document.getElementById('screen-'+prevTab+'s')||document.getElementById('screen-'+prevTab)):null;
+  if(!prevEl||prevEl===target||!prevEl.classList.contains('active')){
+    ['chats','calls','groups','settings'].forEach(function(t){
+      var s=document.getElementById('screen-'+t+'s')||document.getElementById('screen-'+t);
+      if(s&&s!==target)s.classList.remove('active');
+    });
+    target.classList.add('active');
+    return;
+  }
+  /* Slide the new tab in from whichever side matches its position in the bottom
+     nav relative to the tab we're leaving, so switching tabs feels like moving
+     across one continuous strip instead of an instant, jarring swap. */
+  var fromIdx=TAB_ORDER.indexOf(prevTab),toIdx=TAB_ORDER.indexOf(tab);
+  var dir=toIdx>fromIdx?'fwd':'back';
+  var enterFrom=dir==='back'?'-100%':'100%';
+  var exitTo=dir==='back'?'100%':'-30%';
+  target.style.transition='none';
+  target.style.transform='translateX('+enterFrom+')';
+  target.classList.add('active');
+  void target.offsetWidth;
+  target.style.transition='';
+  prevEl.style.zIndex='5';target.style.zIndex='6';
+  requestAnimationFrame(function(){
+    target.style.transform='translateX(0)';
+    prevEl.style.transform='translateX('+exitTo+')';
+  });
+  setTimeout(function(){
+    prevEl.classList.remove('active');
+    prevEl.style.transform='';prevEl.style.transition='';prevEl.style.zIndex='';
+    target.style.zIndex='';
+  },320);
 }
 var TAB_ORDER=['chats','calls','groups','settings'];
 var swipeStartX=0,swipeStartY=0,swipeActive=false;
