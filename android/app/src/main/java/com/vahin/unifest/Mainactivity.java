@@ -1,4 +1,4 @@
-package com.vahin.connect;
+package com.vahin.unifest;
 
 import android.Manifest;
 import android.app.AlertDialog;
@@ -91,7 +91,7 @@ public class MainActivity extends BridgeActivity {
 
         new AlertDialog.Builder(this)
             .setTitle("Allow reliable ringing")
-            .setMessage("To make sure calls ring even when Vahin Connect is closed, please allow it " +
+            .setMessage("To make sure calls ring even when Unifest is closed, please allow it " +
                 "to run without battery restrictions on the next screen.")
             .setCancelable(true)
             .setPositiveButton("Allow", (d, w) -> {

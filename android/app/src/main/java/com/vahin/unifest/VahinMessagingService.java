@@ -1,4 +1,4 @@
-package com.vahin.connect;
+package com.vahin.unifest;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;

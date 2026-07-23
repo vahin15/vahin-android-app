@@ -59,11 +59,11 @@ jobs:
       - name: Upload APK (install this on your phone now)
         uses: actions/upload-artifact@v4
         with:
-          name: vahin-connect-apk
+          name: unifest-apk
           path: android/app/build/outputs/apk/release/*.apk
 
       - name: Upload AAB (use this later for Play Store upload)
         uses: actions/upload-artifact@v4
         with:
-          name: vahin-connect-aab
+          name: unifest-aab
           path: android/app/build/outputs/bundle/release/app-release.aab

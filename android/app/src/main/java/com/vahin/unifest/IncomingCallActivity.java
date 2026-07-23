@@ -1,4 +1,4 @@
-package com.vahin.connect;
+package com.vahin.unifest;
 
 import android.app.KeyguardManager;
 import android.app.NotificationManager;
