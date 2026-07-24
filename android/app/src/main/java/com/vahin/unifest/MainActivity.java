@@ -104,7 +104,7 @@ public class MainActivity extends BridgeActivity {
             .setPositiveButton("Allow", (d, w) -> {
                 prefs.edit().putBoolean("fsi_prompt_shown", true).apply();
                 try {
-                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT_PERMISSION);
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT);
                     intent.setData(Uri.parse("package:" + getPackageName()));
                     startActivity(intent);
                 } catch (Exception ignored) {
