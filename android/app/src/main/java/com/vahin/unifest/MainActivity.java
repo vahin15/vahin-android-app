@@ -72,8 +72,47 @@ public class MainActivity extends BridgeActivity {
         // screens have no public API, so we best-effort deep-link to each vendor's known
         // settings screen and silently do nothing if it's not present on the device.
         new Handler(Looper.getMainLooper()).postDelayed(this::maybePromptBatteryExemption, 1200);
+        new Handler(Looper.getMainLooper()).postDelayed(this::maybePromptFullScreenIntent, 1600);
 
         handleIntentExtras(getIntent());
+    }
+
+    // Android 14+ (API 34+) requires the user to explicitly grant USE_FULL_SCREEN_INTENT
+    // in Settings — declaring it in the manifest is no longer enough on its own once
+    // targetSdkVersion is 34 or higher (this app targets 35). Without this grant, the
+    // ringing full-screen call UI silently never appears — the notification still posts,
+    // but it degrades to a normal heads-up notification (or nothing, if the app was fully
+    // killed), which is why ringing can appear to work in testing on older devices/emulators
+    // but silently fail for real users on current Android versions.
+    private void maybePromptFullScreenIntent() {
+        if (Build.VERSION.SDK_INT < 34) return; // permission only exists / is restricted from API 34
+        if (isFinishing() || isDestroyed()) return;
+
+        android.app.NotificationManager nm =
+            (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        if (nm != null && nm.canUseFullScreenIntent()) return; // already granted
+
+        android.content.SharedPreferences prefs = getSharedPreferences("vahin_prefs", Context.MODE_PRIVATE);
+        if (prefs.getBoolean("fsi_prompt_shown", false)) return;
+
+        new AlertDialog.Builder(this)
+            .setTitle("Allow full-screen calls")
+            .setMessage("So incoming calls ring and show a full-screen call UI (like a real " +
+                "phone call) even when Unifest is closed or the phone is locked, please allow " +
+                "\"Display over other apps / full-screen notifications\" on the next screen.")
+            .setCancelable(true)
+            .setPositiveButton("Allow", (d, w) -> {
+                prefs.edit().putBoolean("fsi_prompt_shown", true).apply();
+                try {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT_PERMISSION);
+                    intent.setData(Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                } catch (Exception ignored) {
+                    // Some OEM builds may not expose this screen; nothing more we can do.
+                }
+            })
+            .setNegativeButton("Not now", (d, w) -> prefs.edit().putBoolean("fsi_prompt_shown", true).apply())
+            .show();
     }
 
     private void maybePromptBatteryExemption() {

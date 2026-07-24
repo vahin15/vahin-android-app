@@ -938,10 +938,11 @@ var fileBlobs={};
 var FILE_CHUNK=16384,FILE_MAX=50*1024*1024,RINGTONE_MAX=1024*1024;
 var incomingFiles={};
 var currentTab='chats',obStep=0;
+var tabAnimTimer=null,tabAnimEl=null;
 var hunTimer=null;
 var chatPageSize=60,chatPageLoaded=1;
 var pushSub=null;
-var VAPID_PUBLIC_KEY=(window.VAHIN_VAPID_PUBLIC||'BCbUo6hM_8GiU9IgTFfCnQlH--QgDPUZrFTSdQgOofpOckv3b5vk9EJwmFUQ8czerb3YUmeC_KLO5UnE5UShasU');
+var VAPID_PUBLIC_KEY=(window.VAHIN_VAPID_PUBLIC||'BAPIc8OXcCojA2QdJrzbaoY1X6yw6c7TVzJKBhOTgr3cPhcEayGbGEUYDffnTdCyPIAs9Js8GwHrdgwF3RXDFHY');
 
 var OB=[
   {icon:'👋',title:'Welcome to Unifest',sub:'Free peer-to-peer calls & messaging. No phone number needed.'},
@@ -2603,6 +2604,20 @@ document.addEventListener('visibilitychange',async function(){
   if(document.visibilityState==='visible'&&myId)wakeBackendServer();
 });
 function switchTab(tab){
+  /* If a previous switchTab's slide animation is still in flight (e.g. the user
+     tapped calls -> groups -> chats faster than the .28s transition), its pending
+     setTimeout below would fire later and rip the 'active' class / transform off
+     whatever element is now on screen, causing a flash/jump. Cancel it and snap
+     that leftover element to its resting state immediately before starting the
+     new animation, so only one transition is ever in flight at a time. */
+  if(tabAnimTimer){
+    clearTimeout(tabAnimTimer);
+    if(tabAnimEl){
+      tabAnimEl.classList.remove('active');
+      tabAnimEl.style.transform='';tabAnimEl.style.transition='';tabAnimEl.style.zIndex='';
+    }
+    tabAnimTimer=null;tabAnimEl=null;
+  }
   var prevTab=currentTab;currentTab=tab;
   var target=document.getElementById('screen-'+tab+'s')||document.getElementById('screen-'+tab);
   var btns=document.querySelectorAll('.tab-btn');
@@ -2614,8 +2629,9 @@ function switchTab(tab){
   if(!prevEl||prevEl===target||!prevEl.classList.contains('active')){
     ['chats','calls','groups','settings'].forEach(function(t){
       var s=document.getElementById('screen-'+t+'s')||document.getElementById('screen-'+t);
-      if(s&&s!==target)s.classList.remove('active');
+      if(s&&s!==target){s.classList.remove('active');s.style.transform='';s.style.transition='';s.style.zIndex='';}
     });
+    target.style.transform='';target.style.zIndex='';
     target.classList.add('active');
     return;
   }
@@ -2636,10 +2652,12 @@ function switchTab(tab){
     target.style.transform='translateX(0)';
     prevEl.style.transform='translateX('+exitTo+')';
   });
-  setTimeout(function(){
+  tabAnimEl=prevEl;
+  tabAnimTimer=setTimeout(function(){
     prevEl.classList.remove('active');
     prevEl.style.transform='';prevEl.style.transition='';prevEl.style.zIndex='';
     target.style.zIndex='';
+    tabAnimTimer=null;tabAnimEl=null;
   },320);
 }
 var TAB_ORDER=['chats','calls','groups','settings'];
