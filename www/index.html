@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2982,9 +2984,19 @@ if(document.readyState==='loading'){
 <script>
   // ---- AdMob banner ad (Unifest) ----
   async function initAds() {
+    var slot = document.getElementById('admob-banner-slot');
+    if (slot) { slot.style.display = 'flex'; slot.textContent = 'Ad: starting…'; }
     try {
-      if (!window.Capacitor || !Capacitor.isNativePlatform()) {
-        console.log('Not a native app (browser preview) — skipping ad init');
+      if (!window.Capacitor) {
+        if (slot) slot.textContent = 'Ad: no Capacitor object';
+        return;
+      }
+      if (!Capacitor.isNativePlatform()) {
+        if (slot) slot.textContent = 'Ad: not native platform';
+        return;
+      }
+      if (!Capacitor.Plugins || !Capacitor.Plugins.AdMob) {
+        if (slot) slot.textContent = 'Ad: AdMob plugin not found';
         return;
       }
       const { AdMob } = Capacitor.Plugins;
@@ -2992,6 +3004,7 @@ if(document.readyState==='loading'){
       await AdMob.initialize({
         initializeForTesting: true, // set to false only when going live on Play Store
       });
+      if (slot) slot.textContent = 'Ad: initialized, requesting banner…';
 
       await AdMob.showBanner({
         adId: 'ca-app-pub-6297134793449432/6716447548',
@@ -3000,8 +3013,10 @@ if(document.readyState==='loading'){
         margin: 0,
       });
 
+      if (slot) slot.textContent = '';
       console.log('Banner ad shown ✅');
     } catch (err) {
+      if (slot) slot.textContent = 'Ad error: ' + (err && err.message ? err.message : JSON.stringify(err));
       console.error('Ad init failed ❌', err);
     }
   }
