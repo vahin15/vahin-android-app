@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2979,6 +2977,32 @@ document.addEventListener('backbutton',function(){
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',function(){boot();setTimeout(handleStartupURL,500);});
 }else{boot();setTimeout(handleStartupURL,500);}
+</script>
+
+<script>
+  // ---- AdMob banner ad (Unifest) ----
+  const { AdMob } = Capacitor.Plugins;
+
+  async function initAds() {
+    try {
+      await AdMob.initialize({
+        initializeForTesting: true, // set to false only when going live on Play Store
+      });
+
+      await AdMob.showBanner({
+        adId: 'ca-app-pub-6297134793449432/6716447548',
+        adSize: 'BANNER',
+        position: 'BOTTOM_CENTER',
+        margin: 0,
+      });
+
+      console.log('Banner ad shown ✅');
+    } catch (err) {
+      console.error('Ad init failed ❌', err);
+    }
+  }
+
+  document.addEventListener('deviceready', initAds);
 </script>
 </body>
 </html>
