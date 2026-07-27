@@ -52,7 +52,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sa
   background:var(--bg);color:var(--text);position:fixed;width:100%;height:100%;
   -webkit-font-smoothing:antialiased;}
 button,input,textarea{font-family:inherit;}
-.screen{display:none!important;position:absolute;inset:0;flex-direction:column;padding-top:var(--safe-top);transition:transform .28s cubic-bezier(.4,0,.2,1);will-change:transform;contain:layout style paint;backface-visibility:hidden;}
+.screen{display:none!important;position:absolute;inset:0;flex-direction:column;padding-top:var(--safe-top);transition:transform .24s cubic-bezier(.25,.8,.35,1);will-change:transform;contain:layout style paint;backface-visibility:hidden;background:var(--bg);}
 .screen.active{display:flex!important;}
 .screen.tabbed{padding-bottom:calc(var(--nav-h) + var(--safe-bottom) + var(--banner-h));}
 #tab-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + var(--safe-bottom));padding-bottom:var(--safe-bottom);
@@ -215,7 +215,7 @@ button,input,textarea{font-family:inherit;}
   border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:var(--accent2);flex-shrink:0;}
 .chat-peer-name{font-size:17px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .chat-peer-status{font-size:12px;color:var(--text3);}
-.chat-actions{display:flex;gap:6px;flex-shrink:0;}
+.chat-actions{display:flex;gap:6px;flex-shrink:0;overflow:visible;}
 .chat-act-btn{background:var(--surface2);border:1px solid var(--border);border-radius:10px;width:40px;height:40px;display:flex;
   align-items:center;justify-content:center;cursor:pointer;color:var(--text2);touch-action:manipulation;font-size:17px;transition:all .15s;}
 .chat-act-btn:active{background:var(--accent);color:#fff;}
@@ -2153,7 +2153,8 @@ function stopOutTone(){clearInterval(outToneInterval);outToneInterval=null;docum
    The server only gets involved when we genuinely can't confirm they're reachable,
    which is exactly the case it exists for (waking a closed/backgrounded app). */
 function dialWithPresenceCheck(pid,voiceOnly){
-  if(onlinePeers[pid]){startDirectRingUI();return;}
+  if(onlinePeers[pid]){toast('DEBUG: onlinePeers['+pid+']=true → SKIPPING notifyPeer (direct ring)');startDirectRingUI();return;}
+  toast('DEBUG: onlinePeers['+pid+']=false/unset → will probe then notifyPeer');
   var settled=false;
   var probe;
   try{probe=peer.connect(pid,{reliable:false,metadata:{type:'presence'}});}catch(e){}
@@ -2622,11 +2623,14 @@ function connectWithWake(pid,connType,onOpen,onFail,maxWaitMs){
   attempt();
 }
 function notifyPeer(toId,type,onSettled){
-  if(!toId){if(onSettled)onSettled();return;}
+  if(!toId){toast('DEBUG: notifyPeer called with no toId');if(onSettled)onSettled();return;}
+  toast('DEBUG: notifyPeer → '+toId+' type='+type);
   try{
     fetch(NOTIF_API+'/notify',{method:'POST',headers:apiHeaders(),body:JSON.stringify({to:toId,type:type,from:myId})})
-      .then(function(){if(onSettled)onSettled();}).catch(function(){if(onSettled)onSettled();});
-  }catch(e){if(onSettled)onSettled();}
+      .then(function(r){return r.text().then(function(t){toast('DEBUG /notify '+r.status+': '+t);});})
+      .then(function(){if(onSettled)onSettled();})
+      .catch(function(e){toast('DEBUG /notify FAILED: '+(e&&e.message?e.message:e));if(onSettled)onSettled();});
+  }catch(e){toast('DEBUG /notify threw: '+(e&&e.message?e.message:e));if(onSettled)onSettled();}
 }
 function notifyPeerMsg(toId,text){
   if(!toId)return;
@@ -2744,30 +2748,113 @@ function switchTab(tab){
     prevEl.style.transform='';prevEl.style.transition='';prevEl.style.zIndex='';
     target.style.zIndex='';
     tabAnimTimer=null;tabAnimEl=null;
-  },320);
+  },260);
 }
 var TAB_ORDER=['chats','calls','groups','settings'];
-var swipeStartX=0,swipeStartY=0,swipeActive=false;
+function getTabScreenEl(tab){return document.getElementById('screen-'+tab+'s')||document.getElementById('screen-'+tab);}
+
+/* Live, finger-tracked tab swipe (replaces the old "measure total distance on
+   release, then play a fixed animation" approach). The screen now follows your
+   finger 1:1 as you drag — exactly like WhatsApp/iOS — and only decides whether
+   to complete the switch or snap back once you lift your finger, based on how
+   far you dragged (not a fixed timer). This removes the disconnected/laggy feel
+   of the old approach, where your finger and the screen weren't connected at all
+   until after touchend. */
+var swipeActive=false,swipeLocked=false,swipeStartX=0,swipeStartY=0;
+var dragCurEl=null,dragNeighborEl=null,dragDir=null,dragDx=0,dragW=1;
+
 function setupTabSwipe(){
   var wrap=document.body;
+
   wrap.addEventListener('touchstart',function(e){
     var active=document.querySelector('.screen.tabbed.active');
     if(!active||e.touches.length!==1){swipeActive=false;return;}
     var t=e.target;
-    if(t.closest('.chats-body,#chats-body,.groups-body,.settings-body,#calls-body,.search-bar,input,textarea,button')){
-      // allow swipe to still start unless inside a horizontally-scrollable pinned strip
-      if(t.closest('.pinned-chips')){swipeActive=false;return;}
-    }
-    swipeActive=true;swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;
+    if(t.closest('.pinned-chips')){swipeActive=false;return;}
+    swipeActive=true;swipeLocked=false;
+    swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;
+    dragDx=0;dragDir=null;dragCurEl=active;dragNeighborEl=null;
+    dragW=wrap.clientWidth||window.innerWidth||360;
   },{passive:true});
-  wrap.addEventListener('touchend',function(e){
+
+  wrap.addEventListener('touchmove',function(e){
+    if(!swipeActive||e.touches.length!==1)return;
+    var x=e.touches[0].clientX,y=e.touches[0].clientY;
+    var dx=x-swipeStartX,dy=y-swipeStartY;
+
+    if(!swipeLocked){
+      // Not enough movement yet to tell a horizontal swipe from a vertical
+      // list-scroll or a tap — wait for a clear enough gesture.
+      if(Math.abs(dx)<10&&Math.abs(dy)<10)return;
+      if(Math.abs(dy)>Math.abs(dx)*1.15){swipeActive=false;return;} // vertical scroll — let it through
+      var idx=TAB_ORDER.indexOf(currentTab);
+      dragDir=dx<0?'fwd':'back';
+      var targetIdx=dragDir==='fwd'?idx+1:idx-1;
+      if(idx<0||targetIdx<0||targetIdx>=TAB_ORDER.length){swipeActive=false;return;} // no screen that direction
+      var neighbor=getTabScreenEl(TAB_ORDER[targetIdx]);
+      if(!neighbor){swipeActive=false;return;}
+      dragNeighborEl=neighbor;
+      swipeLocked=true;
+      // Cancel any bottom-nav-tap animation that might still be mid-flight so
+      // it doesn't fight with the drag we're about to start.
+      if(tabAnimTimer){clearTimeout(tabAnimTimer);tabAnimTimer=null;
+        if(tabAnimEl){tabAnimEl.classList.remove('active');tabAnimEl.style.transform='';tabAnimEl.style.transition='';tabAnimEl.style.zIndex='';tabAnimEl=null;}}
+      dragCurEl.style.transition='none';
+      dragNeighborEl.style.transition='none';
+      dragCurEl.style.zIndex='5';dragNeighborEl.style.zIndex='6';
+      dragNeighborEl.style.transform='translateX('+(dragDir==='fwd'?'100%':'-100%')+')';
+      dragNeighborEl.classList.add('active');
+      void dragNeighborEl.offsetWidth; // force layout before the drag starts moving it
+    }
+
+    e.preventDefault(); // we've committed to a horizontal tab swipe — stop the page scrolling too
+    dragDx=dx;
+    // Rubber-band resistance past the edges (first/last tab) instead of a hard stop.
+    dragCurEl.style.transform='translateX('+dragDx+'px)';
+    dragNeighborEl.style.transform='translateX('+(dragDx+(dragDir==='fwd'?dragW:-dragW))+'px)';
+  },{passive:false});
+
+  function settle(complete){
+    var curEl=dragCurEl,nextEl=dragNeighborEl,dir=dragDir;
+    var ease='transform .22s cubic-bezier(.25,.8,.35,1)';
+    curEl.style.transition=ease;nextEl.style.transition=ease;
+    if(complete){
+      curEl.style.transform='translateX('+(dir==='fwd'?'-100%':'100%')+')';
+      nextEl.style.transform='translateX(0)';
+      var idx=TAB_ORDER.indexOf(currentTab);
+      var newTab=TAB_ORDER[dir==='fwd'?idx+1:idx-1];
+      setTimeout(function(){
+        curEl.classList.remove('active');
+        curEl.style.transform='';curEl.style.transition='';curEl.style.zIndex='';
+        nextEl.style.transform='';nextEl.style.transition='';nextEl.style.zIndex='';
+        currentTab=newTab;
+        var btns=document.querySelectorAll('.tab-btn');
+        for(var i=0;i<btns.length;i++){btns[i].classList.toggle('active',btns[i].dataset.tab===newTab);}
+        if(newTab==='calls'&&callHistoryDirty)requestAnimationFrame(renderCallHistory);
+        if(newTab==='settings')syncSettingsUI();
+      },220);
+    }else{
+      curEl.style.transform='translateX(0)';
+      nextEl.style.transform='translateX('+(dir==='fwd'?'100%':'-100%')+')';
+      setTimeout(function(){
+        nextEl.classList.remove('active');
+        curEl.style.transform='';curEl.style.transition='';curEl.style.zIndex='';
+        nextEl.style.transform='';nextEl.style.transition='';nextEl.style.zIndex='';
+      },220);
+    }
+    dragCurEl=null;dragNeighborEl=null;dragDir=null;
+  }
+
+  wrap.addEventListener('touchend',function(){
     if(!swipeActive)return;swipeActive=false;
-    var t=e.changedTouches[0];
-    var dx=t.clientX-swipeStartX,dy=t.clientY-swipeStartY;
-    if(Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.5)return;
-    var idx=TAB_ORDER.indexOf(currentTab);if(idx<0)return;
-    if(dx<0&&idx<TAB_ORDER.length-1)switchTab(TAB_ORDER[idx+1]);
-    else if(dx>0&&idx>0)switchTab(TAB_ORDER[idx-1]);
+    if(!swipeLocked||!dragNeighborEl){swipeLocked=false;return;} // was just a tap, nothing dragged
+    swipeLocked=false;
+    settle(Math.abs(dragDx)>dragW*0.28); // completes past ~28% width, same feel as iOS/WhatsApp
+  },{passive:true});
+
+  wrap.addEventListener('touchcancel',function(){
+    if(swipeLocked&&dragCurEl&&dragNeighborEl)settle(false);
+    swipeActive=false;swipeLocked=false;
   },{passive:true});
 }
 function showBanner(msg){document.getElementById('conn-text').textContent=msg;document.getElementById('conn-banner').classList.add('show');}
