@@ -44,6 +44,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(VahinPermissionsPlugin.class);
         super.onCreate(savedInstanceState);
         activeInstance = this;
 
@@ -157,6 +158,14 @@ public class MainActivity extends BridgeActivity {
     // not enough on these skins. Every component name is wrapped so an unrecognized device
     // just silently no-ops instead of crashing.
     private void requestOemAutoStartPermission() {
+        requestOemAutoStartPermissionStatic(this);
+    }
+
+    // Shared with VahinPermissionsPlugin so the Settings screen's "Allow background
+    // running" row can re-trigger the exact same OEM deep-link attempts as the one-time
+    // launch prompt, instead of duplicating the vendor component list in two places.
+    static void requestOemAutoStartPermissionStatic(android.app.Activity activity) {
+        if (activity == null) return;
         String manufacturer = Build.MANUFACTURER == null ? "" : Build.MANUFACTURER.toLowerCase();
         String[][] candidates;
         if (manufacturer.contains("xiaomi")) {
@@ -187,7 +196,7 @@ public class MainActivity extends BridgeActivity {
                 Intent intent = new Intent();
                 intent.setComponent(new ComponentName(c[0], c[1]));
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
+                activity.startActivity(intent);
                 return; // stop at the first one that launches successfully
             } catch (ActivityNotFoundException | SecurityException ignored) {
                 // try the next candidate

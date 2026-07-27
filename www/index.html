@@ -637,6 +637,13 @@ button,input,textarea{font-family:inherit;}
         <div class="settings-row" id="push-toggle-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(245,158,11,.1);">📲</div><div><div class="s-label">Push Notifications</div><div class="s-sub" id="push-status-sub">Not enabled</div></div></div><div class="toggle-sw" id="push-sw"></div></div>
       </div>
     </div>
+    <div class="settings-section" id="reliability-section" style="display:none;">
+      <div class="settings-section-title">Reliability</div>
+      <div class="settings-group">
+        <div class="settings-row" id="fsi-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(220,38,38,.1);">📞</div><div><div class="s-label">Full-screen calls</div><div class="s-sub" id="fsi-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="battery-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(220,38,38,.1);">🔋</div><div><div class="s-label">Allow background running</div><div class="s-sub" id="battery-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
+      </div>
+    </div>
     <div class="settings-section">
       <div class="settings-section-title">Calls</div>
       <div class="settings-group">
@@ -1000,6 +1007,7 @@ window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',apply
 function showScreen(id,dir){
   dir=dir||'forward';
   var next=document.getElementById(id);if(!next)return;
+  if(id==='screen-settings')refreshReliabilityUI();
   var screens=document.querySelectorAll('.screen');
   var current=null;
   for(var i=0;i<screens.length;i++){if(screens[i].classList.contains('active')&&screens[i]!==next){current=screens[i];break;}}
@@ -2591,6 +2599,34 @@ async function refreshPushUI(){
   if(Notification.permission==='granted'){if(sub)sub.textContent=pushSub?'Enabled (works when app closed)':'Enabled';if(sw_el)sw_el.classList.add('on');}
   else{if(sub)sub.textContent=Notification.permission==='denied'?'Blocked in browser':'Not enabled';if(sw_el)sw_el.classList.remove('on');}
 }
+/* Full-screen-call and battery/autostart permissions have no web equivalent (there's no
+   getUserMedia()-style prompt for either) so they're only ever readable/settable through
+   the native VahinPermissions plugin. On a browser (Capacitor.isNativePlatform() false,
+   or plugin missing on older installed builds before this shipped) the whole section just
+   stays hidden rather than showing rows that can never do anything. */
+async function refreshReliabilityUI(){
+  var section=document.getElementById('reliability-section');
+  if(!window.Capacitor||!Capacitor.isNativePlatform()||!Capacitor.Plugins||!Capacitor.Plugins.VahinPermissions){
+    if(section)section.style.display='none';
+    return;
+  }
+  if(section)section.style.display='';
+  try{
+    var status=await Capacitor.Plugins.VahinPermissions.getStatus();
+    var fsiSub=document.getElementById('fsi-sub-text'),fsiRow=document.getElementById('fsi-row');
+    if(!status.fullScreenIntentApplicable){
+      if(fsiRow)fsiRow.style.display='none';
+    }else{
+      if(fsiRow)fsiRow.style.display='';
+      if(fsiSub)fsiSub.textContent=status.fullScreenIntentGranted?'Allowed ✓':'Off — calls may not ring full-screen';
+    }
+    var batSub=document.getElementById('battery-sub-text');
+    if(batSub)batSub.textContent=status.batteryExemptionGranted?'Allowed ✓':'Off — app may be killed in background';
+  }catch(e){
+    // Plugin exists but the call failed for some reason; leave the "Checking…" text
+    // rather than claiming a status we don't actually know.
+  }
+}
 function showLocalNotif(type,from,text){
   if(!('Notification' in window)||Notification.permission!=='granted')return;
   if(document.visibilityState==='visible')return;
@@ -2692,6 +2728,7 @@ document.addEventListener('visibilitychange',async function(){
   if(document.visibilityState==='visible'&&ringtoneCtx&&ringtoneCtx.state==='suspended')try{ringtoneCtx.resume();}catch(e){}
   if(document.visibilityState==='visible'&&myId&&!peerReady){if(!reconnTimer)scheduleReconnect();}
   if(document.visibilityState==='visible'&&myId)wakeBackendServer();
+  if(document.visibilityState==='visible'&&document.getElementById('screen-settings').classList.contains('active'))refreshReliabilityUI();
 });
 function switchTab(tab){
   /* If a previous switchTab's slide animation is still in flight (e.g. the user
@@ -2931,6 +2968,12 @@ function bindEvents(){
   document.getElementById('ringtone-done-btn').addEventListener('click',closeRingtoneModal);
   document.getElementById('ringtone-modal').addEventListener('click',function(e){if(e.target===this)closeRingtoneModal();});
   document.getElementById('push-toggle-row').addEventListener('click',enableNotifs);
+  document.getElementById('fsi-row').addEventListener('click',async function(){
+    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openFullScreenIntentSettings();
+  });
+  document.getElementById('battery-row').addEventListener('click',async function(){
+    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openBatterySettings();
+  });
   document.getElementById('conf-limit-minus').addEventListener('click',function(){settings.confLimit=Math.max(2,settings.confLimit-1);saveAll();applySettingsToUI();});
   document.getElementById('conf-limit-plus').addEventListener('click',function(){settings.confLimit=Math.min(12,settings.confLimit+1);saveAll();applySettingsToUI();});
   document.getElementById('blocked-list-row').addEventListener('click',openBlockedModal);
