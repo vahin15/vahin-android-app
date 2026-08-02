@@ -51,6 +51,13 @@
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:excludeFromRecents="true"
             android:launchMode="singleTask" />
+
+        <!-- Always-on WebSocket connection to the backend, independent of FCM/Google
+             Play Services — a second delivery path for incoming calls/messages. -->
+        <service
+            android:name=".SignalService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
     </application>
 
     <!-- Permissions -->
@@ -65,6 +72,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" />

@@ -37,7 +37,31 @@ public class VahinPermissionsPlugin extends Plugin {
         ret.put("fullScreenIntentGranted", isFullScreenIntentGranted());
         ret.put("fullScreenIntentApplicable", Build.VERSION.SDK_INT >= 34);
         ret.put("batteryExemptionGranted", isIgnoringBatteryOptimizations());
+        ret.put("notificationsGranted", isNotificationsGranted());
+        ret.put("notificationsApplicable", Build.VERSION.SDK_INT >= 33);
+        ret.put("manufacturer", Build.MANUFACTURER == null ? "" : Build.MANUFACTURER);
         call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void openNotificationSettings(PluginCall call) {
+        // On Samsung (and most OEMs) this is the one setting the app cannot re-request
+        // itself once denied — Android only shows the system permission dialog once per
+        // app; after that, tapping the permission API again is silently a no-op and the
+        // only way back is this Settings screen (or reinstalling). This is why
+        // notifications can appear to "just stop working" after a single accidental
+        // swipe-away of that first prompt, with no error anywhere to explain it.
+        try {
+            Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+            intent.putExtra(Settings.EXTRA_APP_PACKAGE, getContext().getPackageName());
+            getActivity().startActivity(intent);
+            call.resolve();
+            return;
+        } catch (Exception ignored) {
+            // fall through
+        }
+        openAppDetailsSettings();
+        call.resolve();
     }
 
     @PluginMethod
@@ -72,6 +96,31 @@ public class VahinPermissionsPlugin extends Plugin {
         call.resolve();
     }
 
+    @PluginMethod
+    public void startSignalService(PluginCall call) {
+        String myId = call.getString("myId");
+        String token = call.getString("token");
+        if (myId == null || token == null) {
+            call.reject("myId and token are required");
+            return;
+        }
+        Intent intent = new Intent(getContext(), SignalService.class);
+        intent.putExtra("myId", myId);
+        intent.putExtra("token", token);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            getContext().startForegroundService(intent);
+        } else {
+            getContext().startService(intent);
+        }
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void stopSignalService(PluginCall call) {
+        getContext().stopService(new Intent(getContext(), SignalService.class));
+        call.resolve();
+    }
+
     private void openAppDetailsSettings() {
         try {
             Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
@@ -85,6 +134,13 @@ public class VahinPermissionsPlugin extends Plugin {
         if (Build.VERSION.SDK_INT < 34) return true; // not required below API 34
         NotificationManager nm = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
         return nm != null && nm.canUseFullScreenIntent();
+    }
+
+    private boolean isNotificationsGranted() {
+        if (Build.VERSION.SDK_INT < 33) return true; // permission didn't exist pre-Android 13
+        return androidx.core.content.ContextCompat.checkSelfPermission(
+            getContext(), android.Manifest.permission.POST_NOTIFICATIONS)
+            == android.content.pm.PackageManager.PERMISSION_GRANTED;
     }
 
     private boolean isIgnoringBatteryOptimizations() {

@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -640,6 +638,7 @@ button,input,textarea{font-family:inherit;}
     <div class="settings-section" id="reliability-section" style="display:none;">
       <div class="settings-section-title">Reliability</div>
       <div class="settings-group">
+        <div class="settings-row" id="notif-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(220,38,38,.1);">🔔</div><div><div class="s-label">Notifications</div><div class="s-sub" id="notif-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="fsi-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(220,38,38,.1);">📞</div><div><div class="s-label">Full-screen calls</div><div class="s-sub" id="fsi-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="battery-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(220,38,38,.1);">🔋</div><div><div class="s-label">Allow background running</div><div class="s-sub" id="battery-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
       </div>
@@ -931,10 +930,10 @@ var callConn=null,callTimer=null,callSecs=0,weAreCaller=false;
 var mutedAudio=false,mutedVideo=false,speakerOn=true,facingMode='user';
 var confStream=null,confCalls={},confConns={};
 var confMutedAudio=false,confMutedVideo=false,confFacing='user';
-var chatMode='',chatPeerId='',chatConn=null;
+var chatMode='',chatPeerId='',chatConn=null,chatConnConnecting=false;
 var groupConns={};
 var dmHistory={},groupHistory=[],groupMembers=[],callHistory=[],callHistoryDirty=true;
-var recentPeers=[],onlinePeers={},unreadDM={};
+var recentPeers=[],onlinePeers={},onlinePeersTs={},unreadDM={},fcmBackupTimer=null;
 var blockedUsers=[],pinnedChats=[];
 var settings={ringtone:true,vibrate:true,backcam:false,confLimit:6,theme:'auto'};
 var customRingtoneDataUrl='';
@@ -1012,7 +1011,7 @@ function showScreen(id,dir){
   var current=null;
   for(var i=0;i<screens.length;i++){if(screens[i].classList.contains('active')&&screens[i]!==next){current=screens[i];break;}}
   var isTabbed=!!(next.classList.contains('tabbed'));
-  setAdmobBannerVisible(isTabbed);
+  setAdmobBannerVisible(id==='screen-chats');
   /* screen-chat/call/conf/search are full-screen overlays; the fixed bottom tab bar
      (z-index 90) must be hidden on them or it visually sits on top of the chat
      input / typing status row, especially once the keyboard opens and re-layouts. */
@@ -1146,7 +1145,55 @@ function enterApp(){
   loadPeerJS(function(){startPeerRobust();startPresence();startKeepAlive();});
   startBackendKeepWarm();
   maybeShowNotifBanner();
+  startSignalService();
+  fetchQueuedMailbox();
   try{var cachedFcm=localStorage.getItem('uf_fcm_token_v1');if(cachedFcm)onFcmToken(cachedFcm);}catch(e){}
+}
+/* Starts the always-on WebSocket foreground service (SignalService) — a second,
+   Google/FCM-independent path for incoming calls/messages, running alongside FCM
+   rather than replacing it. No-op on browser/desktop builds where the native plugin
+   doesn't exist. */
+/* Fetches any messages that were queued server-side while this device was offline
+   (see server's /mailbox) and drops them into the same chat history / unread-badge /
+   notification path a live P2P message would use. Dedupes against what's already
+   there (in case a message somehow arrived both ways) by sender+time+text. */
+async function fetchQueuedMailbox(){
+  if(!myId)return;
+  var tok=localStorage.getItem(SK.TOKEN);if(!tok)return;
+  try{
+    var r=await fetch(NOTIF_API+'/mailbox/fetch',{method:'POST',headers:apiHeaders(),body:JSON.stringify({id:myId})});
+    var j=await r.json().catch(function(){return null;});
+    if(!j||!j.messages||!j.messages.length)return;
+    j.messages.forEach(function(m){
+      var from=m.from,text=m.text,time=fmtTime();
+      if(!from||!text)return;
+      var h=dmHistory[from]||[];
+      var dup=h.slice(-8).some(function(x){return x.text===text&&x.me===false;});
+      if(dup)return;
+      var mo={me:false,text:text,time:time,_id:'mbx'+time+Math.random().toString(36).slice(2,6)};
+      if(!dmHistory[from])dmHistory[from]=[];
+      dmHistory[from].push(mo);ls_set(SK.DM,dmHistory);
+      if(chatMode==='dm'&&chatPeerId===from&&document.visibilityState==='visible'){
+        removeEmpty('chat-msgs');appendMsg(false,text,time,false,null,mo);
+      }else{
+        unreadDM[from]=(unreadDM[from]||0)+1;
+        showHUN('msg',from,text.substring(0,60),function(){openDMChat(from);});
+        showLocalNotif('message',from,text);
+      }
+    });
+    renderChats();renderPinnedChats();
+  }catch(e){}
+}
+
+async function startSignalService(){
+  if(!(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions))return;
+  var tok=localStorage.getItem(SK.TOKEN);
+  if(!myId||!tok)return;
+  try{await Capacitor.Plugins.VahinPermissions.startSignalService({myId:myId,token:tok});}catch(e){}
+}
+async function stopSignalService(){
+  if(!(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions))return;
+  try{await Capacitor.Plugins.VahinPermissions.stopSignalService();}catch(e){}
 }
 
 var peerStarting=false;
@@ -1261,9 +1308,9 @@ function checkPresence(){
     try{
       var probe=peer.connect(pid,{reliable:false,metadata:{type:'presence'}});
       var resolved=false;
-      var t=setTimeout(function(){if(!resolved){onlinePeers[pid]=false;updateDots(pid);}},4000);
-      probe.on('open',function(){resolved=true;clearTimeout(t);onlinePeers[pid]=true;updateDots(pid);setTimeout(function(){try{probe.close();}catch(e){}},400);});
-      probe.on('error',function(){resolved=true;clearTimeout(t);onlinePeers[pid]=false;updateDots(pid);});
+      var t=setTimeout(function(){if(!resolved){onlinePeers[pid]=false;onlinePeersTs[pid]=Date.now();updateDots(pid);}},4000);
+      probe.on('open',function(){resolved=true;clearTimeout(t);onlinePeers[pid]=true;onlinePeersTs[pid]=Date.now();updateDots(pid);setTimeout(function(){try{probe.close();}catch(e){}},400);});
+      probe.on('error',function(){resolved=true;clearTimeout(t);onlinePeers[pid]=false;onlinePeersTs[pid]=Date.now();updateDots(pid);});
     }catch(e){}
   });
 }
@@ -1624,10 +1671,27 @@ function renderGroupDesc(){
 }
 function onChatTyping(){
   autoResizeTA();
-  if(chatMode==='dm'&&chatConn&&chatConn.open){
+  if(chatMode!=='dm')return;
+  if(chatConn&&chatConn.open){
     try{chatConn.send({type:'typing',isTyping:true});}catch(e){}
     clearTimeout(typingTimer);
     typingTimer=setTimeout(function(){try{if(chatConn&&chatConn.open)chatConn.send({type:'typing',isTyping:false});}catch(e){}},1500);
+    return;
+  }
+  /* No open connection right now (e.g. it silently dropped while the app was
+     backgrounded — common on Samsung's aggressive app-sleep). Typing itself isn't
+     worth an FCM wake-up, but we shouldn't just silently give up either: try a plain
+     P2P (re)connect in the background so it's ready by the time the person actually
+     hits Send, instead of leaving them typing into a connection that's already dead. */
+  if(!chatConnConnecting&&chatPeerId){
+    chatConnConnecting=true;
+    try{
+      var c=peer&&peer.connect(chatPeerId,{reliable:true,metadata:{type:'dm'}});
+      if(c){
+        c.on('open',function(){chatConnConnecting=false;if(chatMode==='dm'&&chatPeerId===c.peer){chatConn=c;chatConn.on('data',function(data){handleData(chatPeerId,data,chatConn);});chatConn.on('error',function(){});}});
+        c.on('error',function(){chatConnConnecting=false;});
+      }else{chatConnConnecting=false;}
+    }catch(e){chatConnConnecting=false;}
   }
 }
 function autoResizeTA(){
@@ -2160,28 +2224,55 @@ function stopOutTone(){clearInterval(outToneInterval);outToneInterval=null;docum
    touch the Render/FCM server at all — just ring, old-school, straight over PeerJS.
    The server only gets involved when we genuinely can't confirm they're reachable,
    which is exactly the case it exists for (waking a closed/backgrounded app). */
+/* PRESENCE_FRESH_MS bounds how long a cached "online" reading is trusted before we
+   require a fresh probe. Without this, one successful presence probe (e.g. from
+   checkPresence() or a previous call) marked onlinePeers[pid]=true forever in memory —
+   Android suspends this app's JS timers once it's backgrounded/screen-locked for a
+   while, so checkPresence() stops re-verifying, but the stale "true" never gets
+   cleared. The next time you called that person, dialWithPresenceCheck() saw the
+   stale true and skipped notifyPeer()/FCM entirely, so if the callee's app really had
+   gone offline in the meantime, the call just failed silently with no ring on their
+   end at all — this was the main reason "ringing wasn't working". */
+var PRESENCE_FRESH_MS=20000;
+function isFreshlyOnline(pid){
+  return !!onlinePeers[pid]&&(Date.now()-(onlinePeersTs[pid]||0))<PRESENCE_FRESH_MS;
+}
 function dialWithPresenceCheck(pid,voiceOnly){
-  if(onlinePeers[pid]){toast('DEBUG: onlinePeers['+pid+']=true → SKIPPING notifyPeer (direct ring)');startDirectRingUI();return;}
-  toast('DEBUG: onlinePeers['+pid+']=false/unset → will probe then notifyPeer');
+  if(isFreshlyOnline(pid)){
+    startDirectRingUI();armFcmBackup(pid,voiceOnly);return;
+  }
   var settled=false;
   var probe;
   try{probe=peer.connect(pid,{reliable:false,metadata:{type:'presence'}});}catch(e){}
   var giveUp=setTimeout(function(){
     if(settled)return;settled=true;
-    onlinePeers[pid]=false;
+    onlinePeers[pid]=false;onlinePeersTs[pid]=Date.now();
     notifyPeer(pid,voiceOnly?'voice-call':'call',markServerWoke);startOutPhaseTimer();
   },1500);
-  if(!probe){clearTimeout(giveUp);onlinePeers[pid]=false;notifyPeer(pid,voiceOnly?'voice-call':'call',markServerWoke);startOutPhaseTimer();return;}
+  if(!probe){clearTimeout(giveUp);onlinePeers[pid]=false;onlinePeersTs[pid]=Date.now();notifyPeer(pid,voiceOnly?'voice-call':'call',markServerWoke);startOutPhaseTimer();return;}
   probe.on('open',function(){
     if(settled)return;settled=true;clearTimeout(giveUp);
-    onlinePeers[pid]=true;updateDots(pid);try{probe.close();}catch(e){}
-    startDirectRingUI();
+    onlinePeers[pid]=true;onlinePeersTs[pid]=Date.now();updateDots(pid);try{probe.close();}catch(e){}
+    startDirectRingUI();armFcmBackup(pid,voiceOnly);
   });
   probe.on('error',function(){
     if(settled)return;settled=true;clearTimeout(giveUp);
-    onlinePeers[pid]=false;
+    onlinePeers[pid]=false;onlinePeersTs[pid]=Date.now();
     notifyPeer(pid,voiceOnly?'voice-call':'call',markServerWoke);startOutPhaseTimer();
   });
+}
+/* Belt-and-suspenders: even when a fresh presence probe said "online", that's a
+   snapshot from up to PRESENCE_FRESH_MS ago — it can't guarantee the callee's phone
+   is still reachable right now. So we always arm an FCM ping a few seconds into the
+   "direct ring" path too; it's a no-op if the call connects first (cleared in
+   markOutCallConnected/endCall), and otherwise makes sure the callee's phone actually
+   rings via FCM instead of us just waiting on a P2P connection that will never come. */
+function armFcmBackup(pid,voiceOnly){
+  clearTimeout(fcmBackupTimer);
+  fcmBackupTimer=setTimeout(function(){
+    if(outCallConnected)return;
+    notifyPeer(pid,voiceOnly?'voice-call':'call',markServerWoke);
+  },4000);
 }
 function startDirectRingUI(){
   outElapsedSecs=0;outServerWoke=true;outCallConnected=false;
@@ -2210,7 +2301,7 @@ function markServerWoke(){
   if(lbl&&!outCallConnected)lbl.textContent='Ringing…';
 }
 function markOutCallConnected(){outCallConnected=true;stopOutPhaseTimer();}
-function stopOutPhaseTimer(){clearInterval(outPhaseTimer);outPhaseTimer=null;}
+function stopOutPhaseTimer(){clearInterval(outPhaseTimer);outPhaseTimer=null;clearTimeout(fcmBackupTimer);fcmBackupTimer=null;}
 function startQual(){
   document.getElementById('call-quality').classList.add('show');
   callQualTimer=setInterval(async function(){
@@ -2579,18 +2670,36 @@ async function registerSW(){
     });
   }catch(e){}
 }
-function maybeShowNotifBanner(){
-  if(!('Notification' in window))return;
-  if(localStorage.getItem('uf_notif_dismissed')==='1')return;
-  if(Notification.permission==='granted')return;
+var notifBannerDismissedThisSession=false;
+/* Two different "notification permission" concepts exist in this app and they'd gotten
+   conflated: the WebView's Notification.permission (basically irrelevant here — it's not
+   what gates whether Android actually shows anything) and the real native
+   POST_NOTIFICATIONS permission that decides whether FCM ringing/messages can display at
+   all. This now checks the one that actually matters when running as the native app, and
+   only falls back to the web API when there's no native plugin (desktop/browser build).
+   It also no longer disappears forever once dismissed — dismissing only hides it for the
+   rest of this session; it comes back next time the app is opened if still not granted,
+   instead of silently vanishing the one nudge a user gets. */
+async function maybeShowNotifBanner(){
+  if(notifBannerDismissedThisSession)return;
+  var granted=true;
+  if(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions){
+    try{var st=await Capacitor.Plugins.VahinPermissions.getStatus();granted=!st.notificationsApplicable||st.notificationsGranted;}catch(e){granted=true;}
+  }else if('Notification' in window){
+    granted=Notification.permission==='granted';
+  }else{return;}
+  if(granted)return;
   document.getElementById('notif-banner').classList.add('show');
 }
 async function enableNotifs(){
+  if(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions){
+    await Capacitor.Plugins.VahinPermissions.openNotificationSettings();
+    return;
+  }
   if(!('Notification' in window)){toast('Not supported');return;}
   var perm=await Notification.requestPermission();
   if(perm!=='granted'){toast('Permission denied');return;}
   document.getElementById('notif-banner').classList.remove('show');
-  localStorage.setItem('uf_notif_dismissed','1');
   toast('Notifications enabled 🔔');refreshPushUI();subscribePush();
 }
 async function refreshPushUI(){
@@ -2613,6 +2722,13 @@ async function refreshReliabilityUI(){
   if(section)section.style.display='';
   try{
     var status=await Capacitor.Plugins.VahinPermissions.getStatus();
+    var notifSub=document.getElementById('notif-sub-text'),notifRow=document.getElementById('notif-row');
+    if(!status.notificationsApplicable){
+      if(notifRow)notifRow.style.display='none';
+    }else{
+      if(notifRow)notifRow.style.display='';
+      if(notifSub)notifSub.textContent=status.notificationsGranted?'Allowed ✓':'Off — you will get no notifications at all';
+    }
     var fsiSub=document.getElementById('fsi-sub-text'),fsiRow=document.getElementById('fsi-row');
     if(!status.fullScreenIntentApplicable){
       if(fsiRow)fsiRow.style.display='none';
@@ -2621,7 +2737,20 @@ async function refreshReliabilityUI(){
       if(fsiSub)fsiSub.textContent=status.fullScreenIntentGranted?'Allowed ✓':'Off — calls may not ring full-screen';
     }
     var batSub=document.getElementById('battery-sub-text');
-    if(batSub)batSub.textContent=status.batteryExemptionGranted?'Allowed ✓':'Off — app may be killed in background';
+    /* Samsung's "Put unused apps to sleep" / per-app battery limits sit on top of the
+       standard REQUEST_IGNORE_BATTERY_OPTIMIZATIONS exemption and have no public API to
+       grant automatically — the OS deliberately keeps that one manual-only. So on
+       Samsung specifically, tell people the extra manual step even after they tap Allow. */
+    var isSamsung=(status.manufacturer||'').toLowerCase().indexOf('samsung')>-1;
+    if(batSub){
+      if(status.batteryExemptionGranted){
+        batSub.textContent=isSamsung
+          ?'Allowed ✓ — also check Settings ▸ Apps ▸ Unifest ▸ Battery is "Unrestricted"'
+          :'Allowed ✓';
+      }else{
+        batSub.textContent='Off — app may be killed in background';
+      }
+    }
   }catch(e){
     // Plugin exists but the call failed for some reason; leave the "Checking…" text
     // rather than claiming a status we don't actually know.
@@ -2659,18 +2788,41 @@ function connectWithWake(pid,connType,onOpen,onFail,maxWaitMs){
   attempt();
 }
 function notifyPeer(toId,type,onSettled){
-  if(!toId){toast('DEBUG: notifyPeer called with no toId');if(onSettled)onSettled();return;}
-  toast('DEBUG: notifyPeer → '+toId+' type='+type);
+  if(!toId){if(onSettled)onSettled();return;}
   try{
     fetch(NOTIF_API+'/notify',{method:'POST',headers:apiHeaders(),body:JSON.stringify({to:toId,type:type,from:myId})})
-      .then(function(r){return r.text().then(function(t){toast('DEBUG /notify '+r.status+': '+t);});})
+      .then(function(r){var status=r.status;return r.json().catch(function(){return null;}).then(function(j){handleNotifyResult(toId,j,status);});})
       .then(function(){if(onSettled)onSettled();})
-      .catch(function(e){toast('DEBUG /notify FAILED: '+(e&&e.message?e.message:e));if(onSettled)onSettled();});
-  }catch(e){toast('DEBUG /notify threw: '+(e&&e.message?e.message:e));if(onSettled)onSettled();}
+      .catch(function(){toast('⚠️ Could not reach the server to ring '+toId);if(onSettled)onSettled();});
+  }catch(e){toast('⚠️ Could not reach the server to ring '+toId);if(onSettled)onSettled();}
+}
+/* This is the "tell me when ringing isn't working" part: the backend tells us exactly
+   why a wake-up notification didn't go anywhere (no subscriptions on file for that ID
+   at all, vs. FCM configured but every token invalid, vs. it actually went out fine and
+   they're just not answering) — surface the ones that mean "this call cannot possibly
+   ring on their end", once, instead of staying silent until a generic 2-minute timeout. */
+function handleNotifyResult(toId,j,status){
+  if(status===401||status===403){
+    toast('⚠️ Your login expired — log out and back in, or calls/messages can\u2019t notify anyone');
+    return;
+  }
+  if(!j)return;
+  if(j.reason==='no subscriptions for this id'){
+    toast('⚠️ '+toId+' has never enabled notifications — they won\u2019t be woken up if offline');
+    return;
+  }
+  if(j.fcmEnabled===false){
+    toast('⚠️ Backend has no Firebase key configured — calls can never wake a closed app until FIREBASE_SERVICE_ACCOUNT_JSON is set on Render');
+    return;
+  }
+  if(j.fcmEnabled&&j.total>0&&j.delivered===0){
+    toast('⚠️ Could not deliver a wake-up to '+toId+'\u2019s device(s) — they may need to reopen Unifest once');
+  }
 }
 function notifyPeerMsg(toId,text){
   if(!toId)return;
-  try{fetch(NOTIF_API+'/notify',{method:'POST',headers:apiHeaders(),body:JSON.stringify({to:toId,type:'message',from:myId,text:text})}).catch(function(){});}catch(e){}
+  try{fetch(NOTIF_API+'/notify',{method:'POST',headers:apiHeaders(),body:JSON.stringify({to:toId,type:'message',from:myId,text:text})})
+    .then(function(r){var status=r.status;return r.json().catch(function(){return null;}).then(function(j){handleNotifyResult(toId,j,status);});}).catch(function(){});}catch(e){}
 }
 /* Native FCM bridge (Android): MainActivity.java calls window.onFcmToken() once it has
    a token, and window.handleNativeCallAction() when the user taps Accept/Decline on the
@@ -2939,13 +3091,14 @@ function bindEvents(){
   document.getElementById('contact-search').addEventListener('input',function(){renderChats(this.value);});
   document.getElementById('new-chat-fab').addEventListener('click',openNewChatModal);
   document.getElementById('nb-enable-btn').addEventListener('click',enableNotifs);
-  document.getElementById('nb-close-btn').addEventListener('click',function(){document.getElementById('notif-banner').classList.remove('show');localStorage.setItem('uf_notif_dismissed','1');});
+  document.getElementById('nb-close-btn').addEventListener('click',function(){document.getElementById('notif-banner').classList.remove('show');notifBannerDismissedThisSession=true;});
   document.getElementById('new-call-btn').addEventListener('click',openNewChatModal);
   document.getElementById('start-conf-btn').addEventListener('click',openGroupConf);
   document.getElementById('open-group-chat-btn').addEventListener('click',openGroupChat);
   document.getElementById('copy-id-btn').addEventListener('click',function(){if(navigator.clipboard)navigator.clipboard.writeText(myId).then(function(){toast('Copied ✓');});else toast('Your ID: '+myId);});
   document.getElementById('switch-account-row').addEventListener('click',async function(){
     if(await styledConfirm('Switch account? You will need to log in with a different ID.',{danger:true,okText:'Switch'})){
+      stopSignalService();
       localStorage.removeItem(SK.MYID);localStorage.removeItem(SK.TOKEN);
       document.getElementById('tab-nav').classList.remove('visible');
       myId='';chatMode='';
@@ -2968,6 +3121,9 @@ function bindEvents(){
   document.getElementById('ringtone-done-btn').addEventListener('click',closeRingtoneModal);
   document.getElementById('ringtone-modal').addEventListener('click',function(e){if(e.target===this)closeRingtoneModal();});
   document.getElementById('push-toggle-row').addEventListener('click',enableNotifs);
+  document.getElementById('notif-row').addEventListener('click',async function(){
+    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openNotificationSettings();
+  });
   document.getElementById('fsi-row').addEventListener('click',async function(){
     if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openFullScreenIntentSettings();
   });
