@@ -571,6 +571,35 @@ button,input,textarea{font-family:inherit;}
     <div style="font-size:11px;color:var(--text3);text-align:center;">Unifest v3.4 · WebRTC End-to-End</div>
   </div>
 </div>
+
+<!-- Guided one-time setup: shown after login/signup and on every app open until all
+     three are granted, then never again. Each button opens the exact native settings
+     screen directly — no hunting through the Settings tab required. -->
+<div id="screen-permsetup" class="screen">
+  <div class="land-wrap">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:6px;">
+      <div style="font-size:40px;">🔔</div>
+      <div class="brand-name" style="font-size:22px;">Quick setup for reliable calls</div>
+      <div class="brand-tagline" style="max-width:340px;">Android needs a few one-tap permissions so calls can ring even when Unifest is closed. Takes about 15 seconds.</div>
+    </div>
+    <div class="id-card" style="gap:10px;">
+      <div class="settings-group" id="ps-notif-row" style="display:flex;align-items:center;justify-content:space-between;padding:14px;gap:10px;">
+        <div><div class="s-label">🔔 Notifications</div><div class="s-sub" id="ps-notif-sub">Checking…</div></div>
+        <button class="btn-primary" id="ps-notif-btn" style="width:auto;padding:10px 16px;font-size:14px;">Allow</button>
+      </div>
+      <div class="settings-group" id="ps-fsi-row" style="display:flex;align-items:center;justify-content:space-between;padding:14px;gap:10px;">
+        <div><div class="s-label">📞 Full-screen calls</div><div class="s-sub" id="ps-fsi-sub">Checking…</div></div>
+        <button class="btn-primary" id="ps-fsi-btn" style="width:auto;padding:10px 16px;font-size:14px;">Allow</button>
+      </div>
+      <div class="settings-group" id="ps-battery-row" style="display:flex;align-items:center;justify-content:space-between;padding:14px;gap:10px;">
+        <div><div class="s-label">🔋 Background running</div><div class="s-sub" id="ps-battery-sub">Checking…</div></div>
+        <button class="btn-primary" id="ps-battery-btn" style="width:auto;padding:10px 16px;font-size:14px;">Allow</button>
+      </div>
+      <div id="ps-oem-tip" style="display:none;font-size:12px;color:var(--text3);background:var(--surface2);border-radius:var(--radius-sm);padding:12px;line-height:1.5;"></div>
+      <button class="btn-primary" id="ps-done-btn">Continue to Unifest</button>
+    </div>
+  </div>
+</div>
 <div id="screen-chats" class="screen tabbed">
   <div class="top-header">
     <div class="header-brand"><div class="header-title">Unifest</div></div>
@@ -1142,6 +1171,7 @@ function enterApp(){
   updateBlockedCountUI();
   document.getElementById('tab-nav').classList.add('visible');
   switchTab('chats');showScreen('screen-chats');
+  maybeShowPermSetup();
   loadPeerJS(function(){startPeerRobust();startPresence();startKeepAlive();});
   startBackendKeepWarm();
   maybeShowNotifBanner();
@@ -2713,6 +2743,76 @@ async function refreshPushUI(){
    the native VahinPermissions plugin. On a browser (Capacitor.isNativePlatform() false,
    or plugin missing on older installed builds before this shipped) the whole section just
    stays hidden rather than showing rows that can never do anything. */
+/* Manual battery/autostart steps beyond the standard Android permission exist on
+   several OEMs and have no public API for any app to grant or even check — this is a
+   real platform limitation, not something specific to Unifest (WhatsApp/Signal/every
+   other calling app hits the same wall). Best we can do is tell people exactly where
+   to look for their specific phone. */
+function oemTipText(manufacturer){
+  var m=(manufacturer||'').toLowerCase();
+  if(m.indexOf('oneplus')>-1){
+    return 'OnePlus has extra hidden battery limits beyond the toggle above. For fully reliable ringing, also check: Settings ▸ Battery ▸ Battery optimization ▸ (⋮) ▸ Advanced optimization ▸ turn OFF "Deep optimization" and "Sleep standby optimization". Also enable Settings ▸ App Auto-Launch for Unifest, and lock it in Recent Apps.';
+  }
+  if(m.indexOf('samsung')>-1){
+    return 'Samsung has an extra background-sleep list beyond the toggle above. Check Settings ▸ Battery and device care ▸ Battery ▸ Background usage limits — make sure Unifest is NOT listed under "Sleeping apps".';
+  }
+  if(m.indexOf('xiaomi')>-1||m.indexOf('redmi')>-1||m.indexOf('poco')>-1){
+    return 'Xiaomi/MIUI has an extra Autostart toggle beyond the setting above. Check Settings ▸ Apps ▸ Manage apps ▸ Unifest ▸ Battery saver = "No restrictions", and enable Autostart separately.';
+  }
+  if(m.indexOf('oppo')>-1||m.indexOf('vivo')>-1||m.indexOf('realme')>-1){
+    return 'This phone brand has an extra background-activity toggle beyond the setting above. Check Settings ▸ Battery ▸ App battery management ▸ Unifest ▸ "Allow background activity".';
+  }
+  return '';
+}
+/* ── NOTE FOR FUTURE REFERENCE (permissions/ringing reliability) ──────────
+   Android has exactly 3 permissions any app can programmatically check and deep-link
+   to: POST_NOTIFICATIONS, USE_FULL_SCREEN_INTENT (Android 14+), and the standard
+   battery-optimization exemption. That's it. The guided setup screen below
+   (maybeShowPermSetup) covers all 3 with one tap each.
+
+   Beyond those 3, several OEMs (OnePlus, Samsung, Xiaomi, Oppo/Vivo/Realme) ship
+   their OWN separate background-kill systems — "Deep optimization", "Sleeping apps",
+   MIUI Autostart, etc. — with NO public Android API to check their state or open
+   their exact screen. This isn't fixable in Unifest's code; WhatsApp, Signal, and
+   every other calling app hits the identical wall — see dontkillmyapp.com for the
+   scale of it across the Android ecosystem. oemTipText() below gives the best
+   available mitigation: manufacturer-specific manual instructions surfaced directly
+   in the setup flow. Don't spend time trying to find a "real" fix beyond this;
+   there isn't one until/unless the OEMs publish an API, which they've had no
+   incentive to do. */
+async function maybeShowPermSetup(){
+  if(!(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions))return;
+  var status;
+  try{status=await Capacitor.Plugins.VahinPermissions.getStatus();}catch(e){return;}
+  var needsNotif=status.notificationsApplicable&&!status.notificationsGranted;
+  var needsFsi=status.fullScreenIntentApplicable&&!status.fullScreenIntentGranted;
+  var needsBattery=!status.batteryExemptionGranted;
+  if(!needsNotif&&!needsFsi&&!needsBattery){
+    if(document.getElementById('screen-permsetup').classList.contains('active'))closePermSetup(false);
+    return; // fully granted — never shows again
+  }
+
+  document.getElementById('ps-notif-row').style.display=status.notificationsApplicable?'':'none';
+  document.getElementById('ps-notif-sub').textContent=status.notificationsGranted?'Allowed ✓':'Needed so you see calls & messages at all';
+  document.getElementById('ps-notif-btn').style.display=status.notificationsGranted?'none':'';
+
+  document.getElementById('ps-fsi-row').style.display=status.fullScreenIntentApplicable?'':'none';
+  document.getElementById('ps-fsi-sub').textContent=status.fullScreenIntentGranted?'Allowed ✓':'Needed for calls to ring full-screen';
+  document.getElementById('ps-fsi-btn').style.display=status.fullScreenIntentGranted?'none':'';
+
+  document.getElementById('ps-battery-sub').textContent=status.batteryExemptionGranted?'Allowed ✓':'Needed so Android doesn\u2019t close Unifest in background';
+  document.getElementById('ps-battery-btn').style.display=status.batteryExemptionGranted?'none':'';
+
+  var tip=oemTipText(status.manufacturer);
+  var tipEl=document.getElementById('ps-oem-tip');
+  if(tip){tipEl.style.display='';tipEl.textContent='ℹ️ '+tip;}else{tipEl.style.display='none';}
+
+  showScreen('screen-permsetup');
+}
+function closePermSetup(warn){
+  showScreen('screen-chats');
+  if(warn)toast('⚠️ Ringing may not fully work until those are allowed — fix anytime in Settings ▸ Reliability');
+}
 async function refreshReliabilityUI(){
   var section=document.getElementById('reliability-section');
   if(!window.Capacitor||!Capacitor.isNativePlatform()||!Capacitor.Plugins||!Capacitor.Plugins.VahinPermissions){
@@ -2881,6 +2981,7 @@ document.addEventListener('visibilitychange',async function(){
   if(document.visibilityState==='visible'&&myId&&!peerReady){if(!reconnTimer)scheduleReconnect();}
   if(document.visibilityState==='visible'&&myId)wakeBackendServer();
   if(document.visibilityState==='visible'&&document.getElementById('screen-settings').classList.contains('active'))refreshReliabilityUI();
+  if(document.visibilityState==='visible'&&document.getElementById('screen-permsetup').classList.contains('active'))maybeShowPermSetup();
 });
 function switchTab(tab){
   /* If a previous switchTab's slide animation is still in flight (e.g. the user
@@ -3129,6 +3230,25 @@ function bindEvents(){
   });
   document.getElementById('battery-row').addEventListener('click',async function(){
     if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openBatterySettings();
+  });
+  document.getElementById('ps-notif-btn').addEventListener('click',async function(){
+    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openNotificationSettings();
+  });
+  document.getElementById('ps-fsi-btn').addEventListener('click',async function(){
+    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openFullScreenIntentSettings();
+  });
+  document.getElementById('ps-battery-btn').addEventListener('click',async function(){
+    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openBatterySettings();
+  });
+  document.getElementById('ps-done-btn').addEventListener('click',async function(){
+    var status;
+    try{status=await Capacitor.Plugins.VahinPermissions.getStatus();}catch(e){status=null;}
+    var stillMissing=status&&(
+      (status.notificationsApplicable&&!status.notificationsGranted)||
+      (status.fullScreenIntentApplicable&&!status.fullScreenIntentGranted)||
+      !status.batteryExemptionGranted
+    );
+    closePermSetup(!!stillMissing);
   });
   document.getElementById('conf-limit-minus').addEventListener('click',function(){settings.confLimit=Math.max(2,settings.confLimit-1);saveAll();applySettingsToUI();});
   document.getElementById('conf-limit-plus').addEventListener('click',function(){settings.confLimit=Math.min(12,settings.confLimit+1);saveAll();applySettingsToUI();});
