@@ -13,6 +13,9 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
+import com.getcapacitor.PermissionState;
 
 // Exposes the two "special" permissions that Android's own permission-request APIs can't
 // surface from JS at all (there's no getUserMedia()-style prompt for either of these —
@@ -28,8 +31,35 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 // once that's dismissed (even accidentally) there was previously no way back in without
 // reinstalling. This plugin lets the Settings screen show live status and re-open either
 // system screen on demand, any time.
-@CapacitorPlugin(name = "VahinPermissions")
+@CapacitorPlugin(
+    name = "VahinPermissions",
+    permissions = { @Permission(strings = { android.Manifest.permission.POST_NOTIFICATIONS }, alias = "notifications") }
+)
 public class VahinPermissionsPlugin extends Plugin {
+
+    // Fires the REAL system "Allow notifications?" dialog (not just a jump to Settings)
+    // — this is the one piece the old plugin was missing that a true one-tap chained
+    // flow needs. Only works pre-first-denial or once-denied-not-permanently; if Android
+    // has already permanently blocked the dialog, this resolves with it still denied and
+    // the JS side falls back to openNotificationSettings().
+    @PluginMethod
+    public void requestNotificationPermission(PluginCall call) {
+        if (Build.VERSION.SDK_INT < 33) { // permission didn't exist pre-Android 13
+            call.resolve(new JSObject().put("granted", true));
+            return;
+        }
+        if (isNotificationsGranted()) {
+            call.resolve(new JSObject().put("granted", true));
+            return;
+        }
+        requestPermissionForAlias("notifications", call, "notifPermCallback");
+    }
+
+    @PermissionCallback
+    private void notifPermCallback(PluginCall call) {
+        boolean granted = getPermissionState("notifications") == PermissionState.GRANTED;
+        call.resolve(new JSObject().put("granted", granted));
+    }
 
     @PluginMethod
     public void getStatus(PluginCall call) {

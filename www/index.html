@@ -509,8 +509,8 @@ button,input,textarea{font-family:inherit;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 #admob-banner-slot{position:fixed;left:0;right:0;bottom:calc(var(--nav-h) + var(--safe-bottom));height:50px;z-index:85;
-  background:var(--surface2);border-top:1px solid var(--border);display:none;align-items:center;justify-content:center;
-  font-size:11px;color:var(--text3);letter-spacing:.5px;}
+  display:none;align-items:center;justify-content:center;
+  font-size:11px;color:var(--red);letter-spacing:.5px;}
 #admob-banner-slot.show{display:flex;}
 
 .preview-sheet-media{width:100%;max-height:46vh;border-radius:14px;overflow:hidden;background:var(--surface2);
@@ -585,18 +585,20 @@ button,input,textarea{font-family:inherit;}
     <div class="id-card" style="gap:10px;">
       <div class="settings-group" id="ps-notif-row" style="display:flex;align-items:center;justify-content:space-between;padding:14px;gap:10px;">
         <div><div class="s-label">🔔 Notifications</div><div class="s-sub" id="ps-notif-sub">Checking…</div></div>
-        <button class="btn-primary" id="ps-notif-btn" style="width:auto;padding:10px 16px;font-size:14px;">Allow</button>
+        <div id="ps-notif-check" style="font-size:18px;"></div>
       </div>
       <div class="settings-group" id="ps-fsi-row" style="display:flex;align-items:center;justify-content:space-between;padding:14px;gap:10px;">
         <div><div class="s-label">📞 Full-screen calls</div><div class="s-sub" id="ps-fsi-sub">Checking…</div></div>
-        <button class="btn-primary" id="ps-fsi-btn" style="width:auto;padding:10px 16px;font-size:14px;">Allow</button>
+        <div id="ps-fsi-check" style="font-size:18px;"></div>
       </div>
       <div class="settings-group" id="ps-battery-row" style="display:flex;align-items:center;justify-content:space-between;padding:14px;gap:10px;">
         <div><div class="s-label">🔋 Background running</div><div class="s-sub" id="ps-battery-sub">Checking…</div></div>
-        <button class="btn-primary" id="ps-battery-btn" style="width:auto;padding:10px 16px;font-size:14px;">Allow</button>
+        <div id="ps-battery-check" style="font-size:18px;"></div>
       </div>
       <div id="ps-oem-tip" style="display:none;font-size:12px;color:var(--text3);background:var(--surface2);border-radius:var(--radius-sm);padding:12px;line-height:1.5;"></div>
-      <button class="btn-primary" id="ps-done-btn">Continue to Unifest</button>
+      <button class="btn-primary" id="ps-enable-all-btn">Enable everything</button>
+      <div style="font-size:11px;color:var(--text3);text-align:center;">Android will ask you to confirm each one — that part can't be skipped, but this takes you straight through all of them.</div>
+      <button class="btn-primary" id="ps-done-btn" style="background:transparent;color:var(--text3);box-shadow:none;">Continue to Unifest</button>
     </div>
   </div>
 </div>
@@ -929,7 +931,7 @@ var NOTIF_API=(window.VAHIN_NOTIF_API||'https://vahin-backend.onrender.com');
 /* Must exactly match API_SHARED_SECRET on the backend (Render → Environment).
    Leave both blank while testing; once you set one, set the other to match,
    or every backend call below starts getting rejected with 401. */
-var API_SHARED_SECRET='';
+var API_SHARED_SECRET='c1288810a2dce8680cd6eeb2e5741a9348f577ce55760493';
 function apiHeaders(){
   var h={'Content-Type':'application/json'};
   if(API_SHARED_SECRET)h['x-vahin-key']=API_SHARED_SECRET;
@@ -1074,11 +1076,30 @@ function showScreen(id,dir){
   },320);
 }
 /* AdMob: real banner needs a native plugin (@capacitor-community/admob) — this div is just layout space. */
+var admobBannerLoaded=false; // set true once bannerAdLoaded fires in initAds()
 function setAdmobBannerVisible(show){
   var slot=document.getElementById('admob-banner-slot');if(slot)slot.classList.toggle('show',show);
   /* --banner-h is read by .screen.tabbed padding-bottom and the FAB position, so
      real content (chat list, FAB, tab bar) reflows around the ad and nothing gets hidden. */
   document.documentElement.style.setProperty('--banner-h',show?'50px':'0px');
+  /* THE ACTUAL BUG: this function used to only touch the HTML placeholder above — but
+     the real ad is a separate native Android view drawn by the AdMob plugin itself
+     (position:'BOTTOM_CENTER' at init), completely independent of this div's CSS. The
+     placeholder toggling on/off did nothing to the real ad, so it just sat there,
+     fixed to the bottom of the physical screen, visible on every single screen —
+     login, chats, calls, groups, settings, inside a chat — regardless of what this
+     function did. This now actually hides/resumes the real native banner to match. */
+  if(!(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.AdMob&&admobInitialized))return;
+  var AdMobP=Capacitor.Plugins.AdMob;
+  try{
+    if(show){
+      if(admobBannerStarted)AdMobP.resumeBanner().catch(function(){});
+      else{
+        admobBannerStarted=true;
+        AdMobP.showBanner({adId:'ca-app-pub-6297134793449432/6716447548',adSize:'BANNER',position:'BOTTOM_CENTER',margin:0}).catch(function(){admobBannerStarted=false;});
+      }
+    }else if(admobBannerStarted){ AdMobP.hideBanner().catch(function(){}); }
+  }catch(e){}
 }
 function obRender(){
   var s=OB[obStep];
@@ -2783,7 +2804,14 @@ function oemTipText(manufacturer){
 async function maybeShowPermSetup(){
   if(!(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions))return;
   var status;
-  try{status=await Capacitor.Plugins.VahinPermissions.getStatus();}catch(e){return;}
+  try{status=await Capacitor.Plugins.VahinPermissions.getStatus();}
+  catch(e){
+    // Previously this silently gave up and never showed the setup screen again if the
+    // native call ever failed even once — that's the most likely explanation for "it
+    // stopped asking me." Now: if we genuinely can't check, still show the screen
+    // rather than assume everything's fine.
+    status={notificationsApplicable:true,notificationsGranted:false,fullScreenIntentApplicable:true,fullScreenIntentGranted:false,batteryExemptionGranted:false,manufacturer:''};
+  }
   var needsNotif=status.notificationsApplicable&&!status.notificationsGranted;
   var needsFsi=status.fullScreenIntentApplicable&&!status.fullScreenIntentGranted;
   var needsBattery=!status.batteryExemptionGranted;
@@ -2793,21 +2821,54 @@ async function maybeShowPermSetup(){
   }
 
   document.getElementById('ps-notif-row').style.display=status.notificationsApplicable?'':'none';
-  document.getElementById('ps-notif-sub').textContent=status.notificationsGranted?'Allowed ✓':'Needed so you see calls & messages at all';
-  document.getElementById('ps-notif-btn').style.display=status.notificationsGranted?'none':'';
+  document.getElementById('ps-notif-sub').textContent=status.notificationsGranted?'Allowed':'Needed so you see calls & messages at all';
+  document.getElementById('ps-notif-check').textContent=status.notificationsGranted?'✅':'⭕';
 
   document.getElementById('ps-fsi-row').style.display=status.fullScreenIntentApplicable?'':'none';
-  document.getElementById('ps-fsi-sub').textContent=status.fullScreenIntentGranted?'Allowed ✓':'Needed for calls to ring full-screen';
-  document.getElementById('ps-fsi-btn').style.display=status.fullScreenIntentGranted?'none':'';
+  document.getElementById('ps-fsi-sub').textContent=status.fullScreenIntentGranted?'Allowed':'Needed for calls to ring full-screen';
+  document.getElementById('ps-fsi-check').textContent=status.fullScreenIntentGranted?'✅':'⭕';
 
-  document.getElementById('ps-battery-sub').textContent=status.batteryExemptionGranted?'Allowed ✓':'Needed so Android doesn\u2019t close Unifest in background';
-  document.getElementById('ps-battery-btn').style.display=status.batteryExemptionGranted?'none':'';
+  document.getElementById('ps-battery-sub').textContent=status.batteryExemptionGranted?'Allowed':'Needed so Android doesn\u2019t close Unifest in background';
+  document.getElementById('ps-battery-check').textContent=status.batteryExemptionGranted?'✅':'⭕';
 
   var tip=oemTipText(status.manufacturer);
   var tipEl=document.getElementById('ps-oem-tip');
   if(tip){tipEl.style.display='';tipEl.textContent='ℹ️ '+tip;}else{tipEl.style.display='none';}
 
   showScreen('screen-permsetup');
+}
+/* Single button, chained: Android still requires its own tap on each individual system
+   dialog (no app — Unifest, WhatsApp, anyone — can bypass that; it's a hard OS security
+   rule), but this removes the need to go find each setting yourself. One tap here fires
+   the real notification-permission dialog, then immediately opens the battery-exemption
+   dialog right after. When you return to the app, the visibilitychange re-check below
+   picks up wherever the chain left off and continues straight to full-screen-intent
+   settings automatically if that's still needed — so the whole thing completes across
+   1-3 system prompts from one initial tap, instead of 3 separate manual trips through
+   Settings. */
+var permChainActive=false;
+async function enableAllPermissions(){
+  permChainActive=true;
+  var status;
+  try{status=await Capacitor.Plugins.VahinPermissions.getStatus();}catch(e){status=null;}
+  if(status&&status.notificationsApplicable&&!status.notificationsGranted){
+    try{await Capacitor.Plugins.VahinPermissions.requestNotificationPermission();}catch(e){}
+  }
+  if(!status||!status.batteryExemptionGranted){
+    try{await Capacitor.Plugins.VahinPermissions.openBatterySettings();return;}catch(e){}
+  }
+  if(status&&status.fullScreenIntentApplicable&&!status.fullScreenIntentGranted){
+    try{await Capacitor.Plugins.VahinPermissions.openFullScreenIntentSettings();}catch(e){}
+  }
+}
+async function continuePermChain(){
+  permChainActive=false;
+  var status;
+  try{status=await Capacitor.Plugins.VahinPermissions.getStatus();}catch(e){status=null;}
+  if(status&&status.fullScreenIntentApplicable&&!status.fullScreenIntentGranted){
+    try{await Capacitor.Plugins.VahinPermissions.openFullScreenIntentSettings();return;}catch(e){}
+  }
+  maybeShowPermSetup();
 }
 function closePermSetup(warn){
   showScreen('screen-chats');
@@ -2981,7 +3042,9 @@ document.addEventListener('visibilitychange',async function(){
   if(document.visibilityState==='visible'&&myId&&!peerReady){if(!reconnTimer)scheduleReconnect();}
   if(document.visibilityState==='visible'&&myId)wakeBackendServer();
   if(document.visibilityState==='visible'&&document.getElementById('screen-settings').classList.contains('active'))refreshReliabilityUI();
-  if(document.visibilityState==='visible'&&document.getElementById('screen-permsetup').classList.contains('active'))maybeShowPermSetup();
+  if(document.visibilityState==='visible'&&document.getElementById('screen-permsetup').classList.contains('active')){
+    if(permChainActive)continuePermChain();else maybeShowPermSetup();
+  }
 });
 function switchTab(tab){
   /* If a previous switchTab's slide animation is still in flight (e.g. the user
@@ -3231,15 +3294,7 @@ function bindEvents(){
   document.getElementById('battery-row').addEventListener('click',async function(){
     if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openBatterySettings();
   });
-  document.getElementById('ps-notif-btn').addEventListener('click',async function(){
-    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openNotificationSettings();
-  });
-  document.getElementById('ps-fsi-btn').addEventListener('click',async function(){
-    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openFullScreenIntentSettings();
-  });
-  document.getElementById('ps-battery-btn').addEventListener('click',async function(){
-    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openBatterySettings();
-  });
+  document.getElementById('ps-enable-all-btn').addEventListener('click',function(){enableAllPermissions();});
   document.getElementById('ps-done-btn').addEventListener('click',async function(){
     var status;
     try{status=await Capacitor.Plugins.VahinPermissions.getStatus();}catch(e){status=null;}
@@ -3389,51 +3444,36 @@ if(document.readyState==='loading'){
 
 <script>
   // ---- AdMob banner ad (Unifest) ----
+  var admobInitialized=false;
+  var admobBannerStarted=false;
   async function initAds() {
     var slot = document.getElementById('admob-banner-slot');
-    if (slot) { slot.style.display = 'flex'; slot.textContent = 'Ad: starting…'; }
     try {
-      if (!window.Capacitor) {
-        if (slot) slot.textContent = 'Ad: no Capacitor object';
-        return;
-      }
-      if (!Capacitor.isNativePlatform()) {
-        if (slot) slot.textContent = 'Ad: not native platform';
-        return;
-      }
-      if (!Capacitor.Plugins || !Capacitor.Plugins.AdMob) {
-        if (slot) slot.textContent = 'Ad: AdMob plugin not found';
-        return;
-      }
+      if (!window.Capacitor || !Capacitor.isNativePlatform() || !Capacitor.Plugins || !Capacitor.Plugins.AdMob) return;
       const { AdMob } = Capacitor.Plugins;
 
-      // Listen for what ACTUALLY happens, since showBanner() resolving just
-      // means "request sent," not "ad loaded."
       AdMob.addListener('bannerAdLoaded', function () {
-        if (slot) { slot.textContent = ''; }
-        console.log('Banner ad LOADED ✅');
+        admobBannerLoaded=true;
+        if (slot) slot.textContent='';
       });
       AdMob.addListener('bannerAdFailedToLoad', function (err) {
-        if (slot) slot.textContent = 'Ad failed to load: ' + JSON.stringify(err);
-        console.error('Banner ad FAILED ❌', err);
+        // Kept visible only on genuine failure — useful for you, invisible otherwise.
+        if (slot) slot.textContent = 'Ad failed to load';
+        console.error('Banner ad FAILED', err);
       });
 
       await AdMob.initialize({
-        initializeForTesting: true, // set to false only when going live on Play Store
+        initializeForTesting: true, // ⚠️ set to false only when going live on Play Store — real ad revenue does not count while this is true
       });
-      if (slot) slot.textContent = 'Ad: initialized, requesting banner…';
-
-      await AdMob.showBanner({
-        adId: 'ca-app-pub-6297134793449432/6716447548',
-        adSize: 'BANNER',
-        position: 'BOTTOM_CENTER',
-        margin: 0,
-      });
-
-      if (slot) slot.textContent = 'Ad: request sent, waiting for load…';
+      admobInitialized=true;
+      // Catches up if the user is already sitting on the Chats screen by the time
+      // AdMob finishes initializing (this is async and can resolve after enterApp()
+      // already tried to show it once).
+      var chatsActive=document.getElementById('screen-chats')&&document.getElementById('screen-chats').classList.contains('active');
+      if(chatsActive)setAdmobBannerVisible(true);
     } catch (err) {
-      if (slot) slot.textContent = 'Ad error: ' + (err && err.message ? err.message : JSON.stringify(err));
-      console.error('Ad init failed ❌', err);
+      if (slot) slot.textContent = 'Ad error';
+      console.error('Ad init failed', err);
     }
   }
 
