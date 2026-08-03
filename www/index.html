@@ -1175,7 +1175,7 @@ async function submitAuth(){
    while the app stays open so it never has the chance to go back to sleep
    during an active session. */
 function wakeBackendServer(){
-  try{fetch(NOTIF_API+'/',{method:'GET',cache:'no-store'}).catch(function(){});}catch(e){}
+  try{fetchWithTimeout(NOTIF_API+'/',{method:'GET',cache:'no-store'},8000).catch(function(){});}catch(e){}
 }
 var backendKeepWarmInterval=null;
 function startBackendKeepWarm(){
@@ -2948,14 +2948,32 @@ function connectWithWake(pid,connType,onOpen,onFail,maxWaitMs){
   }
   attempt();
 }
+/* Fetches with a hard per-attempt timeout (some mobile carriers silently kill an
+   idle/pending HTTP connection around ~30s — well inside Render's 30-50s cold-start
+   window — so a single long-held request to a sleeping server can die with no error
+   and no response, while the UI's own wake-up timer optimistically moves on anyway,
+   making it look like the ring went out when it never actually reached the server).
+   Retrying several short attempts gets through far more reliably than one long one. */
+function fetchWithTimeout(url,opts,timeoutMs){
+  var ctrl=new AbortController();
+  var t=setTimeout(function(){ctrl.abort();},timeoutMs);
+  return fetch(url,Object.assign({},opts,{signal:ctrl.signal})).finally(function(){clearTimeout(t);});
+}
+async function fetchWithRetries(url,opts,attemptTimeoutMs,totalBudgetMs){
+  var start=Date.now();
+  var lastErr;
+  while(Date.now()-start<totalBudgetMs){
+    try{return await fetchWithTimeout(url,opts,attemptTimeoutMs);}
+    catch(e){lastErr=e;await new Promise(function(r){setTimeout(r,1500);});}
+  }
+  throw lastErr||new Error('timed out');
+}
 function notifyPeer(toId,type,onSettled){
   if(!toId){if(onSettled)onSettled();return;}
-  try{
-    fetch(NOTIF_API+'/notify',{method:'POST',headers:apiHeaders(),body:JSON.stringify({to:toId,type:type,from:myId})})
-      .then(function(r){var status=r.status;return r.json().catch(function(){return null;}).then(function(j){handleNotifyResult(toId,j,status);});})
-      .then(function(){if(onSettled)onSettled();})
-      .catch(function(){toast('⚠️ Could not reach the server to ring '+toId);if(onSettled)onSettled();});
-  }catch(e){toast('⚠️ Could not reach the server to ring '+toId);if(onSettled)onSettled();}
+  fetchWithRetries(NOTIF_API+'/notify',{method:'POST',headers:apiHeaders(),body:JSON.stringify({to:toId,type:type,from:myId})},8000,70000)
+    .then(function(r){var status=r.status;return r.json().catch(function(){return null;}).then(function(j){handleNotifyResult(toId,j,status);});})
+    .then(function(){if(onSettled)onSettled();})
+    .catch(function(){toast('⚠️ Could not reach the server to ring '+toId+' — check your connection');if(onSettled)onSettled();});
 }
 /* This is the "tell me when ringing isn't working" part: the backend tells us exactly
    why a wake-up notification didn't go anywhere (no subscriptions on file for that ID
@@ -2982,8 +3000,8 @@ function handleNotifyResult(toId,j,status){
 }
 function notifyPeerMsg(toId,text){
   if(!toId)return;
-  try{fetch(NOTIF_API+'/notify',{method:'POST',headers:apiHeaders(),body:JSON.stringify({to:toId,type:'message',from:myId,text:text})})
-    .then(function(r){var status=r.status;return r.json().catch(function(){return null;}).then(function(j){handleNotifyResult(toId,j,status);});}).catch(function(){});}catch(e){}
+  fetchWithRetries(NOTIF_API+'/notify',{method:'POST',headers:apiHeaders(),body:JSON.stringify({to:toId,type:'message',from:myId,text:text})},8000,30000)
+    .then(function(r){var status=r.status;return r.json().catch(function(){return null;});}).then(function(j){handleNotifyResult(toId,j);}).catch(function(){});
 }
 /* Native FCM bridge (Android): MainActivity.java calls window.onFcmToken() once it has
    a token, and window.handleNativeCallAction() when the user taps Accept/Decline on the
