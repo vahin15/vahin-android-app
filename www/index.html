@@ -141,6 +141,7 @@ button,input,textarea{font-family:inherit;}
   flex-shrink:0;position:relative;}
 .cli-pres{position:absolute;bottom:1px;right:1px;width:13px;height:13px;border-radius:50%;background:var(--text3);border:2.5px solid var(--bg);}
 .cli-pres.online{background:var(--green);}
+.cli-av.has-dp .cli-av-letter{display:none;}
 .cli-info{flex:1;min-width:0;}
 .cli-name{font-size:16px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .cli-prev{font-size:13px;color:var(--text3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -674,7 +675,11 @@ button,input,textarea{font-family:inherit;}
   <div class="top-header"><div class="header-title">Settings</div></div>
   <div class="settings-body">
     <div class="settings-profile">
-      <div class="settings-av" id="settings-av">U</div>
+      <div style="position:relative;flex-shrink:0;">
+        <div class="settings-av" id="settings-av">U</div>
+        <button type="button" id="dp-edit-btn" title="Change photo" style="position:absolute;right:-2px;bottom:-2px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;border:2px solid var(--bg);font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;">📷</button>
+        <input type="file" id="dp-file-input" accept="image/*" style="display:none;">
+      </div>
       <div><div class="settings-uname" id="settings-uname">—</div><div class="settings-uid"><span id="settings-uid-text">—</span><button class="copy-id-btn" id="copy-id-btn">Copy</button></div></div>
     </div>
     <div class="settings-section">
@@ -975,6 +980,79 @@ function apiHeaders(){
   var tok=localStorage.getItem(SK.TOKEN);if(tok)h['Authorization']='Bearer '+tok;
   return h;
 }
+/* ── DP (profile picture) ──────────────────────────────────────────────
+   dpCache holds {dp:dataUrlOrNull, ts} per id so opening a chat list with
+   30 contacts doesn't fire 30 network calls every render — a fresh fetch
+   only happens once per id per DP_CACHE_TTL, or immediately after this
+   device uploads/changes its own DP. */
+var dpCache={};
+var DP_CACHE_TTL=10*60*1000;
+function fetchDp(id){
+  if(!id)return Promise.resolve(null);
+  var c=dpCache[id];
+  if(c&&(Date.now()-c.ts)<DP_CACHE_TTL)return Promise.resolve(c.dp);
+  return fetchWithRetries(NOTIF_API+'/profile/dp/'+encodeURIComponent(id),{method:'GET',headers:apiHeaders()},6000,10000)
+    .then(function(r){return r.json();})
+    .then(function(j){var dp=(j&&j.dp)||null;dpCache[id]={dp:dp,ts:Date.now()};return dp;})
+    .catch(function(){dpCache[id]={dp:null,ts:Date.now()};return null;});
+}
+/* For avatar elements with NO other element children (settings-av,
+   chat-peer-av) — safe to fully replace textContent when a DP arrives. */
+function applyAvatarPlain(el,id){
+  if(!el||!id)return;
+  el.textContent=id[0].toUpperCase();el.style.backgroundImage='';
+  fetchDp(id).then(function(dp){
+    if(!dp)return;
+    el.textContent='';el.style.backgroundImage="url('"+dp+"')";el.style.backgroundSize='cover';el.style.backgroundPosition='center';
+  });
+}
+/* For chat-list avatars, which have a presence-dot sibling — only the
+   .cli-av-letter span is hidden, nothing else in the element is touched. */
+function applyAvatarWithPres(el,letterEl,id){
+  if(!el||!id)return;
+  fetchDp(id).then(function(dp){
+    if(!dp)return;
+    el.classList.add('has-dp');el.style.backgroundImage="url('"+dp+"')";el.style.backgroundSize='cover';el.style.backgroundPosition='center';
+    if(letterEl)letterEl.style.display='none';
+  });
+}
+/* Downscales/compresses whatever image the user picked to a small square
+   JPEG before it ever leaves the device — keeps uploads fast on mobile
+   data and comfortably under the backend's ~214KB cap without the user
+   having to think about file size. */
+function resizeImageFileToDataUrl(file,maxSize){
+  maxSize=maxSize||256;
+  return new Promise(function(resolve,reject){
+    var img=new Image();
+    var reader=new FileReader();
+    reader.onerror=function(){reject(new Error('read failed'));};
+    reader.onload=function(){img.src=reader.result;};
+    img.onerror=function(){reject(new Error('decode failed'));};
+    img.onload=function(){
+      var side=Math.min(img.width,img.height);
+      var sx=(img.width-side)/2,sy=(img.height-side)/2;
+      var canvas=document.createElement('canvas');
+      canvas.width=maxSize;canvas.height=maxSize;
+      var ctx=canvas.getContext('2d');
+      ctx.drawImage(img,sx,sy,side,side,0,0,maxSize,maxSize);
+      resolve(canvas.toDataURL('image/jpeg',0.85));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+async function uploadDp(dataUrl){
+  if(!myId)return false;
+  try{
+    var r=await fetchWithRetries(NOTIF_API+'/profile/dp',{method:'POST',headers:apiHeaders(),body:JSON.stringify({id:myId,dataUrl:dataUrl})},8000,20000);
+    var j=await r.json().catch(function(){return null;});
+    if(!j||!j.ok){toast((j&&j.error)||'Could not update photo');return false;}
+    dpCache[myId]={dp:dataUrl,ts:Date.now()};
+    var sav=document.getElementById('settings-av');
+    if(sav){sav.textContent='';sav.style.backgroundImage="url('"+dataUrl+"')";sav.style.backgroundSize='cover';sav.style.backgroundPosition='center';}
+    renderChats();toast('Photo updated ✓');
+    return true;
+  }catch(e){toast('Could not update photo — check connection');return false;}
+}
 var PEER_CONFIG={debug:0,config:{iceServers:[
   {urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'},
   {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
@@ -1235,7 +1313,7 @@ function startBackendKeepWarm(){
 function enterApp(){
   var els={'topbar-myid':myId,'settings-uname':myId,'settings-uid-text':myId,'conf-label-local':myId};
   Object.keys(els).forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=els[id];});
-  var sav=document.getElementById('settings-av');if(sav)sav.textContent=myId[0].toUpperCase();
+  var sav=document.getElementById('settings-av');if(sav)applyAvatarPlain(sav,myId);
   applySettingsToUI();
   renderChats();renderPinnedChats();renderCallHistory();renderGroupsList();
   updateBlockedCountUI();
@@ -1264,9 +1342,11 @@ async function fetchQueuedMailbox(){
     var r=await fetchWithRetries(NOTIF_API+'/mailbox/fetch',{method:'POST',headers:apiHeaders(),body:JSON.stringify({id:myId})},8000,20000);
     var j=await r.json().catch(function(){return null;});
     if(!j||!j.messages||!j.messages.length)return;
+    var ackIds=[];
     j.messages.forEach(function(m){
       var from=m.from,text=m.text,time=fmtTime();
       if(!from||!text)return;
+      if(m.id)ackIds.push(m.id);
       var h=dmHistory[from]||[];
       var dup=h.slice(-8).some(function(x){return x.text===text&&x.me===false;});
       if(dup)return;
@@ -1282,6 +1362,12 @@ async function fetchQueuedMailbox(){
       }
     });
     renderChats();renderPinnedChats();
+    // Only ack after everything above has been written to localStorage —
+    // if the app dies mid-function the un-acked messages just get re-fetched
+    // (and de-duped) next launch instead of being lost.
+    if(ackIds.length){
+      fetchWithRetries(NOTIF_API+'/mailbox/ack',{method:'POST',headers:apiHeaders(),body:JSON.stringify({id:myId,ids:ackIds})},8000,15000).catch(function(){});
+    }
   }catch(e){}
 }
 
@@ -1612,9 +1698,12 @@ function renderChats(filter){
     var prev=last?(last.me?'You: '+(last.file?'📎 '+last.file.name:last.text||''):(last.file?'📎 '+last.file.name:last.text||'')):'Tap to chat';
     var item=document.createElement('div');item.className='chat-list-item';
     item.onclick=function(p){return function(){openDMChat(p);};}(pid);
-    var av=document.createElement('div');av.className='cli-av';av.textContent=pid[0].toUpperCase();
+    var av=document.createElement('div');av.className='cli-av';
+    var avLetter=document.createElement('span');avLetter.className='cli-av-letter';avLetter.textContent=pid[0].toUpperCase();
+    av.appendChild(avLetter);
     var pres=document.createElement('span');pres.className='cli-pres'+(isOnline?' online':'');pres.dataset.pres=pid;
     av.appendChild(pres);
+    applyAvatarWithPres(av,avLetter,pid);
     var info=document.createElement('div');info.className='cli-info';
     var nm=document.createElement('div');nm.className='cli-name';nm.textContent=pid+(blocked?' 🚫':'')+(pinned?' 📌':'');
     var pr=document.createElement('div');pr.className='cli-prev';pr.textContent=String(prev).substring(0,60);
@@ -1636,7 +1725,7 @@ function renderChats(filter){
 function openDMChat(pid){
   if(!pid)return;
   chatMode='dm';chatPeerId=pid;addRecentSilent(pid);unreadDM[pid]=0;
-  document.getElementById('chat-peer-av').textContent=pid[0].toUpperCase();
+  applyAvatarPlain(document.getElementById('chat-peer-av'),pid);
   document.getElementById('chat-peer-name').textContent=pid;
   document.getElementById('chat-peer-status').textContent=(onlinePeers[pid]?'Online':'Offline')+' · P2P encrypted';
   buildChatHeader(pid);
@@ -3602,6 +3691,14 @@ function bindEvents(){
     if(await styledConfirm('Leave this group?',{danger:true,okText:'Leave'}))leaveGroup(activeGroupId);
   });
   document.getElementById('copy-id-btn').addEventListener('click',function(){if(navigator.clipboard)navigator.clipboard.writeText(myId).then(function(){toast('Copied ✓');});else toast('Your ID: '+myId);});
+  document.getElementById('dp-edit-btn').addEventListener('click',function(){document.getElementById('dp-file-input').click();});
+  document.getElementById('dp-file-input').addEventListener('change',function(e){
+    var file=e.target.files&&e.target.files[0];e.target.value='';
+    if(!file)return;
+    if(!file.type||file.type.indexOf('image/')!==0){toast('Please choose an image');return;}
+    toast('Updating photo…');
+    resizeImageFileToDataUrl(file,256).then(function(dataUrl){uploadDp(dataUrl);}).catch(function(){toast('Could not read that image');});
+  });
   document.getElementById('copy-diag-row').addEventListener('click',function(){
     var log=ls_get('uf_last_call_diag',null)||callDiagLog;
     if(!log||!log.length){toast('No call attempted yet this session');return;}
