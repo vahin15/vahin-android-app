@@ -630,10 +630,45 @@ button,input,textarea{font-family:inherit;}
 </div>
 <div id="screen-groups" class="screen tabbed">
   <div class="top-header"><div class="header-title">Groups</div></div>
-  <div class="groups-body">
-    <div class="group-card" id="start-conf-btn"><div class="group-card-icon">🎥</div><div><div class="group-card-name">Start Conference</div><div class="group-card-sub" id="conf-limit-desc">Group video call</div></div></div>
-    <div class="group-card" id="open-group-chat-btn"><div class="group-card-icon">💬</div><div><div class="group-card-name">Group Chat</div><div class="group-card-sub" id="group-chat-desc">No members yet</div></div></div>
+  <div id="groups-body" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
+  <button class="fab" id="new-group-fab" title="New group">➕</button>
+</div>
+<div id="screen-group-create" class="screen">
+  <div class="chat-top">
+    <button class="chat-back" id="gc-back-btn">‹</button>
+    <div style="flex:1;min-width:0;"><div class="chat-peer-name">New Group</div></div>
   </div>
+  <div style="padding:16px;overflow-y:auto;flex:1;">
+    <input class="id-input" id="gc-name-input" placeholder="Group name" autocomplete="off" style="margin-bottom:16px;"/>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <input class="id-input" id="gc-add-id-input" placeholder="Add by ID…" autocomplete="off" style="flex:1;"/>
+      <button class="btn-primary" id="gc-add-id-btn" style="width:auto;padding:0 18px;">Add</button>
+    </div>
+    <div style="font-size:12px;color:var(--text3);font-weight:700;margin:14px 0 8px;">SELECTED (<span id="gc-selected-count">0</span>)</div>
+    <div id="gc-selected-chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;"></div>
+    <div style="font-size:12px;color:var(--text3);font-weight:700;margin:14px 0 8px;">FROM YOUR CONTACTS</div>
+    <div id="gc-contacts-list"></div>
+  </div>
+  <div style="padding:16px;"><button class="btn-primary" id="gc-create-btn">Create Group</button></div>
+</div>
+<div id="screen-group-info" class="screen">
+  <div class="chat-top">
+    <button class="chat-back" id="gi-back-btn">‹</button>
+    <div style="flex:1;min-width:0;"><div class="chat-peer-name">Group Info</div></div>
+  </div>
+  <div style="padding:16px;overflow-y:auto;flex:1;">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;">
+      <input class="id-input" id="gi-name-input" style="flex:1;"/>
+      <button class="btn-primary" id="gi-rename-btn" style="width:auto;padding:0 16px;">Save</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <input class="id-input" id="gi-add-id-input" placeholder="Add member by ID…" autocomplete="off" style="flex:1;"/>
+      <button class="btn-primary" id="gi-add-id-btn" style="width:auto;padding:0 18px;">Add</button>
+    </div>
+    <div style="font-size:12px;color:var(--text3);font-weight:700;margin:14px 0 8px;">MEMBERS</div>
+    <div id="gi-members-list"></div>
+  </div>
+  <div style="padding:16px;"><button class="btn-primary" id="gi-leave-btn" style="background:rgba(220,38,38,.1);color:#dc2626;box-shadow:none;">Leave Group</button></div>
 </div>
 <div id="screen-settings" class="screen tabbed">
   <div class="top-header"><div class="header-title">Settings</div></div>
@@ -1202,7 +1237,7 @@ function enterApp(){
   Object.keys(els).forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=els[id];});
   var sav=document.getElementById('settings-av');if(sav)sav.textContent=myId[0].toUpperCase();
   applySettingsToUI();
-  renderChats();renderPinnedChats();renderCallHistory();renderGroupDesc();
+  renderChats();renderPinnedChats();renderCallHistory();renderGroupsList();
   updateBlockedCountUI();
   document.getElementById('tab-nav').classList.add('visible');
   switchTab('chats');showScreen('screen-chats');
@@ -1798,6 +1833,99 @@ function leaveGroup(gid){
   if(chatMode==='group'&&activeGroupId===gid)showScreen('screen-groups','back');
   toast('Left group');
 }
+function renderGroupsList(){
+  var body=document.getElementById('groups-body');if(!body)return;
+  var gids=Object.keys(groups);
+  if(!gids.length){
+    body.innerHTML='<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No groups yet</div><div class="empty-sub">Tap ➕ to create one.</div></div>';
+    return;
+  }
+  body.innerHTML='';
+  gids.sort(function(a,b){
+    var ha=groups[a].history,hb=groups[b].history;
+    var ta=ha.length?ha[ha.length-1].time:'';var tb=hb.length?hb[hb.length-1].time:'';
+    return ta<tb?1:-1;
+  }).forEach(function(gid){
+    var g=groups[gid];
+    var last=g.history.length?g.history[g.history.length-1]:null;
+    var row=document.createElement('div');row.className='group-card';
+    var unread=unreadGroup[gid]||0;
+    row.innerHTML='<div class="group-card-icon">'+(g.name[0]||'G').toUpperCase()+'</div>'
+      +'<div style="flex:1;min-width:0;"><div class="group-card-name">'+esc(g.name)+'</div>'
+      +'<div class="group-card-sub">'+(last?esc((last.sender===myId?'You: ':last.sender+': ')+(last.text||'')).substring(0,50):g.members.length+' member'+(g.members.length!==1?'s':''))+'</div></div>'
+      +(unread?'<div class="tab-badge" style="position:static;">'+unread+'</div>':'');
+    row.onclick=function(){openGroupChat(gid);};
+    body.appendChild(row);
+  });
+}
+var gcSelectedMembers=[];
+function openGroupCreateScreen(){
+  gcSelectedMembers=[];
+  document.getElementById('gc-name-input').value='';
+  document.getElementById('gc-add-id-input').value='';
+  renderGcSelectedChips();
+  var list=document.getElementById('gc-contacts-list');list.innerHTML='';
+  if(!recentPeers.length){list.innerHTML='<div class="empty-sub" style="padding:10px 0;">No contacts yet — add people by ID above.</div>';}
+  recentPeers.forEach(function(pid){
+    if(pid===myId)return;
+    var row=document.createElement('div');row.className='settings-row';row.style.cursor='pointer';
+    row.innerHTML='<div class="settings-row-left"><div class="settings-row-icon" style="background:var(--accent-light);">'+pid[0].toUpperCase()+'</div><div class="s-label">'+esc(pid)+'</div></div><div class="gc-check" id="gc-check-'+esc(pid)+'">☐</div>';
+    row.onclick=function(){gcToggleMember(pid);};
+    list.appendChild(row);
+  });
+  showScreen('screen-group-create');
+}
+function gcToggleMember(pid){
+  var i=gcSelectedMembers.indexOf(pid);
+  if(i>-1)gcSelectedMembers.splice(i,1);else gcSelectedMembers.push(pid);
+  var chk=document.getElementById('gc-check-'+pid);if(chk)chk.textContent=gcSelectedMembers.includes(pid)?'☑️':'☐';
+  renderGcSelectedChips();
+}
+function gcAddById(){
+  var inp=document.getElementById('gc-add-id-input');
+  var p=inp.value.trim().toLowerCase().replace(/[^a-z0-9_\-]/g,'');
+  if(!p)return;if(p===myId){toast("That's you!");return;}
+  if(!gcSelectedMembers.includes(p))gcSelectedMembers.push(p);
+  inp.value='';renderGcSelectedChips();
+}
+function renderGcSelectedChips(){
+  var wrap=document.getElementById('gc-selected-chips');wrap.innerHTML='';
+  document.getElementById('gc-selected-count').textContent=gcSelectedMembers.length;
+  gcSelectedMembers.forEach(function(pid){
+    var chip=document.createElement('div');chip.className='pinned-chip';
+    chip.innerHTML=esc(pid)+' <span style="opacity:.7;">✕</span>';
+    chip.onclick=function(){gcToggleMember(pid);};
+    wrap.appendChild(chip);
+  });
+}
+function gcCreateGroup(){
+  var name=document.getElementById('gc-name-input').value.trim();
+  if(!name){toast('Enter a group name');return;}
+  if(!gcSelectedMembers.length){toast('Add at least one person');return;}
+  var gid=createGroup(name,gcSelectedMembers);
+  toast('Group created 🎉');
+  showScreen('screen-groups','back');
+  openGroupChat(gid);
+}
+function openGroupInfo(gid){renderGroupInfo(gid);showScreen('screen-group-info');}
+function renderGroupInfo(gid){
+  var g=groups[gid];if(!g)return;
+  document.getElementById('gi-name-input').value=g.name;
+  var list=document.getElementById('gi-members-list');list.innerHTML='';
+  g.members.forEach(function(pid){
+    var row=document.createElement('div');row.className='settings-row';
+    var isMe=pid===myId;
+    row.innerHTML='<div class="settings-row-left"><div class="settings-row-icon" style="background:var(--accent-light);">'+pid[0].toUpperCase()+'</div><div class="s-label">'+esc(pid)+(isMe?' (you)':'')+'</div></div>'
+      +(isMe?'':'<button class="report-btn" style="padding:6px 12px;font-size:12px;">Remove</button>');
+    if(!isMe){
+      row.querySelector('button').onclick=async function(e){
+        e.stopPropagation();
+        if(await styledConfirm('Remove '+pid+' from the group?',{danger:true,okText:'Remove'}))removeMemberFromGroup(gid,pid);
+      };
+    }
+    list.appendChild(row);
+  });
+}
 function openGroupChat(gid){
   var g=groups[gid];if(!g)return;
   chatMode='group';activeGroupId=gid;
@@ -2047,27 +2175,29 @@ async function sendFile(file,caption){
   var meta={type:'file-meta',transferId:tfId,name:file.name,size:file.size,mime:file.type||'application/octet-stream',isImage:isImage,time:now};
   var localUrl=URL.createObjectURL(file);fileBlobs[tfId]=localUrl;
   var fdata={transferId:tfId,name:file.name,size:file.size,isImage:isImage,url:localUrl,progress:100};
+  var gid=activeGroupId,g=chatMode==='group'?groups[gid]:null;
   if(chatMode==='dm'){
     if(!dmHistory[chatPeerId])dmHistory[chatPeerId]=[];
     dmHistory[chatPeerId].push({me:true,time:now,file:{name:file.name,size:file.size,isImage:isImage,transferId:tfId}});
     ls_set(SK.DM,dmHistory);
-  }else{
-    groupHistory.push({sender:myId,time:now,file:{name:file.name,size:file.size,isImage:isImage,transferId:tfId}});
-    ls_set(SK.GRPH,groupHistory);
+  }else if(g){
+    g.history.push({sender:myId,time:now,file:{name:file.name,size:file.size,isImage:isImage,transferId:tfId}});
+    saveAll();
   }
   removeEmpty('chat-msgs');appendMsg(chatMode!=='group',null,now,false,fdata);
-  var targets=chatMode==='dm'?[chatPeerId]:groupMembers;
+  var targets=chatMode==='dm'?[chatPeerId]:(g?g.members.filter(function(p){return p!==myId;}):[]);
+  var gc=gid?(groupConnsByGid[gid]||(groupConnsByGid[gid]={})):null;
   for(var i=0;i<targets.length;i++){
     var pid=targets[i];
-    var conn2=(chatMode==='dm'?chatConn:groupConns[pid]);
+    var conn2=(chatMode==='dm'?chatConn:gc[pid]);
     if(!conn2||!conn2.open){
       notifyPeerMsg(pid,'📎 Sent you a file'); // wake their device via FCM right away
       try{
         conn2=await new Promise(function(res,rej){
-          connectWithWake(pid,chatMode==='dm'?'dm':'group',res,function(){rej(new Error('unreachable'));});
+          connectWithWake(pid,chatMode==='dm'?'dm':'group',res,function(){rej(new Error('unreachable'));},40000,chatMode==='group'?{groupId:gid}:null);
         });
         conn2.on('data',function(d){handleData(pid,d,conn2);});conn2.on('error',function(){});
-        if(chatMode==='dm')chatConn=conn2;else groupConns[pid]=conn2;
+        if(chatMode==='dm')chatConn=conn2;else gc[pid]=conn2;
       }catch(e){toast(pid+' is unreachable — they may be offline');continue;}
     }
     try{
@@ -2091,10 +2221,10 @@ async function sendFile(file,caption){
       var capPl={type:'chat-dm',text:caption,time:capNow,msgId:capMid,replyTo:null};
       if(chatConn&&chatConn.open)try{chatConn.send(capPl);}catch(e){}
       notifyPeerMsg(chatPeerId,caption);
-    }else{
-      groupHistory.push({sender:myId,text:caption,time:capNow});ls_set(SK.GRPH,groupHistory);
+    }else if(g){
+      g.history.push({sender:myId,text:caption,time:capNow});saveAll();
       removeEmpty('chat-msgs');appendGroupMsg(myId,caption,capNow);
-      Object.keys(groupConns).forEach(function(pid){var c=groupConns[pid];if(c&&c.open)try{c.send({type:'chat-group',text:caption,time:capNow});}catch(e){};});
+      Object.keys(gc).forEach(function(pid){var c=gc[pid];if(c&&c.open)try{c.send({type:'chat-group',groupId:gid,text:caption,time:capNow});}catch(e){};});
     }
   }
 }
@@ -2231,7 +2361,6 @@ function applySettingsToUI(){
   var vs=document.getElementById('vibrate-sw');if(vs)vs.classList.toggle('on',settings.vibrate);
   var cs=document.getElementById('backcam-sw');if(cs)cs.classList.toggle('on',settings.backcam);
   var rt=document.getElementById('ringtone-sub-text');if(rt)rt.textContent=customRingtoneDataUrl?'Custom tone set ✓':'Default tone';
-  renderGroupDesc();
 }
 function toggleSetting(key){
   if(key==='ringtone')settings.ringtone=!settings.ringtone;
@@ -3101,13 +3230,13 @@ function showLocalNotif(type,from,text){
    then keep retrying the P2P handshake for a while to give a killed app time to
    receive the push (Render's free tier can take 30-50s to spin up from sleep on top
    of normal FCM delivery time) and re-register with the PeerJS broker. */
-function connectWithWake(pid,connType,onOpen,onFail,maxWaitMs){
+function connectWithWake(pid,connType,onOpen,onFail,maxWaitMs,extraMeta){
   maxWaitMs=maxWaitMs||40000;
   var settled=false,startTs=Date.now();
   function attempt(){
     if(settled)return;
     var c;
-    try{c=peer&&peer.connect(pid,{reliable:true,metadata:{type:connType}});}catch(e){c=null;}
+    try{c=peer&&peer.connect(pid,{reliable:true,metadata:Object.assign({type:connType},extraMeta||{})});}catch(e){c=null;}
     if(!c){retryOrFail();return;}
     var to=setTimeout(function(){if(settled)return;try{c.close();}catch(e){}retryOrFail();},3500);
     c.on('open',function(){if(settled)return;settled=true;clearTimeout(to);onOpen(c);});
@@ -3455,8 +3584,23 @@ function bindEvents(){
   document.getElementById('nb-enable-btn').addEventListener('click',enableNotifs);
   document.getElementById('nb-close-btn').addEventListener('click',function(){document.getElementById('notif-banner').classList.remove('show');notifBannerDismissedThisSession=true;});
   document.getElementById('new-call-btn').addEventListener('click',openNewChatModal);
-  document.getElementById('start-conf-btn').addEventListener('click',openGroupConf);
-  document.getElementById('open-group-chat-btn').addEventListener('click',openGroupChat);
+  document.getElementById('new-group-fab').addEventListener('click',openGroupCreateScreen);
+  document.getElementById('gc-back-btn').addEventListener('click',function(){showScreen('screen-groups','back');});
+  document.getElementById('gc-add-id-btn').addEventListener('click',gcAddById);
+  document.getElementById('gc-create-btn').addEventListener('click',gcCreateGroup);
+  document.getElementById('gi-back-btn').addEventListener('click',function(){showScreen('screen-groups','back');});
+  document.getElementById('gi-rename-btn').addEventListener('click',function(){
+    var v=document.getElementById('gi-name-input').value.trim();if(!v||!activeGroupId)return;renameGroup(activeGroupId,v);toast('Renamed ✓');
+  });
+  document.getElementById('gi-add-id-btn').addEventListener('click',function(){
+    var inp=document.getElementById('gi-add-id-input');var p=inp.value.trim().toLowerCase().replace(/[^a-z0-9_\-]/g,'');
+    if(!p||!activeGroupId)return;if(p===myId){toast("That's you!");return;}
+    addMemberToGroup(activeGroupId,p);inp.value='';
+  });
+  document.getElementById('gi-leave-btn').addEventListener('click',async function(){
+    if(!activeGroupId)return;
+    if(await styledConfirm('Leave this group?',{danger:true,okText:'Leave'}))leaveGroup(activeGroupId);
+  });
   document.getElementById('copy-id-btn').addEventListener('click',function(){if(navigator.clipboard)navigator.clipboard.writeText(myId).then(function(){toast('Copied ✓');});else toast('Your ID: '+myId);});
   document.getElementById('copy-diag-row').addEventListener('click',function(){
     var log=ls_get('uf_last_call_diag',null)||callDiagLog;
