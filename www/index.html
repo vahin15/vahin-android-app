@@ -693,6 +693,7 @@ button,input,textarea{font-family:inherit;}
         <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(124,58,237,.1);">✨</div><div><div class="s-label">Unifest</div><div class="s-sub">Version 3.4 · P2P Encrypted</div></div></div></div>
         <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(245,158,11,.12);">👤</div><div><div class="s-label">Created by</div><div class="s-sub">Vahin Saxena</div></div></div></div>
         <div class="settings-row" id="clear-calls-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(220,38,38,.08);">🗑</div><div><div class="s-label">Clear Call History</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="copy-diag-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(37,99,235,.1);">🩺</div><div><div class="s-label">Copy last call diagnostics</div><div class="s-sub">Step-by-step log of your last call attempt</div></div></div><div class="chevron">›</div></div>
       </div>
     </div>
   </div>
@@ -746,6 +747,7 @@ button,input,textarea{font-family:inherit;}
     <div class="ring-name" id="out-name">—</div>
     <div class="ring-sub" id="out-phase-label">Calling…</div>
     <div class="out-phase-timer" id="out-phase-timer">0:00</div>
+    <div id="call-diag-panel" style="max-width:320px;margin:14px auto 0;background:rgba(0,0,0,.35);border-radius:12px;padding:10px 12px;font-size:11px;color:#ddd;text-align:left;max-height:140px;overflow-y:auto;font-family:monospace;line-height:1.5;"></div>
   </div>
   <div class="call-header">
     <div><div class="call-peer-name" id="call-peer-name">—</div><div class="call-status-text" id="call-status">Connecting…</div></div>
@@ -953,7 +955,7 @@ var PEER_CONFIG={debug:0,config:{iceServers:[
   {urls:'turn:freeturn.net:3478',username:'free',credential:'free'},
   {urls:'turn:freeturn.net:3478?transport=tcp',username:'free',credential:'free'}
 ],iceCandidatePoolSize:10}};
-var SK={MYID:'uf_myid_v3',CONTACTS:'uf_contacts_v3',DM:'uf_dm_v3',GRPH:'uf_grp_hist_v3',GRPM:'uf_grp_members_v3',
+var SK={MYID:'uf_myid_v3',CONTACTS:'uf_contacts_v3',DM:'uf_dm_v3',GRPH:'uf_grp_hist_v3',GRPM:'uf_grp_members_v3',GROUPS:'uf_groups_v1',
   CALLS:'uf_calls_v3',SETTINGS:'uf_settings_v3',BLOCKED:'uf_blocked_v3',PINNED:'uf_pinned_v3',ONBOARDED:'uf_onboarded_v1',RINGTONE:'uf_ringtone_v1',TOKEN:'uf_token_v1'};
 var myId='',peer=null,peerReady=false,reconnTimer=null;
 var localStream=null,currentCall=null,callPeerId='';
@@ -962,9 +964,11 @@ var mutedAudio=false,mutedVideo=false,speakerOn=true,facingMode='user';
 var confStream=null,confCalls={},confConns={};
 var confMutedAudio=false,confMutedVideo=false,confFacing='user';
 var chatMode='',chatPeerId='',chatConn=null,chatConnConnecting=false;
-var groupConns={};
-var dmHistory={},groupHistory=[],groupMembers=[],callHistory=[],callHistoryDirty=true;
-var recentPeers=[],onlinePeers={},onlinePeersTs={},unreadDM={},fcmBackupTimer=null;
+var groups={}; // gid -> {id,name,members:[ids],createdBy,history:[{sender,text,time}]}
+var groupConnsByGid={}; // gid -> {pid: PeerJS DataConnection} — runtime only, never persisted
+var activeGroupId=null;
+var dmHistory={},callHistory=[],callHistoryDirty=true;
+var recentPeers=[],onlinePeers={},onlinePeersTs={},unreadDM={},unreadGroup={},fcmBackupTimer=null;
 var blockedUsers=[],pinnedChats=[];
 var settings={ringtone:true,vibrate:true,backcam:false,confLimit:6,theme:'auto'};
 var customRingtoneDataUrl='';
@@ -1000,8 +1004,8 @@ function saveAll(){
   ls_set(SK.CONTACTS,recentPeers);
   var dm2={};Object.keys(dmHistory).forEach(function(p){dm2[p]=(dmHistory[p]||[]).slice(-200);});
   ls_set(SK.DM,dm2);
-  ls_set(SK.GRPH,groupHistory.slice(-500));
-  ls_set(SK.GRPM,groupMembers);
+  var g2={};Object.keys(groups).forEach(function(gid){var g=groups[gid];g2[gid]={id:g.id,name:g.name,members:g.members,createdBy:g.createdBy,history:(g.history||[]).slice(-500)};});
+  ls_set(SK.GROUPS,g2);
   ls_set(SK.CALLS,callHistory.slice(-150));
   ls_set(SK.BLOCKED,blockedUsers);
   ls_set(SK.PINNED,pinnedChats);
@@ -1010,8 +1014,18 @@ function saveAll(){
 function loadAll(){
   recentPeers=ls_get(SK.CONTACTS,[]);
   dmHistory=ls_get(SK.DM,{});
-  groupHistory=ls_get(SK.GRPH,[]);
-  groupMembers=ls_get(SK.GRPM,[]);
+  groups=ls_get(SK.GROUPS,null);
+  if(groups===null){
+    groups={};
+    // One-time migration from the old single hardcoded group, so nobody loses
+    // their existing group chat when this upgrade lands.
+    var legacyMembers=ls_get(SK.GRPM,[]);
+    var legacyHistory=ls_get(SK.GRPH,[]);
+    if(legacyMembers.length||legacyHistory.length){
+      var gid='g_legacy';
+      groups[gid]={id:gid,name:'My Group',members:legacyMembers,createdBy:myId,history:legacyHistory};
+    }
+  }
   callHistory=ls_get(SK.CALLS,[]);
   blockedUsers=ls_get(SK.BLOCKED,[]);
   pinnedChats=ls_get(SK.PINNED,[]);
@@ -1151,9 +1165,9 @@ async function submitAuth(){
   var btn=document.getElementById('get-started-btn');
   var origText=btn.textContent;btn.textContent='Please wait…';btn.disabled=true;
   try{
-    var res=await fetch(NOTIF_API+'/auth/'+(authMode==='login'?'login':'register'),{
+    var res=await fetchWithRetries(NOTIF_API+'/auth/'+(authMode==='login'?'login':'register'),{
       method:'POST',headers:apiHeaders(),body:JSON.stringify({id:v,password:pw})
-    });
+    },8000,45000);
     var data=await res.json().catch(function(){return{};});
     if(!res.ok){
       toast(data.error||(authMode==='login'?'Wrong ID or password':'That ID is already taken'));
@@ -1212,7 +1226,7 @@ async function fetchQueuedMailbox(){
   if(!myId)return;
   var tok=localStorage.getItem(SK.TOKEN);if(!tok)return;
   try{
-    var r=await fetch(NOTIF_API+'/mailbox/fetch',{method:'POST',headers:apiHeaders(),body:JSON.stringify({id:myId})});
+    var r=await fetchWithRetries(NOTIF_API+'/mailbox/fetch',{method:'POST',headers:apiHeaders(),body:JSON.stringify({id:myId})},8000,20000);
     var j=await r.json().catch(function(){return null;});
     if(!j||!j.messages||!j.messages.length)return;
     j.messages.forEach(function(m){
@@ -1277,7 +1291,7 @@ function startPeer(){
           mc.answer(confStream);confCalls[mc.peer]=mc;
           mc.on('stream',function(s){addConfSlot(mc.peer,s);});
           mc.on('close',function(){removeConfSlot(mc.peer);});
-        }else{incomingCall={isConf:true,peerId:mc.peer,mc:mc};showIncoming(mc.peer,'conf');}
+        }else{incomingCall={isConf:true,peerId:mc.peer,mc:mc,groupId:meta.groupId||null};showIncoming(mc.peer,'conf');}
       }else{
         if(currentCall||(incomingCall&&!incomingCall.isConf)){try{mc.close();}catch(e){}return;}
         if(isBlocked(mc.peer)){try{mc.close();}catch(e){}return;}
@@ -1377,7 +1391,13 @@ function setupConn(conn){
   if(type==='presence'){conn.on('open',function(){setTimeout(function(){try{conn.close();}catch(e){}},300);});return;}
   conn.on('open',function(){
     var pid=conn.peer;addRecentSilent(pid);
-    if(type==='group'){groupConns[pid]=conn;if(!groupMembers.includes(pid)){groupMembers.push(pid);ls_set(SK.GRPM,groupMembers);}}
+    if(type==='group'){
+      var gid=conn.metadata.groupId;
+      if(gid){
+        if(!groupConnsByGid[gid])groupConnsByGid[gid]={};
+        groupConnsByGid[gid][pid]=conn;
+      }
+    }
     else if(type==='dm'){if(!chatConn||chatConn.peer!==pid)chatConn=conn;}
   });
   conn.on('data',function(data){handleData(conn.peer,data,conn);});
@@ -1419,10 +1439,34 @@ function handleData(from,data,conn){
       }
       break;
     case 'chat-group':
-      groupHistory.push({sender:from,text:data.text,time:data.time||now});ls_set(SK.GRPH,groupHistory);
-      Object.keys(groupConns).forEach(function(pid){if(pid!==from&&groupConns[pid]&&groupConns[pid].open)try{groupConns[pid].send(data);}catch(e){};});
-      if(chatMode==='group'&&document.visibilityState==='visible'){removeEmpty('chat-msgs');appendGroupMsg(from,data.text,data.time||now);}
-      else{toast('💬 [Group] '+from+': '+(data.text||'').substring(0,38));}
+      var ggid=data.groupId;if(!ggid||!groups[ggid])break;
+      groups[ggid].history.push({sender:from,text:data.text,time:data.time||now});saveAll();
+      var gc=groupConnsByGid[ggid]||{};
+      Object.keys(gc).forEach(function(pid){if(pid!==from&&gc[pid]&&gc[pid].open)try{gc[pid].send(data);}catch(e){};});
+      if(chatMode==='group'&&activeGroupId===ggid&&document.visibilityState==='visible'){removeEmpty('chat-msgs');appendGroupMsg(from,data.text,data.time||now);}
+      else{toast('💬 ['+groups[ggid].name+'] '+from+': '+(data.text||'').substring(0,38));renderGroupsList();}
+      break;
+    case 'group-invite':
+      // Someone created a group (or added us to one) and sent us the full state.
+      if(!data.groupId)break;
+      groups[data.groupId]={id:data.groupId,name:data.name,members:data.members||[],createdBy:data.createdBy,history:groups[data.groupId]?groups[data.groupId].history:[]};
+      saveAll();renderGroupsList();
+      toast('👥 Added to group: '+data.name);
+      break;
+    case 'group-update':
+      // Rename / member add-remove, or someone leaving — replaces our local copy
+      // of that group's name+member list with the sender's (last-write-wins,
+      // fine for a small-group P2P system with no central authority).
+      if(!data.groupId||!groups[data.groupId])break;
+      groups[data.groupId].name=data.name;
+      groups[data.groupId].members=data.members||[];
+      saveAll();renderGroupsList();
+      if(chatMode==='group'&&activeGroupId===data.groupId)renderGroupInfo(data.groupId);
+      if(!data.members.includes(myId)){
+        // We were removed (or left elsewhere) — drop it locally too.
+        delete groups[data.groupId];saveAll();renderGroupsList();
+        if(chatMode==='group'&&activeGroupId===data.groupId)showScreen('screen-groups','back');
+      }
       break;
     case 'call-chat':
       var ms=document.getElementById('cc-msgs');
@@ -1440,7 +1484,7 @@ function handleData(from,data,conn){
       }
       break;
     case 'conf-invite':
-      incomingCall={isConf:true,peerId:from,mc:null,members:data.members||[]};showIncoming(from,'conf');
+      incomingCall={isConf:true,peerId:from,mc:null,members:data.members||[],groupId:data.groupId||null};showIncoming(from,'conf');
       break;
     case 'file-meta':handleFileMeta(from,data);break;
     case 'file-chunk':handleFileChunk(data);break;
@@ -1674,51 +1718,106 @@ function showChatOptions(pid){
   document.getElementById('chat-opts-modal').classList.add('show');
 }
 function closeChatOptions(){document.getElementById('chat-opts-modal').classList.remove('show');}
-function openGroupChat(){
-  chatMode='group';
-  document.getElementById('chat-peer-av').textContent='G';
-  document.getElementById('chat-peer-name').textContent='Group Chat';
-  document.getElementById('chat-peer-status').textContent=groupMembers.length?groupMembers.join(', '):'No members yet';
+function genGroupId(){return 'g_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
+function connectGroupMember(gid,pid){
+  if(!groupConnsByGid[gid])groupConnsByGid[gid]={};
+  if(groupConnsByGid[gid][pid]&&groupConnsByGid[gid][pid].open)return groupConnsByGid[gid][pid];
+  try{
+    var conn=peer&&peer.connect(pid,{reliable:true,metadata:{type:'group',groupId:gid}});
+    if(conn){groupConnsByGid[gid][pid]=conn;conn.on('data',function(data){handleData(pid,data,conn);});conn.on('error',function(){});}
+    return conn;
+  }catch(e){return null;}
+}
+// Sends this group's current name+member list to every member (except self) — used
+// on create, rename, add member, remove member, and leave, so every device converges
+// on the same state. No central server holds group membership; this P2P push is it.
+function broadcastGroupState(gid){
+  var g=groups[gid];if(!g)return;
+  g.members.forEach(function(pid){
+    if(pid===myId)return;
+    var conn=connectGroupMember(gid,pid);
+    var payload=g.members.includes(pid)?{type:'group-update',groupId:gid,name:g.name,members:g.members}:null;
+    if(!conn||!payload)return;
+    if(conn.open)try{conn.send(payload);}catch(e){}
+    else conn.on('open',function(){try{conn.send(payload);}catch(e){}});
+  });
+}
+// First-time invite carries the same shape as group-update but tells a brand new
+// member about a group they've never seen before (group-update on its own is a no-op
+// for someone with no local copy of the group yet).
+function sendGroupInvite(gid,pid){
+  var g=groups[gid];if(!g)return;
+  var conn=connectGroupMember(gid,pid);
+  var payload={type:'group-invite',groupId:gid,name:g.name,members:g.members,createdBy:g.createdBy};
+  if(!conn)return;
+  if(conn.open)try{conn.send(payload);}catch(e){}
+  else conn.on('open',function(){try{conn.send(payload);}catch(e){}});
+}
+function createGroup(name,members){
+  var gid=genGroupId();
+  var uniqueMembers=Array.from(new Set([myId].concat(members||[]).filter(Boolean)));
+  groups[gid]={id:gid,name:name,members:uniqueMembers,createdBy:myId,history:[]};
+  saveAll();
+  uniqueMembers.forEach(function(pid){if(pid!==myId){addRecentSilent(pid);sendGroupInvite(gid,pid);}});
+  renderGroupsList();
+  return gid;
+}
+function renameGroup(gid,newName){
+  var g=groups[gid];if(!g)return;
+  g.name=newName;saveAll();broadcastGroupState(gid);renderGroupsList();
+  if(chatMode==='group'&&activeGroupId===gid)document.getElementById('chat-peer-name').textContent=newName;
+}
+function addMemberToGroup(gid,pid){
+  var g=groups[gid];if(!g)return;
+  if(g.members.includes(pid)){toast(pid+' already in group');return;}
+  g.members.push(pid);saveAll();addRecentSilent(pid);
+  sendGroupInvite(gid,pid); // full state for the new person
+  broadcastGroupState(gid); // updated member list for everyone already in it
+  var now2=fmtTime();
+  g.history.push({sender:'System',text:pid+' was added',time:now2});saveAll();
+  if(chatMode==='group'&&activeGroupId===gid){removeEmpty('chat-msgs');appendGroupMsg('System',pid+' was added',now2);renderGroupInfo(gid);}
+  renderGroupsList();
+}
+function removeMemberFromGroup(gid,pid){
+  var g=groups[gid];if(!g)return;
+  g.members=g.members.filter(function(m){return m!==pid;});
+  saveAll();broadcastGroupState(gid); // the removed member's own client deletes it locally on receipt
+  if(groupConnsByGid[gid]&&groupConnsByGid[gid][pid]){try{groupConnsByGid[gid][pid].close();}catch(e){}delete groupConnsByGid[gid][pid];}
+  var now2=fmtTime();
+  g.history.push({sender:'System',text:pid+' was removed',time:now2});saveAll();
+  if(chatMode==='group'&&activeGroupId===gid){removeEmpty('chat-msgs');appendGroupMsg('System',pid+' was removed',now2);renderGroupInfo(gid);}
+  renderGroupsList();
+}
+function leaveGroup(gid){
+  var g=groups[gid];if(!g)return;
+  var remaining=g.members.filter(function(m){return m!==myId;});
+  g.members=remaining;
+  broadcastGroupState(gid); // tell whoever's left that we're gone
+  delete groups[gid];delete groupConnsByGid[gid];saveAll();
+  renderGroupsList();
+  if(chatMode==='group'&&activeGroupId===gid)showScreen('screen-groups','back');
+  toast('Left group');
+}
+function openGroupChat(gid){
+  var g=groups[gid];if(!g)return;
+  chatMode='group';activeGroupId=gid;
+  document.getElementById('chat-peer-av').textContent=(g.name||'G')[0].toUpperCase();
+  document.getElementById('chat-peer-name').textContent=g.name;
+  document.getElementById('chat-peer-status').textContent=g.members.length+' member'+(g.members.length!==1?'s':'');
   var hdr=document.getElementById('chat-header-actions');hdr.innerHTML='';
   function mkBtn(icon,title,fn){var b=document.createElement('button');b.className='chat-act-btn';b.title=title;b.textContent=icon;b.onclick=fn;return b;}
-  hdr.appendChild(mkBtn('🎥','Video call',openGroupConf));
-  hdr.appendChild(mkBtn('➕','Add member',addGroupMember));
+  hdr.appendChild(mkBtn('🎥','Video call',function(){startGroupCall(gid,false);}));
+  hdr.appendChild(mkBtn('📞','Voice call',function(){startGroupCall(gid,true);}));
+  hdr.appendChild(mkBtn('ℹ️','Group info',function(){openGroupInfo(gid);}));
   document.getElementById('blocked-bar').style.display='none';
   document.getElementById('chat-input-wrap').style.display='block';
   var msgs=document.getElementById('chat-msgs');msgs.innerHTML='';
-  if(!groupHistory.length){msgs.innerHTML='<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Group chat</div><div class="empty-sub">Tap ➕ to add someone to the group.</div></div>';}
-  else{groupHistory.forEach(function(m){appendGroupMsg(m.sender,m.text,m.time,true);});setTimeout(function(){msgs.scrollTop=msgs.scrollHeight;},60);}
-  groupMembers.forEach(function(pid){
-    if(!groupConns[pid]||!groupConns[pid].open){
-      try{var conn=peer&&peer.connect(pid,{reliable:true,metadata:{type:'group'}});if(conn){groupConns[pid]=conn;conn.on('open',function(){});conn.on('data',function(data){handleData(pid,data,conn);});conn.on('error',function(){});}}catch(e){}
-    }
-  });
+  if(!g.history.length){msgs.innerHTML='<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">'+esc(g.name)+'</div><div class="empty-sub">Say hello to the group.</div></div>';}
+  else{g.history.forEach(function(m){appendGroupMsg(m.sender,m.text,m.time,true);});setTimeout(function(){msgs.scrollTop=msgs.scrollHeight;},60);}
+  g.members.forEach(function(pid){if(pid!==myId)connectGroupMember(gid,pid);});
+  unreadGroup[gid]=0;
   cancelReply();showScreen('screen-chat');
   setTimeout(function(){try{document.getElementById('chat-input').focus();}catch(e){}},300);
-}
-async function addGroupMember(){
-  var pid=await styledPrompt('Enter their Unifest ID:',{placeholder:'e.g. john123'});if(!pid)return;
-  var p=pid.trim().toLowerCase().replace(/[^a-z0-9_\-]/g,'');
-  if(!p)return;if(p===myId){toast("That's you!");return;}
-  if(groupMembers.includes(p)){toast(p+' already in group');return;}
-  groupMembers.push(p);saveAll();addRecentSilent(p);renderGroupDesc();
-  try{
-    var conn=peer&&peer.connect(p,{reliable:true,metadata:{type:'group'}});
-    if(conn){
-      groupConns[p]=conn;
-      conn.on('open',function(){
-        toast(p+' joined 🎉');
-        var now2=fmtTime();
-        groupHistory.push({sender:'System',text:p+' joined the group',time:now2});saveAll();
-        if(chatMode==='group'){removeEmpty('chat-msgs');appendGroupMsg('System',p+' joined the group',now2);}
-      });
-      conn.on('data',function(data){handleData(p,data,conn);});conn.on('error',function(){});
-    }
-  }catch(e){toast('Could not connect to '+p);}
-}
-function renderGroupDesc(){
-  var d=document.getElementById('conf-limit-desc');if(d)d.textContent='Up to '+settings.confLimit+' people';
-  var g=document.getElementById('group-chat-desc');if(g)g.textContent=groupMembers.length?groupMembers.length+' member'+(groupMembers.length>1?'s':''):'No members yet';
 }
 function onChatTyping(){
   autoResizeTA();
@@ -1819,9 +1918,16 @@ function sendMsg(){
     }
     if(chatConn&&chatConn.open)notifyPeerMsg(chatPeerId,t);
   }else if(chatMode==='group'){
-    groupHistory.push({sender:myId,text:t,time:now});ls_set(SK.GRPH,groupHistory);
+    var gid=activeGroupId;var g=groups[gid];if(!g)return;
+    g.history.push({sender:myId,text:t,time:now});saveAll();
     removeEmpty('chat-msgs');appendGroupMsg(myId,t,now);
-    Object.keys(groupConns).forEach(function(pid){var c=groupConns[pid];if(c&&c.open)try{c.send({type:'chat-group',text:t,time:now});}catch(e){};});
+    var gc=groupConnsByGid[gid]||{};
+    g.members.forEach(function(pid){
+      if(pid===myId)return;
+      var c=gc[pid];
+      if(c&&c.open){try{c.send({type:'chat-group',groupId:gid,text:t,time:now});}catch(e){}}
+      else{notifyPeerMsg(pid,'['+g.name+'] '+myId+': '+t);connectGroupMember(gid,pid);}
+    });
   }
 }
 function appendMsg(isMe,text,time,silent,fileData,msgObj){
@@ -2288,26 +2394,48 @@ var PRESENCE_FRESH_MS=20000;
 function isFreshlyOnline(pid){
   return !!onlinePeers[pid]&&(Date.now()-(onlinePeersTs[pid]||0))<PRESENCE_FRESH_MS;
 }
+var callDiagLog=[];
+function diagLog(msg){
+  var t=new Date();
+  var ts=t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0')+':'+t.getSeconds().toString().padStart(2,'0');
+  var line=ts+' '+msg;
+  callDiagLog.push(line);
+  if(callDiagLog.length>80)callDiagLog=callDiagLog.slice(-80);
+  try{localStorage.setItem('uf_last_call_diag',JSON.stringify(callDiagLog));}catch(e){}
+  var panel=document.getElementById('call-diag-panel');
+  if(panel){
+    var div=document.createElement('div');div.textContent=line;panel.appendChild(div);
+    panel.scrollTop=panel.scrollHeight;
+  }
+  console.log('[UnifestDiag]',line);
+}
+function clearDiagLog(){callDiagLog=[];var panel=document.getElementById('call-diag-panel');if(panel)panel.innerHTML='';}
 function dialWithPresenceCheck(pid,voiceOnly){
+  clearDiagLog();diagLog('📞 Dialing '+pid+'…');
   if(isFreshlyOnline(pid)){
+    diagLog('Presence cache: FRESH — trying direct P2P + arming FCM backup');
     startDirectRingUI();armFcmBackup(pid,voiceOnly);return;
   }
+  diagLog('Presence cache: stale/none — probing P2P (1.5s timeout)…');
   var settled=false;
   var probe;
-  try{probe=peer.connect(pid,{reliable:false,metadata:{type:'presence'}});}catch(e){}
+  try{probe=peer.connect(pid,{reliable:false,metadata:{type:'presence'}});}catch(e){diagLog('⚠️ Probe threw: '+(e&&e.message));}
   var giveUp=setTimeout(function(){
     if(settled)return;settled=true;
+    diagLog('P2P probe timed out — sending wake-up via server (/notify)');
     onlinePeers[pid]=false;onlinePeersTs[pid]=Date.now();
     notifyPeer(pid,voiceOnly?'voice-call':'call',markServerWoke);startOutPhaseTimer();
   },1500);
-  if(!probe){clearTimeout(giveUp);onlinePeers[pid]=false;onlinePeersTs[pid]=Date.now();notifyPeer(pid,voiceOnly?'voice-call':'call',markServerWoke);startOutPhaseTimer();return;}
+  if(!probe){clearTimeout(giveUp);diagLog('Could not start P2P probe — sending wake-up via server (/notify)');onlinePeers[pid]=false;onlinePeersTs[pid]=Date.now();notifyPeer(pid,voiceOnly?'voice-call':'call',markServerWoke);startOutPhaseTimer();return;}
   probe.on('open',function(){
     if(settled)return;settled=true;clearTimeout(giveUp);
+    diagLog('P2P probe succeeded — they\u2019re reachable directly right now');
     onlinePeers[pid]=true;onlinePeersTs[pid]=Date.now();updateDots(pid);try{probe.close();}catch(e){}
     startDirectRingUI();armFcmBackup(pid,voiceOnly);
   });
   probe.on('error',function(){
     if(settled)return;settled=true;clearTimeout(giveUp);
+    diagLog('P2P probe failed (not reachable) — sending wake-up via server (/notify)');
     onlinePeers[pid]=false;onlinePeersTs[pid]=Date.now();
     notifyPeer(pid,voiceOnly?'voice-call':'call',markServerWoke);startOutPhaseTimer();
   });
@@ -2322,6 +2450,7 @@ function armFcmBackup(pid,voiceOnly){
   clearTimeout(fcmBackupTimer);
   fcmBackupTimer=setTimeout(function(){
     if(outCallConnected)return;
+    diagLog('4s elapsed, not connected yet — firing backup wake-up ping too');
     notifyPeer(pid,voiceOnly?'voice-call':'call',markServerWoke);
   },4000);
 }
@@ -2405,10 +2534,40 @@ async function startCall(pid,voiceOnly){
   callRetryCount=0;placeCallAttempt(pid,voiceOnly);
   callConn=peer.connect(pid,{reliable:true,metadata:{type:'dm'}});
   if(callConn){callConn.on('data',function(data){handleData(pid,data,callConn);});callConn.on('error',function(){});}
-  setTimeout(function(){var s=document.getElementById('call-status');if(s&&s.textContent==='Calling…'){toast('No answer');logCall(pid,'missed','out');endCall();}},TOTAL_RING_MS);
+  setTimeout(function(){var s=document.getElementById('call-status');if(s&&s.textContent==='Calling…'){diagLog('⏱️ 2 minutes elapsed with no connection — giving up (No answer)');toast('No answer');logCall(pid,'missed','out');endCall();}},TOTAL_RING_MS);
 }
 var TOTAL_RING_MS=120000; /* full 2-minute ring window, split into the wake-up phase (see startOutPhaseTimer) then plain ringing */
 var callRetryCount=0,MAX_CALL_RETRIES=Math.ceil(TOTAL_RING_MS/1500); /* ~1.5s apart, covers the full 2-minute ring window so a phone woken up by FCM has time to reconnect before we give up */
+/* Previously missing entirely: if the network drops or switches mid-call (WiFi to
+   cellular, a brief signal gap, etc.), the underlying WebRTC connection can die while
+   the call UI just sits there frozen, with no attempt to recover and no feedback. This
+   watches the real connection state and tries an ICE restart on a drop — PeerJS
+   renegotiates automatically through the still-alive signaling connection to the
+   PeerServer broker (a separate, lighter connection than the P2P media path, and far
+   less likely to have also dropped) once restartIce() fires 'negotiationneeded'. */
+function monitorCallConnection(mc){
+  if(!mc||!mc.peerConnection)return;
+  var pc=mc.peerConnection;
+  var reconnectAttempted=false;
+  pc.oniceconnectionstatechange=function(){
+    var st=pc.iceConnectionState;
+    var statusEl=document.getElementById('call-status');
+    if(st==='disconnected'){
+      if(statusEl)statusEl.textContent='Reconnecting…';
+    }else if(st==='failed'){
+      if(!reconnectAttempted&&typeof pc.restartIce==='function'){
+        reconnectAttempted=true;
+        if(statusEl)statusEl.textContent='Reconnecting…';
+        try{pc.restartIce();}catch(e){toast('Call connection lost');endCall();}
+      }else{
+        toast('Call connection lost');endCall();
+      }
+    }else if(st==='connected'||st==='completed'){
+      reconnectAttempted=false;
+      if(statusEl&&statusEl.textContent==='Reconnecting…')statusEl.textContent='Connected ✓';
+    }
+  };
+}
 function placeCallAttempt(pid,voiceOnly){
   if(!localStream)return;
   try{
@@ -2417,6 +2576,8 @@ function placeCallAttempt(pid,voiceOnly){
       stopOutTone();markOutCallConnected();var rv=document.getElementById('video-remote');rv.srcObject=rs;
       document.getElementById('call-status').textContent='Connected ✓';
       startCallTimer();logCall(pid,'connected','out');startQual();
+      monitorCallConnection(currentCall);
+      diagLog('✅ Call connected!');
     });
     currentCall.on('close',function(){endCall();});
     currentCall.on('error',function(){});
@@ -2478,7 +2639,7 @@ async function acceptCall(){
         incomingCall.mc.on('close',function(){removeConfSlot(incomingCall.mc.peer);});
         updateConfGrid();showScreen('screen-conf');incomingCall=null;requestWakeLock();
       }catch(e){toast('Camera/mic denied');showScreen('screen-chats','back');}
-    }else{joinConf(incomingCall.peerId,incomingCall.members);incomingCall=null;}
+    }else{joinConf(incomingCall.peerId,incomingCall.members,incomingCall.groupId);incomingCall=null;}
     return;
   }
   try{
@@ -2488,7 +2649,7 @@ async function acceptCall(){
     var lv=document.getElementById('video-local');lv.srcObject=localStream;applyMirror(lv,facingMode);
     incomingCall.answer(localStream);currentCall=incomingCall;callPeerId=currentCall.peer;
     document.getElementById('call-status').textContent='Connected ✓';
-    currentCall.on('stream',function(rs){var rv=document.getElementById('video-remote');rv.srcObject=rs;startCallTimer();startQual();});
+    currentCall.on('stream',function(rs){var rv=document.getElementById('video-remote');rv.srcObject=rs;startCallTimer();startQual();monitorCallConnection(currentCall);});
     currentCall.on('close',function(){endCall();});
     logCall(callPeerId,'connected','in');incomingCall=null;addRecentSilent(callPeerId);requestWakeLock();
   }catch(e){toast('Camera/mic denied');endCall();}
@@ -2575,35 +2736,43 @@ async function flipCamera(){
     toast(nf==='user'?'Front camera':'Back camera');
   }catch(e){toast('Could not switch camera');}
 }
-async function openGroupConf(){
-  confCalls={};confConns={};confFacing=settings.backcam?'environment':'user';
-  try{confStream=await getStream(confFacing);}catch(e){toast('Camera/mic denied');return;}
-  var le=document.getElementById('conf-video-local');le.srcObject=confStream;applyMirror(le,confFacing);
-  document.getElementById('conf-label-local').textContent=myId;updateConfGrid();
-  showScreen('screen-conf');requestWakeLock();
+// Starts a real call to every current member of a named group — this is the WhatsApp-
+// style "call the group" entry point, as opposed to the old ad-hoc "type someone's ID
+// to add them mid-call" flow (inviteToConf, still available once a call is active).
+// Rings every offline/backgrounded member exactly like a 1:1 call (same notifyPeer/FCM
+// path), per your requirement.
+async function startGroupCall(gid,voiceOnly){
+  var g=groups[gid];if(!g)return;
+  activeGroupId=gid;confCalls={};confConns={};confFacing=settings.backcam?'environment':'user';
+  try{confStream=voiceOnly?await getAudioOnlyStream():await getStream(confFacing);}catch(e){toast('Camera/mic denied');return;}
+  var le=document.getElementById('conf-video-local');if(le)le.srcObject=confStream;applyMirror(le,confFacing);
+  document.getElementById('conf-label-local').textContent=myId;
+  var lbl=document.getElementById('conf-group-name');if(lbl)lbl.textContent=g.name;
+  g.members.forEach(function(pid){
+    if(pid===myId)return;
+    connectToConfPeer(pid);
+    notifyPeer(pid,'conf',null); // rings their phone via FCM if they're offline/backgrounded, same as a 1:1 call
+  });
+  updateConfGrid();showScreen('screen-conf');requestWakeLock();
 }
-/* Conference calls are a full mesh: every participant needs a direct connection to
-   every other participant, not just to whoever invited them. Previously, inviting a
-   3rd person only connected them to the host — the two guests never saw each other.
-   This helper is shared by joinConf() (a new joiner connecting out to the existing
-   roster) and inviteToConf() (the host adding someone new), so both sides of a
-   mesh link get built the same way. */
 function connectToConfPeer(pid){
   if(pid===myId||confCalls[pid])return;
   try{
-    var conn3=peer&&peer.connect(pid,{reliable:true,metadata:{type:'conf'}});
+    var conn3=peer&&peer.connect(pid,{reliable:true,metadata:{type:'conf',groupId:activeGroupId}});
     if(conn3){confConns[pid]=conn3;conn3.on('data',function(data){handleData(pid,data,conn3);});addRecentSilent(pid);}
   }catch(e){}
   try{
-    var mc2=peer&&peer.call(pid,confStream,{metadata:{type:'conf'}});
+    var mc2=peer&&peer.call(pid,confStream,{metadata:{type:'conf',groupId:activeGroupId}});
     if(mc2){confCalls[pid]=mc2;mc2.on('stream',function(rs){addConfSlot(pid,rs);});mc2.on('close',function(){removeConfSlot(pid);});}
   }catch(e){}
 }
-async function joinConf(initiator,members){
+async function joinConf(initiator,members,groupId){
+  activeGroupId=groupId||activeGroupId||null;
   confCalls={};confConns={};confFacing=settings.backcam?'environment':'user';
   try{confStream=await getStream(confFacing);}catch(e){toast('Camera/mic denied');return;}
   var le=document.getElementById('conf-video-local');le.srcObject=confStream;applyMirror(le,confFacing);
   document.getElementById('conf-label-local').textContent=myId;
+  var lbl=document.getElementById('conf-group-name');if(lbl)lbl.textContent=(groups[activeGroupId]&&groups[activeGroupId].name)||'';
   connectToConfPeer(initiator);
   (members||[]).forEach(function(pid){connectToConfPeer(pid);});
   updateConfGrid();showScreen('screen-conf');requestWakeLock();
@@ -2617,7 +2786,7 @@ function inviteToConf(){
     invitee knows who else to mesh-connect to */
   connectToConfPeer(pid);
   if(confConns[pid]){
-    confConns[pid].on('open',function(){try{confConns[pid].send({type:'conf-invite',initiator:myId,members:existingMembers});}catch(e){}});
+    confConns[pid].on('open',function(){try{confConns[pid].send({type:'conf-invite',initiator:myId,members:existingMembers,groupId:activeGroupId});}catch(e){}});
   }
   if(!onlinePeers[pid])notifyPeer(pid,'conf');
   document.getElementById('conf-invite-panel').classList.remove('show');
@@ -2656,7 +2825,10 @@ function endConf(){
   confMutedAudio=false;confMutedVideo=false;
   document.getElementById('conf-mute-btn').style.background='';document.getElementById('conf-mute-btn').textContent='🎤';
   document.getElementById('conf-cam-btn').style.background='';document.getElementById('conf-cam-btn').textContent='📷';
-  releaseWakeLock();showScreen('screen-chats','back');switchTab('chats');
+  releaseWakeLock();
+  var backGid=activeGroupId;activeGroupId=null;
+  if(backGid&&groups[backGid]){showScreen('screen-chat','back');openGroupChat(backGid);}
+  else{showScreen('screen-chats','back');switchTab('chats');}
 }
 function confToggleMute(){if(!confStream)return;confMutedAudio=!confMutedAudio;confStream.getAudioTracks().forEach(function(t){t.enabled=!confMutedAudio;});document.getElementById('conf-mute-btn').style.background=confMutedAudio?'var(--yellow)':'';document.getElementById('conf-mute-btn').textContent=confMutedAudio?'🔇':'🎤';}
 function confToggleCam(){if(!confStream)return;confMutedVideo=!confMutedVideo;confStream.getVideoTracks().forEach(function(t){t.enabled=!confMutedVideo;});document.getElementById('conf-cam-btn').style.background=confMutedVideo?'var(--yellow)':'';document.getElementById('conf-cam-btn').textContent=confMutedVideo?'📷':'📹';}
@@ -2970,10 +3142,11 @@ async function fetchWithRetries(url,opts,attemptTimeoutMs,totalBudgetMs){
 }
 function notifyPeer(toId,type,onSettled){
   if(!toId){if(onSettled)onSettled();return;}
+  diagLog('Sending wake-up request to server (/notify, type='+type+')…');
   fetchWithRetries(NOTIF_API+'/notify',{method:'POST',headers:apiHeaders(),body:JSON.stringify({to:toId,type:type,from:myId})},8000,70000)
-    .then(function(r){var status=r.status;return r.json().catch(function(){return null;}).then(function(j){handleNotifyResult(toId,j,status);});})
+    .then(function(r){var status=r.status;diagLog('Server responded: HTTP '+status);return r.json().catch(function(){return null;}).then(function(j){handleNotifyResult(toId,j,status);});})
     .then(function(){if(onSettled)onSettled();})
-    .catch(function(){toast('⚠️ Could not reach the server to ring '+toId+' — check your connection');if(onSettled)onSettled();});
+    .catch(function(){diagLog('❌ Never got a response from the server after retries (network/server issue)');toast('⚠️ Could not reach the server to ring '+toId+' — check your connection');if(onSettled)onSettled();});
 }
 /* This is the "tell me when ringing isn't working" part: the backend tells us exactly
    why a wake-up notification didn't go anywhere (no subscriptions on file for that ID
@@ -2982,21 +3155,28 @@ function notifyPeer(toId,type,onSettled){
    ring on their end", once, instead of staying silent until a generic 2-minute timeout. */
 function handleNotifyResult(toId,j,status){
   if(status===401||status===403){
+    diagLog('❌ Server rejected the request: not authorized (expired login token)');
     toast('⚠️ Your login expired — log out and back in, or calls/messages can\u2019t notify anyone');
     return;
   }
-  if(!j)return;
+  if(!j){diagLog('⚠️ Server response had no readable body');return;}
+  diagLog('→ delivered='+j.delivered+' (fcm='+j.fcmDelivered+', socket='+j.socketDelivered+', push='+j.pushDelivered+', total registered='+j.total+', fcmEnabled='+j.fcmEnabled+')');
   if(j.reason==='no subscriptions for this id'){
+    diagLog('❌ '+toId+' has never registered ANY device (FCM/socket/push) with the server — they cannot be woken up');
     toast('⚠️ '+toId+' has never enabled notifications — they won\u2019t be woken up if offline');
     return;
   }
   if(j.fcmEnabled===false){
+    diagLog('❌ Backend has no Firebase key configured at all — FCM can never work until fixed on Render');
     toast('⚠️ Backend has no Firebase key configured — calls can never wake a closed app until FIREBASE_SERVICE_ACCOUNT_JSON is set on Render');
     return;
   }
   if(j.fcmEnabled&&j.total>0&&j.delivered===0){
+    diagLog('❌ '+toId+' has registered device(s), but delivery failed to all of them (dead/expired tokens)');
     toast('⚠️ Could not deliver a wake-up to '+toId+'\u2019s device(s) — they may need to reopen Unifest once');
+    return;
   }
+  if(j.delivered>0)diagLog('✅ Wake-up delivered successfully — waiting for their device to actually ring/connect');
 }
 function notifyPeerMsg(toId,text){
   if(!toId)return;
@@ -3011,8 +3191,8 @@ function onFcmToken(token){
   if(!token)return;
   try{localStorage.setItem('uf_fcm_token_v1',token);}catch(e){}
   if(!myId)return;
-  fetch(NOTIF_API+'/register-fcm',{method:'POST',headers:apiHeaders(),
-    body:JSON.stringify({id:myId,token:token})}).catch(function(){});
+  fetchWithRetries(NOTIF_API+'/register-fcm',{method:'POST',headers:apiHeaders(),
+    body:JSON.stringify({id:myId,token:token})},8000,40000).catch(function(){});
 }
 window.onFcmToken=onFcmToken;
 function getIncomingCallPeer(){if(!incomingCall)return null;return incomingCall.isConf?incomingCall.peerId:incomingCall.peer;}
@@ -3047,8 +3227,8 @@ async function subscribePush(){
     var reg=await navigator.serviceWorker.ready;
     var existing=await reg.pushManager.getSubscription();
     pushSub=existing||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8Array(VAPID_PUBLIC_KEY)});
-    await fetch(NOTIF_API+'/subscribe',{method:'POST',headers:apiHeaders(),
-      body:JSON.stringify({id:myId,subscription:pushSub})}).catch(function(){});
+    await fetchWithRetries(NOTIF_API+'/subscribe',{method:'POST',headers:apiHeaders(),
+      body:JSON.stringify({id:myId,subscription:pushSub})},8000,20000).catch(function(){});
     refreshPushUI();
   }catch(e){console.warn('Push subscribe failed',e);}
 }
@@ -3278,6 +3458,13 @@ function bindEvents(){
   document.getElementById('start-conf-btn').addEventListener('click',openGroupConf);
   document.getElementById('open-group-chat-btn').addEventListener('click',openGroupChat);
   document.getElementById('copy-id-btn').addEventListener('click',function(){if(navigator.clipboard)navigator.clipboard.writeText(myId).then(function(){toast('Copied ✓');});else toast('Your ID: '+myId);});
+  document.getElementById('copy-diag-row').addEventListener('click',function(){
+    var log=ls_get('uf_last_call_diag',null)||callDiagLog;
+    if(!log||!log.length){toast('No call attempted yet this session');return;}
+    var text=log.join('\n');
+    if(navigator.clipboard)navigator.clipboard.writeText(text).then(function(){toast('Copied '+log.length+' lines — paste it to me 📋');}).catch(function(){toast(text.substring(0,200));});
+    else toast(text.substring(0,200));
+  });
   document.getElementById('switch-account-row').addEventListener('click',async function(){
     if(await styledConfirm('Switch account? You will need to log in with a different ID.',{danger:true,okText:'Switch'})){
       stopSignalService();
