@@ -103,6 +103,13 @@ public class IncomingCallActivity extends AppCompatActivity {
 
     private void finishWithAction(String action) {
         stopRingAndVibrate();
+
+        VahinConnection conn = VahinConnection.getCurrent();
+        if (conn != null) {
+            if ("accept".equals(action)) conn.answerFromAppUi();
+            else conn.rejectFromAppUi();
+        }
+
         Intent openMain = new Intent(this, MainActivity.class);
         openMain.addFlags(
             Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);

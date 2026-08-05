@@ -33,7 +33,11 @@ public class VahinMessagingService extends FirebaseMessagingService {
 
         if ("call".equals(type) || "voice-call".equals(type) || "conf".equals(type)) {
             if (CallNotifier.shouldSkipDuplicateRing(from)) return;
-            CallNotifier.showIncomingCall(this, type, from);
+            boolean isConf = "conf".equals(type);
+            boolean handedToTelecom = VahinTelecom.addIncomingCall(this, from, isConf);
+            if (!handedToTelecom) {
+                CallNotifier.showIncomingCall(this, type, from); // fallback, Telecom refused
+            }
         } else {
             CallNotifier.showMessage(this, from, text);
         }

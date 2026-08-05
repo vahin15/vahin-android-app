@@ -58,11 +58,24 @@
             android:name=".SignalService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+
+        <!-- Self-managed Telecom ConnectionService: hands incoming calls to the OS so
+             they get real call-audio priority, DND bypass, and Bluetooth/Auto routing
+             instead of only a notification. -->
+        <service
+            android:name=".VahinConnectionService"
+            android:permission="android.permission.BIND_TELECOM_CONNECTION_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.telecom.ConnectionService" />
+            </intent-filter>
+        </service>
     </application>
 
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />

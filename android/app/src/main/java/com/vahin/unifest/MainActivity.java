@@ -47,6 +47,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(VahinPermissionsPlugin.class);
         super.onCreate(savedInstanceState);
         activeInstance = this;
+        VahinTelecom.register(this);
 
         if (Build.VERSION.SDK_INT >= 33) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -237,6 +238,16 @@ public class MainActivity extends BridgeActivity {
         MainActivity instance = activeInstance;
         if (instance == null || token == null) return;
         String js = "window.onFcmToken && window.onFcmToken(" + toJsString(token) + ");";
+        instance.runOnUiThread(() -> {
+            if (instance.bridge != null && instance.bridge.getWebView() != null) {
+                instance.bridge.getWebView().evaluateJavascript(js, null);
+            }
+        });
+    }
+
+    public static void runJsIfAvailable(String js) {
+        MainActivity instance = activeInstance;
+        if (instance == null) return;
         instance.runOnUiThread(() -> {
             if (instance.bridge != null && instance.bridge.getWebView() != null) {
                 instance.bridge.getWebView().evaluateJavascript(js, null);
