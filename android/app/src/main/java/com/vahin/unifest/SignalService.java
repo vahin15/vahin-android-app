@@ -18,20 +18,13 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 
 /**
- * FCM's reliability ultimately depends on Google Play Services and Google's own
- * delivery infrastructure being up, plus the token/permission chain staying intact.
- * This service is a second, independent path to the exact same outcome: it holds a
- * plain authenticated WebSocket open to the backend's own /presence hub (already
- * running on Render, previously built but never actually connected to by the app)
- * inside a foreground service, so the connection survives backgrounding. When a call
- * or message event arrives here, it posts the exact same notification FCM would have
- * — via CallNotifier — so whichever path gets there first is the one the user sees.
+ * Always-on WebSocket to the backend's /presence hub — a second, independent delivery
+ * path alongside FCM so calls arrive even when Google Play Services is unreliable.
  *
- * This does NOT replace FCM (Android still needs *something* to wake a fully-killed
- * process eventually, and FCM is the OS-sanctioned mechanism for that); it runs
- * alongside it. If this foreground service itself gets killed (extreme memory
- * pressure, user force-stops the app, or a very aggressive OEM), FCM is still there
- * as the fallback — and vice versa.
+ * Fix: incoming call events now go through VahinTelecom.addIncomingCall() (same as
+ * VahinMessagingService) instead of directly to CallNotifier. This gives the OS proper
+ * awareness of the call: real ringer audio, DND bypass, Bluetooth/Auto routing, and
+ * the system call UI. CallNotifier is kept as a fallback if Telecom refuses.
  */
 public class SignalService extends Service {
 
@@ -51,15 +44,15 @@ public class SignalService extends Service {
     public void onCreate() {
         super.onCreate();
         client = new OkHttpClient.Builder()
-            .pingInterval(20, TimeUnit.SECONDS) // protocol-level WS ping — keeps NATs/carriers from silently dropping the socket
-            .readTimeout(0, TimeUnit.MILLISECONDS) // no read timeout on a long-lived socket
+            .pingInterval(20, TimeUnit.SECONDS)
+            .readTimeout(0, TimeUnit.MILLISECONDS)
             .build();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
-            myId = intent.getStringExtra("myId");
+            myId  = intent.getStringExtra("myId");
             token = intent.getStringExtra("token");
         }
         startForeground(NOTIF_ID, buildForegroundNotification());
@@ -105,8 +98,7 @@ public class SignalService extends Service {
                     hello.put("id", myId);
                     hello.put("token", token);
                     ws.send(hello.toString());
-                } catch (Exception ignored) {
-                }
+                } catch (Exception ignored) {}
             }
 
             @Override
@@ -130,30 +122,33 @@ public class SignalService extends Service {
         try {
             JSONObject msg = new JSONObject(text);
             String type = msg.optString("type");
+
             if ("auth-error".equals(type)) {
-                // Token is dead (expired/invalid) — reconnecting won't help until the
-                // JS side logs in again and calls startSignalService with a fresh one.
                 stopSelf();
                 return;
             }
+
             if ("ring".equals(type)) {
                 String callType = msg.optString("callType");
-                String from = msg.optString("from", null);
-                String msgText = msg.optString("text", null);
+                String from     = msg.optString("from", null);
+                String msgText  = msg.optString("text", null);
+
                 if ("call".equals(callType) || "voice-call".equals(callType) || "conf".equals(callType)) {
-                    if (!CallNotifier.shouldSkipDuplicateRing(from)) {
+                    if (CallNotifier.shouldSkipDuplicateRing(from)) return;
+                    boolean isConf = "conf".equals(callType);
+                    // Route through Telecom first (gives real ringer + OS awareness).
+                    // Fall back to direct notification only if Telecom refuses.
+                    boolean handedToTelecom = VahinTelecom.addIncomingCall(SignalService.this, from, isConf);
+                    if (!handedToTelecom) {
                         CallNotifier.showIncomingCall(SignalService.this, callType, from);
                     }
                 } else {
                     CallNotifier.showMessage(SignalService.this, from, msgText);
                 }
             }
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
     }
 
-    // Exponential backoff capped at 60s — avoids hammering the free-tier backend (or
-    // draining battery) if the network is genuinely down for a while.
     private void scheduleReconnect() {
         if (stopping) return;
         reconnectAttempt++;
@@ -166,8 +161,7 @@ public class SignalService extends Service {
         stopping = true;
         try {
             if (socket != null) socket.close(1000, "service stopping");
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
         handler.removeCallbacksAndMessages(null);
         super.onDestroy();
     }

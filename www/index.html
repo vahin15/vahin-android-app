@@ -580,6 +580,9 @@ button,input,textarea{font-family:inherit;}
      screen directly — no hunting through the Settings tab required. -->
 <div id="screen-permsetup" class="screen">
   <div class="land-wrap">
+    <div style="display:flex;justify-content:flex-end;width:100%;margin-bottom:4px;">
+      <button id="ps-skip-top-btn" style="background:transparent;border:none;color:var(--text3);font-size:14px;padding:6px 2px;cursor:pointer;font-family:inherit;">Continue →</button>
+    </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:6px;">
       <div style="font-size:40px;">🔔</div>
       <div class="brand-name" style="font-size:22px;">Quick setup for reliable calls</div>
@@ -3842,6 +3845,16 @@ function bindEvents(){
   });
   document.getElementById('ps-enable-all-btn').addEventListener('click',function(){enableAllPermissions();});
   document.getElementById('ps-done-btn').addEventListener('click',async function(){
+    var status;
+    try{status=await Capacitor.Plugins.VahinPermissions.getStatus();}catch(e){status=null;}
+    var stillMissing=status&&(
+      (status.notificationsApplicable&&!status.notificationsGranted)||
+      (status.fullScreenIntentApplicable&&!status.fullScreenIntentGranted)||
+      !status.batteryExemptionGranted
+    );
+    closePermSetup(!!stillMissing);
+  });
+  document.getElementById('ps-skip-top-btn').addEventListener('click',async function(){
     var status;
     try{status=await Capacitor.Plugins.VahinPermissions.getStatus();}catch(e){status=null;}
     var stillMissing=status&&(
