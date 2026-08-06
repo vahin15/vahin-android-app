@@ -7,6 +7,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Build;
 import android.os.IBinder;
+import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import org.json.JSONObject;
@@ -28,6 +29,8 @@ import okhttp3.WebSocketListener;
  */
 public class SignalService extends Service {
 
+    private static final String TAG = "SignalService";
+
     private static final String CHANNEL_ID = "vahin_signal";
     private static final int NOTIF_ID = 4200;
     private static final String WS_URL = "wss://vahin-backend.onrender.com/presence";
@@ -43,6 +46,7 @@ public class SignalService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        Log.d(TAG, "onCreate");
         client = new OkHttpClient.Builder()
             .pingInterval(20, TimeUnit.SECONDS)
             .readTimeout(0, TimeUnit.MILLISECONDS)
@@ -55,6 +59,7 @@ public class SignalService extends Service {
             myId  = intent.getStringExtra("myId");
             token = intent.getStringExtra("token");
         }
+        Log.d(TAG, "onStartCommand: myId=" + myId + " (token present=" + (token != null) + ")");
         startForeground(NOTIF_ID, buildForegroundNotification());
         stopping = false;
         connect();
@@ -86,82 +91,120 @@ public class SignalService extends Service {
     }
 
     private void connect() {
-        if (myId == null || token == null) return;
+        if (myId == null || token == null) {
+            Log.w(TAG, "connect: myId or token is null — not connecting");
+            return;
+        }
+        Log.d(TAG, "connect: attempt=" + reconnectAttempt + " url=" + WS_URL);
         Request request = new Request.Builder().url(WS_URL).build();
         socket = client.newWebSocket(request, new WebSocketListener() {
             @Override
             public void onOpen(WebSocket ws, Response response) {
                 reconnectAttempt = 0;
+                Log.d(TAG, "WebSocket onOpen: connected");
                 try {
                     JSONObject hello = new JSONObject();
                     hello.put("type", "hello");
                     hello.put("id", myId);
                     hello.put("token", token);
                     ws.send(hello.toString());
-                } catch (Exception ignored) {}
+                } catch (Exception e) {
+                    Log.e(TAG, "WebSocket onOpen: failed to send hello — " + e.getMessage(), e);
+                }
             }
 
             @Override
             public void onMessage(WebSocket ws, String text) {
-                handleMessage(text);
+                // FIX A: wrap message handler — a crash here would silently kill the WS
+                // thread and stop all future incoming calls without any visible error.
+                try {
+                    handleMessage(text);
+                } catch (Exception e) {
+                    Log.e(TAG, "WebSocket onMessage: unhandled exception processing message — "
+                        + e.getClass().getSimpleName() + ": " + e.getMessage(), e);
+                }
             }
 
             @Override
             public void onClosed(WebSocket ws, int code, String reason) {
+                Log.d(TAG, "WebSocket onClosed: code=" + code + " reason=" + reason);
                 scheduleReconnect();
             }
 
             @Override
             public void onFailure(WebSocket ws, Throwable t, Response response) {
+                Log.w(TAG, "WebSocket onFailure: " + (t != null ? t.getMessage() : "null") +
+                    " reconnectAttempt=" + reconnectAttempt);
                 scheduleReconnect();
             }
         });
     }
 
     private void handleMessage(String text) {
+        // FIX A: parse exceptions now produce a visible log line rather than being
+        // silently swallowed in the outer catch-all.
+        JSONObject msg;
         try {
-            JSONObject msg = new JSONObject(text);
-            String type = msg.optString("type");
+            msg = new JSONObject(text);
+        } catch (Exception e) {
+            Log.w(TAG, "handleMessage: JSON parse error — " + e.getMessage() + " raw=" + text);
+            return;
+        }
 
-            if ("auth-error".equals(type)) {
-                stopSelf();
-                return;
-            }
+        String type = msg.optString("type");
+        Log.d(TAG, "handleMessage: type=" + type);
 
-            if ("ring".equals(type)) {
-                String callType = msg.optString("callType");
-                String from     = msg.optString("from", null);
-                String msgText  = msg.optString("text", null);
+        if ("auth-error".equals(type)) {
+            Log.w(TAG, "handleMessage: auth-error from server — stopping SignalService");
+            stopSelf();
+            return;
+        }
 
-                if ("call".equals(callType) || "voice-call".equals(callType) || "conf".equals(callType)) {
-                    if (CallNotifier.shouldSkipDuplicateRing(from)) return;
-                    boolean isConf = "conf".equals(callType);
-                    // Route through Telecom first (gives real ringer + OS awareness).
-                    // Fall back to direct notification only if Telecom refuses.
-                    boolean handedToTelecom = VahinTelecom.addIncomingCall(SignalService.this, from, isConf);
-                    if (!handedToTelecom) {
-                        CallNotifier.showIncomingCall(SignalService.this, callType, from);
-                    }
-                } else {
-                    CallNotifier.showMessage(SignalService.this, from, msgText);
+        if ("ring".equals(type)) {
+            String callType = msg.optString("callType");
+            String from     = msg.optString("from", null);
+            String msgText  = msg.optString("text", null);
+
+            Log.d(TAG, "handleMessage: ring event — callType=" + callType + " from=" + from);
+
+            if ("call".equals(callType) || "voice-call".equals(callType) || "conf".equals(callType)) {
+                if (CallNotifier.shouldSkipDuplicateRing(from)) {
+                    Log.d(TAG, "handleMessage: duplicate ring suppressed for from=" + from);
+                    return;
                 }
+                boolean isConf = "conf".equals(callType);
+                // Route through Telecom first (gives real ringer + OS awareness).
+                // Fall back to direct notification only if Telecom refuses.
+                Log.d(TAG, "handleMessage: handing incoming call to VahinTelecom — from=" + from);
+                boolean handedToTelecom = VahinTelecom.addIncomingCall(SignalService.this, from, isConf);
+                if (!handedToTelecom) {
+                    Log.w(TAG, "handleMessage: VahinTelecom refused call — falling back to CallNotifier for from=" + from);
+                    CallNotifier.showIncomingCall(SignalService.this, callType, from);
+                }
+            } else {
+                Log.d(TAG, "handleMessage: message event from=" + from);
+                CallNotifier.showMessage(SignalService.this, from, msgText);
             }
-        } catch (Exception ignored) {}
+        }
     }
 
     private void scheduleReconnect() {
         if (stopping) return;
         reconnectAttempt++;
         long delayMs = Math.min(60_000, 2000L * (1 << Math.min(reconnectAttempt, 5)));
+        Log.d(TAG, "scheduleReconnect: attempt=" + reconnectAttempt + " delayMs=" + delayMs);
         handler.postDelayed(this::connect, delayMs);
     }
 
     @Override
     public void onDestroy() {
+        Log.d(TAG, "onDestroy");
         stopping = true;
         try {
             if (socket != null) socket.close(1000, "service stopping");
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            Log.w(TAG, "onDestroy: exception closing socket — " + e.getMessage());
+        }
         handler.removeCallbacksAndMessages(null);
         super.onDestroy();
     }

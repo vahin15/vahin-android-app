@@ -45,10 +45,13 @@
         </service>
 
         <!-- Full-screen "incoming call" UI, shown over the lock screen.
-             launchMode="singleInstance" + taskAffinity="" means this activity lives in
-             its OWN task and never enters or kills the MainActivity task. Without this,
-             singleTask would push MainActivity to the background (user sees home screen)
-             every time a call arrived. showWhenLocked/turnScreenOn are set in code. -->
+             FIX 2: launchMode="singleInstance" + taskAffinity="" means this activity lives in
+             its OWN task and never enters or kills the MainActivity task. The old
+             launchMode="singleTask" caused Android to push MainActivity's task behind
+             IncomingCallActivity when a call arrived from a Service/FCM context (no
+             existing back-stack), making the app appear to "close to home screen."
+             showWhenLocked/turnScreenOn are also set in code (setShowWhenLocked /
+             setTurnScreenOn API) for API 27+ compatibility. -->
         <activity
             android:name=".IncomingCallActivity"
             android:exported="false"

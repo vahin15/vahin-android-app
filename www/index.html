@@ -1099,19 +1099,7 @@ var settings={ringtone:true,vibrate:true,backcam:false,confLimit:6,theme:'auto'}
 var customRingtoneDataUrl='';
 var incomingCall=null;
 var _missedCallDismiss=false; /* true while dismissing a missed call — skip sending call-cancel */
-/* Tells native Android to cancel the "Incoming call" notification for this peer.
-   Called whenever a call is answered, declined, or ends — covers the case where
-   the notification is still showing even though the call has already moved on
-   (e.g. answered from the in-app UI rather than the native Accept button, or
-   ended later from the in-call screen). No-op outside the native app. */
-function dismissNativeCallNotif(peerId){
-  if(!peerId)return;
-  try{
-    if(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions){
-      Capacitor.Plugins.VahinPermissions.dismissCallNotification({from:peerId}).catch(function(){});
-    }
-  }catch(e){}
-}
+var _remoteEndedCall=false; /* true when call-end received from remote side — skip sending call-end back */
 var replyingTo=null,ctxMsg=null;
 var typingTimer=null,remoteTypingTimer=null;
 var mediaRecorder=null,audioChunks=[],recTimer=null,recSecs=0,recCancelled=false;
@@ -1620,6 +1608,18 @@ function handleData(from,data,conn){
       var d2=document.createElement('div');d2.className='msg-row them';
       var b2=document.createElement('div');b2.className='msg-bubble';b2.textContent=data.text;
       d2.appendChild(b2);ms.appendChild(d2);ms.scrollTop=ms.scrollHeight;
+      break;
+    case 'call-end':
+      /* FIX 7: Explicit hangup signal sent over the data channel when the connected call
+         ends on either side. Relies on PeerJS's own MediaConnection 'close' event alone
+         was unreliable — it's not guaranteed to fire on the remote peer, especially
+         when the call is ended quickly or the network drops. The _remoteEndedCall guard
+         prevents the loop: endCall() checks it before sending call-end back out. */
+      if(currentCall&&(currentCall.peer===from||callPeerId===from)){
+        _remoteEndedCall=true;
+        endCall();
+        _remoteEndedCall=false;
+      }
       break;
     case 'call-cancel':
       if(incomingCall&&(incomingCall.peer===from||incomingCall.peerId===from)){
@@ -2988,11 +2988,6 @@ async function acceptCall(){
   document.getElementById('incoming-overlay').classList.remove('show');
   hideHUN();stopRing();
   if(!incomingCall)return;
-  /* Dismiss the native "Incoming call" notification immediately — this call is
-     being handled now, whether it was answered from the in-app UI or replayed
-     from a native Accept tap (which already cancels it, but doing it here too
-     covers the case where the notification somehow still exists). */
-  dismissNativeCallNotif(incomingCall.isConf?incomingCall.peerId:incomingCall.peer);
   if(incomingCall.isConf){
     if(incomingCall.mc){
       try{
@@ -3023,9 +3018,6 @@ async function acceptCall(){
 function declineCall(){
   document.getElementById('incoming-overlay').classList.remove('show');
   hideHUN();stopRing();
-  if(incomingCall){
-    dismissNativeCallNotif(incomingCall.isConf?incomingCall.peerId:incomingCall.peer);
-  }
   if(incomingCall&&!incomingCall.isConf){
     logCall(incomingCall.peer,'declined','in');
     if(!_missedCallDismiss&&chatConn&&chatConn.peer===incomingCall.peer&&chatConn.open){try{chatConn.send({type:'call-cancel'});}catch(e){}}
@@ -3035,16 +3027,24 @@ function declineCall(){
 }
 function endCall(){
   stopOutTone();stopRing();hideHUN();stopOutPhaseTimer();
-  /* Always clear the native call notification when a call ends, no matter how it
-     ends (hangup, timeout, connection drop, remote close). callPeerId is read
-     before it gets cleared a few lines down. */
-  if(callPeerId)dismissNativeCallNotif(callPeerId);
-  /* PeerJS's own close-propagation on the MediaConnection isn't reliable before
-     the call has actually connected (no negotiation has completed yet for it to
-     ride on) — that's the gap that used to leave the other person still ringing
-     after we'd hung up. Sending an explicit cancel over the data connection we
-     already opened for this call closes that gap. */
+  /* FIX 7: send explicit hangup signals over data connections before closing them.
+     PeerJS's own close-propagation on the MediaConnection isn't reliable — the 'close'
+     event is not guaranteed to fire on the remote peer, especially when the call
+     ends quickly or the underlying ICE transport drops without a clean teardown.
+     Two cases:
+       (a) Pre-connection cancel (caller hangs up before callee answers): send
+           call-cancel over callConn (caller side only — chatConn case handled in
+           declineCall on the callee side).
+       (b) Connected call end (either side presses End): send call-end over the
+           active data connection. Caller uses callConn; callee uses chatConn (the
+           DM data channel already open with the caller). _remoteEndedCall guards
+           against a reflection loop when we're the one receiving call-end. */
   if(weAreCaller&&!outCallConnected&&callConn&&callConn.open){try{callConn.send({type:'call-cancel'});}catch(e){}}
+  if(!_remoteEndedCall&&outCallConnected){
+    /* Connected call ended by local user — tell the other side explicitly */
+    var endConn=weAreCaller?(callConn):(chatConn&&chatConn.peer===callPeerId?chatConn:null);
+    if(endConn&&endConn.open){try{endConn.send({type:'call-end'});}catch(e){}}
+  }
   try{if(currentCall)currentCall.close();}catch(e){}
   try{if(callConn)callConn.close();}catch(e){}
   currentCall=null;callConn=null;weAreCaller=false;outCallConnected=false;
@@ -3601,6 +3601,18 @@ function handleNativeCallAction(action,from){
   pendingNativeTimer=setTimeout(function(){pendingNativeAction=null;},60000);
 }
 window.handleNativeCallAction=handleNativeCallAction;
+/* FIX C: VahinTelecom.register() calls this if the PhoneAccount was registered
+   but getPhoneAccount() returned null — meaning this OEM silently blocked the
+   third-party self-managed calling account. When that happens, ringing will still
+   work via the CallNotifier fallback, but the native OS call UI and hardware
+   audio routing won't be available. We surface a non-blocking toast so the user
+   knows calling is degraded rather than silently failing with no explanation. */
+window.onTelecomRegistrationFailed=function(reason){
+  console.warn('[Unifest] Telecom PhoneAccount not accepted by this device/OEM: '+reason);
+  /* Non-blocking: don't alert() here — the app still works via notification fallback.
+     Show a dismissible toast if the toast() helper is already defined. */
+  if(typeof toast==='function'){toast('Note: native call UI may not work on this device. Calls will still ring via notification.');}
+};
 /* Web Push: works while the WebView process is alive. Native FCM (above) covers killed-app ringing. */
 function urlB64ToUint8Array(base64String){
   var padding='='.repeat((4-base64String.length%4)%4);

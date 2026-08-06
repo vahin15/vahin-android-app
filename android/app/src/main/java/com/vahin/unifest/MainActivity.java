@@ -14,6 +14,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.util.Log;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.BridgeActivity;
@@ -39,6 +40,7 @@ public class MainActivity extends BridgeActivity {
     // upload). Since BridgeWebChromeClient already grants camera/mic for
     // getUserMedia() out of the box, we don't need a custom one at all.
 
+    private static final String TAG = "MainActivity";
     private static final int NOTIF_PERMISSION_REQUEST = 8001;
     private static MainActivity activeInstance;
 
@@ -47,11 +49,18 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(VahinPermissionsPlugin.class);
         super.onCreate(savedInstanceState);
         activeInstance = this;
+
+        Log.d(TAG, "onCreate: registering Telecom PhoneAccount");
+        // FIX C: VahinTelecom.register() now logs whether the PhoneAccount is actually
+        // accepted by Telecom after registration, and fires window.onTelecomRegistrationFailed
+        // into the web layer if the OEM silently blocked it. That lets the JS side show a
+        // "calling isn't supported/enabled on this device" warning to the user.
         VahinTelecom.register(this);
 
         if (Build.VERSION.SDK_INT >= 33) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "onCreate: requesting POST_NOTIFICATIONS permission");
                 ActivityCompat.requestPermissions(
                     this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIF_PERMISSION_REQUEST);
             }
@@ -60,8 +69,13 @@ public class MainActivity extends BridgeActivity {
         // Fetch the FCM registration token and hand it to the web app once the page
         // has had a moment to finish loading. The web app exposes window.onFcmToken().
         FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
-            if (!task.isSuccessful() || task.getResult() == null) return;
+            if (!task.isSuccessful() || task.getResult() == null) {
+                Log.w(TAG, "FCM getToken failed: " + (task.getException() != null
+                    ? task.getException().getMessage() : "null result"));
+                return;
+            }
             String token = task.getResult();
+            Log.d(TAG, "FCM token received (length=" + token.length() + ")");
             new Handler(Looper.getMainLooper()).postDelayed(() -> deliverFcmToken(token), 1500);
         });
 
@@ -92,10 +106,17 @@ public class MainActivity extends BridgeActivity {
 
         android.app.NotificationManager nm =
             (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        if (nm != null && nm.canUseFullScreenIntent()) return; // already granted
+
+        // FIX A: log the full-screen intent permission status so it's diagnosable
+        boolean canUse = nm != null && nm.canUseFullScreenIntent();
+        Log.d(TAG, "maybePromptFullScreenIntent: canUseFullScreenIntent=" + canUse);
+
+        if (nm != null && canUse) return; // already granted
 
         android.content.SharedPreferences prefs = getSharedPreferences("vahin_prefs", Context.MODE_PRIVATE);
         if (prefs.getBoolean("fsi_prompt_shown", false)) return;
+
+        Log.w(TAG, "maybePromptFullScreenIntent: USE_FULL_SCREEN_INTENT not granted — prompting user");
 
         new AlertDialog.Builder(this)
             .setTitle("Allow full-screen calls")
@@ -109,7 +130,8 @@ public class MainActivity extends BridgeActivity {
                     Intent intent = new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT);
                     intent.setData(Uri.parse("package:" + getPackageName()));
                     startActivity(intent);
-                } catch (Exception ignored) {
+                } catch (Exception e) {
+                    Log.w(TAG, "maybePromptFullScreenIntent: could not open settings — " + e.getMessage());
                     // Some OEM builds may not expose this screen; nothing more we can do.
                 }
             })
@@ -125,6 +147,7 @@ public class MainActivity extends BridgeActivity {
 
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         boolean alreadyIgnoring = pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
+        Log.d(TAG, "maybePromptBatteryExemption: isIgnoringBatteryOptimizations=" + alreadyIgnoring);
         if (alreadyIgnoring) {
             prefs.edit().putBoolean("battery_prompt_shown", true).apply();
             return;
@@ -149,7 +172,8 @@ public class MainActivity extends BridgeActivity {
             Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
             intent.setData(Uri.parse("package:" + getPackageName()));
             startActivity(intent);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            Log.w(TAG, "requestIgnoreBatteryOptimizations: exception — " + e.getMessage());
             // Some OEM builds strip this intent; fall through, nothing we can do.
         }
     }
@@ -198,6 +222,7 @@ public class MainActivity extends BridgeActivity {
                 intent.setComponent(new ComponentName(c[0], c[1]));
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 activity.startActivity(intent);
+                Log.d(TAG, "requestOemAutoStartPermissionStatic: launched " + c[0] + "/" + c[1]);
                 return; // stop at the first one that launches successfully
             } catch (ActivityNotFoundException | SecurityException ignored) {
                 // try the next candidate
@@ -216,6 +241,7 @@ public class MainActivity extends BridgeActivity {
     public void onDestroy() {
         super.onDestroy();
         if (activeInstance == this) activeInstance = null;
+        Log.d(TAG, "onDestroy");
     }
 
     // Called when IncomingCallActivity's Accept/Decline buttons (or a "message"
@@ -232,6 +258,7 @@ public class MainActivity extends BridgeActivity {
         String action = intent.getStringExtra("vahinAction");
         if (action == null) return;
         String from = intent.getStringExtra("vahinFrom");
+        Log.d(TAG, "handleIntentExtras: action=" + action + " from=" + from);
         // Clear so a later recreate() (e.g. rotation) doesn't replay a stale action.
         intent.removeExtra("vahinAction");
         intent.removeExtra("vahinFrom");
@@ -247,28 +274,58 @@ public class MainActivity extends BridgeActivity {
             retryDeliverNativeCallAction(action, from, attempt);
             return;
         }
-        // checkExists=true: evaluate a tiny expression first so we know whether
-        // window.handleNativeCallAction is actually defined yet, and only retry
-        // if it isn't — instead of blindly firing once like before.
-        String probe = "typeof window.handleNativeCallAction";
-        bridge.getWebView().evaluateJavascript(probe, (String result) -> {
-            boolean ready = result != null && result.contains("function");
-            if (ready) {
-                String js = "window.handleNativeCallAction("
-                    + toJsString(action) + "," + toJsString(from) + ");";
-                runOnUiThread(() -> {
-                    if (bridge != null && bridge.getWebView() != null) {
-                        bridge.getWebView().evaluateJavascript(js, null);
+        // FIX A: probe evaluateJavascript wraps its result callback — if the JS
+        // engine isn't ready yet we retry; if it is ready but evaluateJavascript
+        // throws, we catch and log the full exception instead of crashing silently.
+        try {
+            // checkExists=true: evaluate a tiny expression first so we know whether
+            // window.handleNativeCallAction is actually defined yet, and only retry
+            // if it isn't — instead of blindly firing once like before.
+            String probe = "typeof window.handleNativeCallAction";
+            bridge.getWebView().evaluateJavascript(probe, (String result) -> {
+                boolean ready = result != null && result.contains("function");
+                if (ready) {
+                    Log.d(TAG, "deliverNativeCallAction: bridge ready at attempt=" + attempt
+                        + " — delivering action=" + action + " from=" + from);
+                    String js = "window.handleNativeCallAction("
+                        + toJsString(action) + "," + toJsString(from) + ");";
+                    runOnUiThread(() -> {
+                        try {
+                            if (bridge != null && bridge.getWebView() != null) {
+                                bridge.getWebView().evaluateJavascript(js, resultValue -> {
+                                    // FIX A: log the JS result — "undefined" is normal,
+                                    // but null can indicate the WebView context was destroyed.
+                                    Log.d(TAG, "deliverNativeCallAction: evaluateJavascript result="
+                                        + resultValue);
+                                });
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "deliverNativeCallAction: evaluateJavascript threw — "
+                                + e.getMessage(), e);
+                        }
+                    });
+                } else {
+                    if (attempt == 0 || attempt % 5 == 0) {
+                        Log.d(TAG, "deliverNativeCallAction: bridge not ready yet, attempt=" + attempt
+                            + " probe result=" + result + " — retrying in " + NATIVE_ACTION_RETRY_DELAY_MS + "ms");
                     }
-                });
-            } else {
-                retryDeliverNativeCallAction(action, from, attempt);
-            }
-        });
+                    retryDeliverNativeCallAction(action, from, attempt);
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "deliverNativeCallAction: evaluateJavascript (probe) threw at attempt=" + attempt
+                + " — " + e.getMessage(), e);
+            retryDeliverNativeCallAction(action, from, attempt);
+        }
     }
 
     private void retryDeliverNativeCallAction(String action, String from, int attempt) {
-        if (attempt >= NATIVE_ACTION_MAX_RETRIES) return; // give up quietly after ~5s
+        if (attempt >= NATIVE_ACTION_MAX_RETRIES) {
+            Log.w(TAG, "deliverNativeCallAction: giving up after " + NATIVE_ACTION_MAX_RETRIES
+                + " attempts — window.handleNativeCallAction never became available "
+                + "(action=" + action + " from=" + from + ")");
+            return;
+        }
         new Handler(Looper.getMainLooper()).postDelayed(
             () -> deliverNativeCallAction(action, from, attempt + 1),
             NATIVE_ACTION_RETRY_DELAY_MS);
@@ -279,8 +336,12 @@ public class MainActivity extends BridgeActivity {
         if (instance == null || token == null) return;
         String js = "window.onFcmToken && window.onFcmToken(" + toJsString(token) + ");";
         instance.runOnUiThread(() -> {
-            if (instance.bridge != null && instance.bridge.getWebView() != null) {
-                instance.bridge.getWebView().evaluateJavascript(js, null);
+            try {
+                if (instance.bridge != null && instance.bridge.getWebView() != null) {
+                    instance.bridge.getWebView().evaluateJavascript(js, null);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "deliverFcmToken: evaluateJavascript threw — " + e.getMessage(), e);
             }
         });
     }
@@ -289,8 +350,12 @@ public class MainActivity extends BridgeActivity {
         MainActivity instance = activeInstance;
         if (instance == null) return;
         instance.runOnUiThread(() -> {
-            if (instance.bridge != null && instance.bridge.getWebView() != null) {
-                instance.bridge.getWebView().evaluateJavascript(js, null);
+            try {
+                if (instance.bridge != null && instance.bridge.getWebView() != null) {
+                    instance.bridge.getWebView().evaluateJavascript(js, null);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "runJsIfAvailable: evaluateJavascript threw — " + e.getMessage(), e);
             }
         });
     }
