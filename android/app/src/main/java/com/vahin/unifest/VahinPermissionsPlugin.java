@@ -123,6 +123,25 @@ public class VahinPermissionsPlugin extends Plugin {
     }
 
     /**
+     * Called from JS whenever a call ends, is answered, or is declined FROM THE WEB
+     * SIDE (e.g. the in-call screen's End Call button). The native Accept/Decline
+     * buttons already cancel the notification themselves (IncomingCallActivity /
+     * VahinConnection) — this covers ending a call from inside the app, so the
+     * "Incoming call" notification (if somehow still present) always gets cleared.
+     *
+     * JS call:
+     *   Capacitor.Plugins.VahinPermissions.dismissCallNotification({ from: "peerId" })
+     */
+    @PluginMethod
+    public void dismissCallNotification(PluginCall call) {
+        String from = call.getString("from", "");
+        if (!from.isEmpty()) {
+            CallNotifier.cancelCallNotification(getContext(), from);
+        }
+        call.resolve();
+    }
+
+    /**
      * Called from JS whenever the user picks a custom ringtone (or clears it).
      * Saves the raw audio bytes to a private file so IncomingCallActivity can play
      * the user's MP3 via MediaPlayer without needing localStorage (which is

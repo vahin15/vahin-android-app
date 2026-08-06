@@ -1,7 +1,6 @@
 package com.vahin.unifest;
 
 import android.app.KeyguardManager;
-import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -167,10 +166,7 @@ public class IncomingCallActivity extends AppCompatActivity {
     }
 
     private void cancelCallNotification() {
-        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        if (nm != null && from != null) {
-            nm.cancel(("call-" + from).hashCode());
-        }
+        CallNotifier.cancelCallNotification(this, from);
     }
 
     private void finishWithAction(String action) {

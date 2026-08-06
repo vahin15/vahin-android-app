@@ -40,6 +40,7 @@ public class VahinConnection extends Connection {
     @Override
     public void onAnswer() {
         setActive();
+        CallNotifier.cancelCallNotification(appContext, from);
         notifyWebApp("accept");
     }
 
@@ -48,6 +49,7 @@ public class VahinConnection extends Connection {
         setDisconnected(new DisconnectCause(DisconnectCause.REJECTED));
         destroy();
         clearIfCurrent();
+        CallNotifier.cancelCallNotification(appContext, from);
         notifyWebApp("decline");
     }
 
@@ -68,12 +70,10 @@ public class VahinConnection extends Connection {
         clearIfCurrent();
 
         // Dismiss the call notification (covers the case where the activity isn't on screen)
-        android.app.NotificationManager nm =
-            (android.app.NotificationManager) appContext.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (nm != null && from != null) nm.cancel(("call-" + from).hashCode());
+        CallNotifier.cancelCallNotification(appContext, from);
 
         // Signal IncomingCallActivity to finish() if it's currently showing
-        android.content.Intent intent = new android.content.Intent(IncomingCallActivity.ACTION_CALL_CANCELLED);
+        Intent intent = new Intent(IncomingCallActivity.ACTION_CALL_CANCELLED);
         intent.setPackage(appContext.getPackageName());
         appContext.sendBroadcast(intent);
 

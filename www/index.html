@@ -1099,6 +1099,19 @@ var settings={ringtone:true,vibrate:true,backcam:false,confLimit:6,theme:'auto'}
 var customRingtoneDataUrl='';
 var incomingCall=null;
 var _missedCallDismiss=false; /* true while dismissing a missed call — skip sending call-cancel */
+/* Tells native Android to cancel the "Incoming call" notification for this peer.
+   Called whenever a call is answered, declined, or ends — covers the case where
+   the notification is still showing even though the call has already moved on
+   (e.g. answered from the in-app UI rather than the native Accept button, or
+   ended later from the in-call screen). No-op outside the native app. */
+function dismissNativeCallNotif(peerId){
+  if(!peerId)return;
+  try{
+    if(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions){
+      Capacitor.Plugins.VahinPermissions.dismissCallNotification({from:peerId}).catch(function(){});
+    }
+  }catch(e){}
+}
 var replyingTo=null,ctxMsg=null;
 var typingTimer=null,remoteTypingTimer=null;
 var mediaRecorder=null,audioChunks=[],recTimer=null,recSecs=0,recCancelled=false;
@@ -2975,6 +2988,11 @@ async function acceptCall(){
   document.getElementById('incoming-overlay').classList.remove('show');
   hideHUN();stopRing();
   if(!incomingCall)return;
+  /* Dismiss the native "Incoming call" notification immediately — this call is
+     being handled now, whether it was answered from the in-app UI or replayed
+     from a native Accept tap (which already cancels it, but doing it here too
+     covers the case where the notification somehow still exists). */
+  dismissNativeCallNotif(incomingCall.isConf?incomingCall.peerId:incomingCall.peer);
   if(incomingCall.isConf){
     if(incomingCall.mc){
       try{
@@ -3005,6 +3023,9 @@ async function acceptCall(){
 function declineCall(){
   document.getElementById('incoming-overlay').classList.remove('show');
   hideHUN();stopRing();
+  if(incomingCall){
+    dismissNativeCallNotif(incomingCall.isConf?incomingCall.peerId:incomingCall.peer);
+  }
   if(incomingCall&&!incomingCall.isConf){
     logCall(incomingCall.peer,'declined','in');
     if(!_missedCallDismiss&&chatConn&&chatConn.peer===incomingCall.peer&&chatConn.open){try{chatConn.send({type:'call-cancel'});}catch(e){}}
@@ -3014,6 +3035,10 @@ function declineCall(){
 }
 function endCall(){
   stopOutTone();stopRing();hideHUN();stopOutPhaseTimer();
+  /* Always clear the native call notification when a call ends, no matter how it
+     ends (hangup, timeout, connection drop, remote close). callPeerId is read
+     before it gets cleared a few lines down. */
+  if(callPeerId)dismissNativeCallNotif(callPeerId);
   /* PeerJS's own close-propagation on the MediaConnection isn't reliable before
      the call has actually connected (no negotiation has completed yet for it to
      ride on) — that's the gap that used to leave the other person still ringing

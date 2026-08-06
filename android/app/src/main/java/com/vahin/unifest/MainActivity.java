@@ -220,18 +220,58 @@ public class MainActivity extends BridgeActivity {
 
     // Called when IncomingCallActivity's Accept/Decline buttons (or a "message"
     // notification tap) relaunch MainActivity with these extras.
+    //
+    // Fix: when the app was fully killed, tapping Accept launches a fresh
+    // MainActivity whose WebView hasn't finished loading index.html yet — at that
+    // point window.handleNativeCallAction doesn't exist, so evaluateJavascript()
+    // silently does nothing and the tap appears to "just open the app" with no
+    // call starting. We now retry with a check for the function's existence
+    // (via a JS callback) instead of firing once and hoping the page is ready.
     private void handleIntentExtras(Intent intent) {
         if (intent == null) return;
         String action = intent.getStringExtra("vahinAction");
         if (action == null) return;
         String from = intent.getStringExtra("vahinFrom");
-        String js = "window.handleNativeCallAction && window.handleNativeCallAction("
-            + toJsString(action) + "," + toJsString(from) + ");";
-        runOnUiThread(() -> {
-            if (bridge != null && bridge.getWebView() != null) {
-                bridge.getWebView().evaluateJavascript(js, null);
+        // Clear so a later recreate() (e.g. rotation) doesn't replay a stale action.
+        intent.removeExtra("vahinAction");
+        intent.removeExtra("vahinFrom");
+        deliverNativeCallAction(action, from, 0);
+    }
+
+    private static final int NATIVE_ACTION_MAX_RETRIES = 25;   // ~5s total at 200ms
+    private static final int NATIVE_ACTION_RETRY_DELAY_MS = 200;
+
+    private void deliverNativeCallAction(String action, String from, int attempt) {
+        if (isFinishing() || isDestroyed()) return;
+        if (bridge == null || bridge.getWebView() == null) {
+            retryDeliverNativeCallAction(action, from, attempt);
+            return;
+        }
+        // checkExists=true: evaluate a tiny expression first so we know whether
+        // window.handleNativeCallAction is actually defined yet, and only retry
+        // if it isn't — instead of blindly firing once like before.
+        String probe = "typeof window.handleNativeCallAction";
+        bridge.getWebView().evaluateJavascript(probe, (String result) -> {
+            boolean ready = result != null && result.contains("function");
+            if (ready) {
+                String js = "window.handleNativeCallAction("
+                    + toJsString(action) + "," + toJsString(from) + ");";
+                runOnUiThread(() -> {
+                    if (bridge != null && bridge.getWebView() != null) {
+                        bridge.getWebView().evaluateJavascript(js, null);
+                    }
+                });
+            } else {
+                retryDeliverNativeCallAction(action, from, attempt);
             }
         });
+    }
+
+    private void retryDeliverNativeCallAction(String action, String from, int attempt) {
+        if (attempt >= NATIVE_ACTION_MAX_RETRIES) return; // give up quietly after ~5s
+        new Handler(Looper.getMainLooper()).postDelayed(
+            () -> deliverNativeCallAction(action, from, attempt + 1),
+            NATIVE_ACTION_RETRY_DELAY_MS);
     }
 
     public static void deliverFcmToken(String token) {
