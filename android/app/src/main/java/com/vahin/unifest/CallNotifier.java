@@ -100,14 +100,12 @@ public final class CallNotifier {
 
         NotificationManager nm = ctx.getSystemService(NotificationManager.class);
         if (nm != null) nm.notify(("call-" + safeFrom).hashCode(), builder.build());
-
-        // On many devices setFullScreenIntent() only actually launches the activity
-        // when the screen is off/locked. Also try a direct launch so ringing shows
-        // immediately if the app process is alive but backgrounded.
-        try {
-            ctx.startActivity(fullScreenIntent);
-        } catch (Exception ignored) {
-        }
+        // NOTE: Do NOT call ctx.startActivity() here. Starting an Activity from a
+        // Service/BroadcastReceiver context without a live back-stack causes Android
+        // to push the current task to the back and show the home screen — which is
+        // exactly the "app keeps closing" bug. The full-screen intent on the notification
+        // handles launching IncomingCallActivity correctly (it has its own task due to
+        // taskAffinity="" in the manifest), so no direct launch is needed.
     }
 
     // Shared by the CallStyle Answer/Decline shade actions: relaunches MainActivity

@@ -18,33 +18,43 @@ import android.os.Vibrator;
 import android.view.WindowManager;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+import java.io.File;
 
 /**
- * Full-screen "someone is calling" UI, launched via a full-screen intent.
- * Shows over the lock screen like a real phone call.
+ * Full-screen incoming call UI shown over the lock screen.
  *
- * Fixes applied:
- *  1. Ringtone now plays on STREAM_RING with USAGE_VOICE_COMMUNICATION_SIGNALLING
- *     so it respects the ringer volume slider and rings audibly like a real call.
- *  2. Listens for ACTION_CALL_CANCELLED broadcast so this activity auto-dismisses
- *     when the caller hangs up before the callee answers.
- *  3. Cancels the call notification on entry so shade + full-screen don't fight.
+ * Ring behaviour:
+ *   - If the user has set a custom ringtone (saved as a file by VahinPermissionsPlugin
+ *     .saveCustomRingtone), that file is played with STREAM_RING audio attributes.
+ *   - Otherwise the device's default ringtone is used.
+ *   Both paths use USAGE_VOICE_COMMUNICATION_SIGNALLING + STREAM_RING so the ringer
+ *   volume slider (not notification volume) controls the call ring level, matching
+ *   exactly what the built-in phone dialer does.
+ *
+ * Caller-cancel:
+ *   VahinConnection.onAbort() broadcasts ACTION_CALL_CANCELLED when the remote side
+ *   hangs up before the callee answers. cancelReceiver catches it and calls finish()
+ *   so the screen goes away immediately instead of ringing until timeout.
+ *
+ * Notification:
+ *   The call notification is cancelled as soon as this activity is visible (so the
+ *   shade doesn't show a duplicate) and again when the user accepts or rejects.
  */
 public class IncomingCallActivity extends AppCompatActivity {
 
-    /** Broadcast action fired by VahinConnection.onAbort() when caller cancels. */
+    /** Broadcast sent by VahinConnection.onAbort() when the caller hangs up mid-ring. */
     public static final String ACTION_CALL_CANCELLED = "com.vahin.unifest.CALL_CANCELLED";
 
     private MediaPlayer ringtonePlayer;
     private Vibrator vibrator;
     private String from;
 
-    // Dismissed when the caller hangs up mid-ring.
     private final BroadcastReceiver cancelReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            // Caller hung up — stop ringing and close cleanly (no action sent to web app).
+            // Caller hung up — stop ringing, cancel notification, close.
             stopRingAndVibrate();
+            cancelCallNotification();
             finish();
         }
     };
@@ -53,7 +63,7 @@ public class IncomingCallActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Show over the lock screen, keep screen on, dismiss keyguard if possible.
+        // Show over lock screen, keep screen on.
         setShowWhenLocked(true);
         setTurnScreenOn(true);
         getWindow().addFlags(
@@ -80,11 +90,10 @@ public class IncomingCallActivity extends AppCompatActivity {
         findViewById(R.id.btn_incoming_accept).setOnClickListener(v -> finishWithAction("accept"));
         findViewById(R.id.btn_incoming_decline).setOnClickListener(v -> finishWithAction("decline"));
 
-        // Cancel the notification so the shade doesn't show a duplicate card while
-        // this full-screen activity is already visible.
+        // Cancel the heads-up notification immediately — the full-screen UI IS the UI now.
         cancelCallNotification();
 
-        // Listen for caller-cancelled broadcast.
+        // Register for caller-cancelled broadcast (fired from VahinConnection.onAbort).
         IntentFilter filter = new IntentFilter(ACTION_CALL_CANCELLED);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(cancelReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
@@ -97,21 +106,28 @@ public class IncomingCallActivity extends AppCompatActivity {
 
     private void startRingAndVibrate() {
         try {
-            // Use the default ringtone URI; fall back to the default notification sound
-            // if, for some reason, no ringtone is set on this device.
-            Uri ringtoneUri = RingtoneManager.getActualDefaultRingtoneUri(
-                this, RingtoneManager.TYPE_RINGTONE);
-            if (ringtoneUri == null) {
+            // 1. Try the user's custom ringtone saved by VahinPermissionsPlugin.saveCustomRingtone
+            File customFile = VahinPermissionsPlugin.getCustomRingtoneFile(this);
+            Uri ringtoneUri;
+            if (customFile.exists() && customFile.length() > 0) {
+                ringtoneUri = Uri.fromFile(customFile);
+            } else {
+                // 2. Fall back to the device's default phone ringtone
                 ringtoneUri = RingtoneManager.getActualDefaultRingtoneUri(
-                    this, RingtoneManager.TYPE_NOTIFICATION);
+                    this, RingtoneManager.TYPE_RINGTONE);
+                if (ringtoneUri == null) {
+                    // 3. Last resort: default notification sound
+                    ringtoneUri = RingtoneManager.getActualDefaultRingtoneUri(
+                        this, RingtoneManager.TYPE_NOTIFICATION);
+                }
             }
 
             ringtonePlayer = new MediaPlayer();
             ringtonePlayer.setDataSource(this, ringtoneUri);
 
-            // STREAM_RING + USAGE_VOICE_COMMUNICATION_SIGNALLING is the correct pair
-            // for incoming-call audio. This makes the volume slider that controls phone
-            // calls also control our ring volume — exactly what a real dialer does.
+            // USAGE_VOICE_COMMUNICATION_SIGNALLING + STREAM_RING = ringer volume slider
+            // controls call ring level, not the notification volume. This is the same
+            // pair used by AOSP's own Dialer app for incoming calls.
             ringtonePlayer.setAudioAttributes(new AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION_SIGNALLING)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -121,12 +137,11 @@ public class IncomingCallActivity extends AppCompatActivity {
             ringtonePlayer.prepare();
             ringtonePlayer.start();
         } catch (Exception ignored) {
-            // If MediaPlayer fails for any reason, vibration alone still alerts the user.
+            // If MediaPlayer fails, vibration alone still alerts the user.
         }
 
         vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
         if (vibrator != null) {
-            // Pattern: 0ms delay, 800ms on, 400ms off — feels like a real phone vibration.
             long[] pattern = {0, 800, 400};
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 vibrator.vibrate(VibrationEffect.createWaveform(pattern, 0));
@@ -162,17 +177,19 @@ public class IncomingCallActivity extends AppCompatActivity {
         stopRingAndVibrate();
         cancelCallNotification();
 
-        // Keep Telecom's call state in sync (answers/rejects via OS Bluetooth, Auto, etc.).
+        // Keep Telecom in sync — covers Bluetooth headset / Android Auto answer buttons.
         VahinConnection conn = VahinConnection.getCurrent();
         if (conn != null) {
             if ("accept".equals(action)) conn.answerFromAppUi();
             else conn.rejectFromAppUi();
         }
 
-        // Tell the web app what happened.
+        // Bring MainActivity to front with the action so the web app can react.
         Intent openMain = new Intent(this, MainActivity.class);
         openMain.addFlags(
-            Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            Intent.FLAG_ACTIVITY_NEW_TASK
+                | Intent.FLAG_ACTIVITY_CLEAR_TOP
+                | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         openMain.putExtra("vahinAction", action);
         openMain.putExtra("vahinFrom", from);
         startActivity(openMain);
@@ -182,7 +199,6 @@ public class IncomingCallActivity extends AppCompatActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        // If a second call arrives while this screen is showing, update the display.
         String newFrom = intent.getStringExtra("from");
         if (newFrom != null) {
             from = newFrom;

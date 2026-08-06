@@ -21,8 +21,8 @@ public class VahinConnectionService extends ConnectionService {
         connection.setAddress(
             Uri.fromParts("tel", sanitize(from), null), TelecomManager.PRESENTATION_ALLOWED);
         connection.setCallerDisplayName(from, TelecomManager.PRESENTATION_ALLOWED);
+        VahinConnection.setCurrent(connection); // must be before setRinging() so onAbort/onReject can find it
         connection.setRinging();
-        VahinConnection.setCurrent(connection);
         return connection;
     }
 

@@ -1,6 +1,7 @@
 package com.vahin.unifest;
 
 import android.content.Context;
+import android.content.Intent;
 import android.telecom.Connection;
 import android.telecom.DisconnectCause;
 
@@ -47,6 +48,7 @@ public class VahinConnection extends Connection {
         setDisconnected(new DisconnectCause(DisconnectCause.REJECTED));
         destroy();
         clearIfCurrent();
+        notifyWebApp("decline");
     }
 
     @Override
@@ -54,13 +56,29 @@ public class VahinConnection extends Connection {
         setDisconnected(new DisconnectCause(DisconnectCause.LOCAL));
         destroy();
         clearIfCurrent();
+        notifyWebApp("end");
     }
 
     @Override
     public void onAbort() {
+        // Caller cancelled before callee answered — dismiss IncomingCallActivity
+        // and cancel its notification so the user doesn't keep seeing a dead call.
         setDisconnected(new DisconnectCause(DisconnectCause.CANCELED));
         destroy();
         clearIfCurrent();
+
+        // Dismiss the call notification (covers the case where the activity isn't on screen)
+        android.app.NotificationManager nm =
+            (android.app.NotificationManager) appContext.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm != null && from != null) nm.cancel(("call-" + from).hashCode());
+
+        // Signal IncomingCallActivity to finish() if it's currently showing
+        android.content.Intent intent = new android.content.Intent(IncomingCallActivity.ACTION_CALL_CANCELLED);
+        intent.setPackage(appContext.getPackageName());
+        appContext.sendBroadcast(intent);
+
+        // Tell the web app this was a missed call
+        notifyWebApp("missed");
     }
 
     public void answerFromAppUi() { onAnswer(); }

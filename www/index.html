@@ -1098,6 +1098,7 @@ var blockedUsers=[],pinnedChats=[];
 var settings={ringtone:true,vibrate:true,backcam:false,confLimit:6,theme:'auto'};
 var customRingtoneDataUrl='';
 var incomingCall=null;
+var _missedCallDismiss=false; /* true while dismissing a missed call — skip sending call-cancel */
 var replyingTo=null,ctxMsg=null;
 var typingTimer=null,remoteTypingTimer=null;
 var mediaRecorder=null,audioChunks=[],recTimer=null,recSecs=0,recCancelled=false;
@@ -1609,7 +1610,7 @@ function handleData(from,data,conn){
       break;
     case 'call-cancel':
       if(incomingCall&&(incomingCall.peer===from||incomingCall.peerId===from)){
-        stopRing();document.getElementById('incoming-overlay').classList.remove('show');
+        stopRing();hideHUN();document.getElementById('incoming-overlay').classList.remove('show');
         incomingCall=null;logCall(from,'missed','in');showScreen('screen-chats','back');
         toast(from+' cancelled the call');
       }else if(weAreCaller&&!outCallConnected&&callPeerId===from){
@@ -2667,6 +2668,11 @@ function handleRingtoneFile(file){
     var cur=document.getElementById('ringtone-current');if(cur)cur.textContent='✓ Custom ringtone is active';
     var tb=document.getElementById('ringtone-test-btn');if(tb)tb.style.display='block';
     toast('Ringtone updated 🎵');
+    /* Bridge to native: save the audio file so IncomingCallActivity can play it even
+       when the app process is not running (localStorage is inaccessible from Java). */
+    if(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions){
+      Capacitor.Plugins.VahinPermissions.saveCustomRingtone({base64Data:dataUrl}).catch(function(){});
+    }
   };
   reader.onerror=function(){toast('Could not read file');};
   reader.readAsDataURL(file);
@@ -2678,6 +2684,10 @@ function resetRingtone(){
   var cur=document.getElementById('ringtone-current');if(cur)cur.textContent='Using the default Unifest tone';
   var tb=document.getElementById('ringtone-test-btn');if(tb)tb.style.display='none';
   toast('Reset to default tone');
+  /* Clear from native file store so IncomingCallActivity reverts to system default. */
+  if(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions){
+    Capacitor.Plugins.VahinPermissions.saveCustomRingtone({base64Data:''}).catch(function(){});
+  }
 }
 function playOutToneOnce(){
   var ctx=getAudioCtx();if(!ctx)return;
@@ -2943,6 +2953,23 @@ function showIncoming(pid,kind){
   document.getElementById('incoming-overlay').classList.add('show');
   startRing();
   showHUN('call',pid,kind==='conf'?'Conference invite':(kind==='voice'?'Incoming voice call':'Incoming video call'),function(){showScreen('screen-call');},function(){declineCall();});
+  /* Replay a pending native Accept/Decline that arrived before PeerJS was ready.
+     This is what makes the Answer button on the native call UI actually work when the
+     app was backgrounded — the user tapped Accept, handleNativeCallAction stored it,
+     and now that incomingCall is set we can execute it. */
+  if(pendingNativeAction){
+    var pna=pendingNativeAction;
+    pendingNativeAction=null;
+    clearTimeout(pendingNativeTimer);
+    if(!pna.from||pna.from===pid){
+      /* Small delay so incomingCall is fully set before acceptCall/declineCall reads it */
+      setTimeout(function(){
+        if(pna.action==='accept')acceptCall();
+        else if(pna.action==='decline')declineCall();
+      },120);
+      return; /* don't ring — user already answered */
+    }
+  }
 }
 async function acceptCall(){
   document.getElementById('incoming-overlay').classList.remove('show');
@@ -2980,7 +3007,7 @@ function declineCall(){
   hideHUN();stopRing();
   if(incomingCall&&!incomingCall.isConf){
     logCall(incomingCall.peer,'declined','in');
-    if(chatConn&&chatConn.peer===incomingCall.peer&&chatConn.open){try{chatConn.send({type:'call-cancel'});}catch(e){}}
+    if(!_missedCallDismiss&&chatConn&&chatConn.peer===incomingCall.peer&&chatConn.open){try{chatConn.send({type:'call-cancel'});}catch(e){}}
     try{incomingCall.close();}catch(e){}
   }
   incomingCall=null;showScreen('screen-chats','back');
@@ -3517,19 +3544,36 @@ function onFcmToken(token){
 }
 window.onFcmToken=onFcmToken;
 function getIncomingCallPeer(){if(!incomingCall)return null;return incomingCall.isConf?incomingCall.peerId:incomingCall.peer;}
-var nativeCallWaitTimer=null;
+/* pendingNativeAction: stores the Accept/Decline the user tapped on the native UI while
+   the PeerJS peer.on('call') callback hadn't fired yet (race between native notification
+   tap and WebRTC signalling arriving). showIncoming() checks this and fires immediately.
+   Cleared after use or after 60 s (stale call). */
+var pendingNativeAction=null;
+var pendingNativeTimer=null;
 function handleNativeCallAction(action,from){
   if(action==='message'){if(from&&myId)openDMChat(from);return;}
-  clearInterval(nativeCallWaitTimer);
-  var tries=0;
-  nativeCallWaitTimer=setInterval(function(){
-    tries++;
-    var p=getIncomingCallPeer();
-    if(p&&(!from||p===from)){
-      clearInterval(nativeCallWaitTimer);
-      if(action==='decline')declineCall();else if(action==='accept')acceptCall();
-    }else if(tries>30){clearInterval(nativeCallWaitTimer);}
-  },400);
+  if(action==='missed'||action==='decline'){
+    /* Caller hung up / OS rejected — dismiss any in-app ringing UI */
+    if(incomingCall){_missedCallDismiss=true;declineCall();_missedCallDismiss=false;}
+    else{stopRing();hideHUN();}
+    return;
+  }
+  if(action==='end'){
+    /* OS-level call end (Bluetooth button etc.) — mirrors endCall() */
+    if(typeof endCall==='function')endCall();
+    return;
+  }
+  var p=getIncomingCallPeer();
+  if(p&&(!from||p===from)){
+    /* PeerJS call already arrived — act immediately */
+    if(action==='decline')declineCall();else if(action==='accept')acceptCall();
+    return;
+  }
+  /* PeerJS call hasn't arrived yet (common when app was backgrounded and is waking up).
+     Store the action; showIncoming() will replay it as soon as incomingCall is set. */
+  clearTimeout(pendingNativeTimer);
+  pendingNativeAction={action:action,from:from};
+  pendingNativeTimer=setTimeout(function(){pendingNativeAction=null;},60000);
 }
 window.handleNativeCallAction=handleNativeCallAction;
 /* Web Push: works while the WebView process is alive. Native FCM (above) covers killed-app ringing. */

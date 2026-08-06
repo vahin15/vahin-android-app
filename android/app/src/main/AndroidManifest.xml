@@ -44,13 +44,21 @@
             </intent-filter>
         </service>
 
-        <!-- Full-screen "incoming call" UI, shown over the lock screen. -->
+        <!-- Full-screen "incoming call" UI, shown over the lock screen.
+             launchMode="singleInstance" + taskAffinity="" means this activity lives in
+             its OWN task and never enters or kills the MainActivity task. Without this,
+             singleTask would push MainActivity to the background (user sees home screen)
+             every time a call arrived. showWhenLocked/turnScreenOn are set in code. -->
         <activity
             android:name=".IncomingCallActivity"
             android:exported="false"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:excludeFromRecents="true"
-            android:launchMode="singleTask" />
+            android:taskAffinity=""
+            android:launchMode="singleInstance"
+            android:showOnLockScreen="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true" />
 
         <!-- Always-on WebSocket connection to the backend, independent of FCM/Google
              Play Services — a second delivery path for incoming calls/messages. -->

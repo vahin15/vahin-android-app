@@ -16,35 +16,20 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 import com.getcapacitor.PermissionState;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import android.util.Base64;
 
-// Exposes the two "special" permissions that Android's own permission-request APIs can't
-// surface from JS at all (there's no getUserMedia()-style prompt for either of these —
-// they only exist as native Settings screens):
-//
-//   - USE_FULL_SCREEN_INTENT (Android 14+ / API 34+): without this, incoming calls degrade
-//     to a normal heads-up notification instead of ringing full-screen like a real call.
-//   - Battery-optimization / OEM autostart exemption: without this, Android (and
-//     Xiaomi/Oppo/Vivo/Samsung's own battery managers) can kill the app in the background
-//     and FCM delivery silently stops, so calls never ring at all.
-//
-// MainActivity already best-effort prompts for both once via a one-time AlertDialog, but
-// once that's dismissed (even accidentally) there was previously no way back in without
-// reinstalling. This plugin lets the Settings screen show live status and re-open either
-// system screen on demand, any time.
 @CapacitorPlugin(
     name = "VahinPermissions",
     permissions = { @Permission(strings = { android.Manifest.permission.POST_NOTIFICATIONS }, alias = "notifications") }
 )
 public class VahinPermissionsPlugin extends Plugin {
 
-    // Fires the REAL system "Allow notifications?" dialog (not just a jump to Settings)
-    // — this is the one piece the old plugin was missing that a true one-tap chained
-    // flow needs. Only works pre-first-denial or once-denied-not-permanently; if Android
-    // has already permanently blocked the dialog, this resolves with it still denied and
-    // the JS side falls back to openNotificationSettings().
     @PluginMethod
     public void requestNotificationPermission(PluginCall call) {
-        if (Build.VERSION.SDK_INT < 33) { // permission didn't exist pre-Android 13
+        if (Build.VERSION.SDK_INT < 33) {
             call.resolve(new JSObject().put("granted", true));
             return;
         }
@@ -75,21 +60,13 @@ public class VahinPermissionsPlugin extends Plugin {
 
     @PluginMethod
     public void openNotificationSettings(PluginCall call) {
-        // On Samsung (and most OEMs) this is the one setting the app cannot re-request
-        // itself once denied — Android only shows the system permission dialog once per
-        // app; after that, tapping the permission API again is silently a no-op and the
-        // only way back is this Settings screen (or reinstalling). This is why
-        // notifications can appear to "just stop working" after a single accidental
-        // swipe-away of that first prompt, with no error anywhere to explain it.
         try {
             Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
             intent.putExtra(Settings.EXTRA_APP_PACKAGE, getContext().getPackageName());
             getActivity().startActivity(intent);
             call.resolve();
             return;
-        } catch (Exception ignored) {
-            // fall through
-        }
+        } catch (Exception ignored) {}
         openAppDetailsSettings();
         call.resolve();
     }
@@ -103,9 +80,7 @@ public class VahinPermissionsPlugin extends Plugin {
                 getActivity().startActivity(intent);
                 call.resolve();
                 return;
-            } catch (Exception ignored) {
-                // fall through to app-details as a last resort
-            }
+            } catch (Exception ignored) {}
         }
         openAppDetailsSettings();
         call.resolve();
@@ -113,15 +88,11 @@ public class VahinPermissionsPlugin extends Plugin {
 
     @PluginMethod
     public void openBatterySettings(PluginCall call) {
-        // Same best-effort sequence MainActivity uses on first launch: standard Android
-        // battery-exemption dialog, then whichever OEM autostart screen matches this device.
         try {
             Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
             intent.setData(Uri.parse("package:" + getContext().getPackageName()));
             getActivity().startActivity(intent);
-        } catch (Exception ignored) {
-            // Some OEM builds strip this intent; fall through, still try autostart below.
-        }
+        } catch (Exception ignored) {}
         MainActivity.requestOemAutoStartPermissionStatic(getActivity());
         call.resolve();
     }
@@ -151,23 +122,58 @@ public class VahinPermissionsPlugin extends Plugin {
         call.resolve();
     }
 
+    /**
+     * Called from JS whenever the user picks a custom ringtone (or clears it).
+     * Saves the raw audio bytes to a private file so IncomingCallActivity can play
+     * the user's MP3 via MediaPlayer without needing localStorage (which is
+     * inaccessible from Java). Pass base64Data="" to clear/reset to default.
+     *
+     * JS call:
+     *   Capacitor.Plugins.VahinPermissions.saveCustomRingtone({ base64Data: "..." })
+     */
+    @PluginMethod
+    public void saveCustomRingtone(PluginCall call) {
+        String base64Data = call.getString("base64Data", "");
+        File ringFile = getCustomRingtoneFile(getContext());
+        try {
+            if (base64Data == null || base64Data.isEmpty()) {
+                // Clear — delete the file so native falls back to system default
+                if (ringFile.exists()) ringFile.delete();
+            } else {
+                // Strip data-URL prefix if present (e.g. "data:audio/mp3;base64,...")
+                String raw = base64Data.contains(",") ? base64Data.split(",", 2)[1] : base64Data;
+                byte[] bytes = Base64.decode(raw, Base64.DEFAULT);
+                try (OutputStream os = new FileOutputStream(ringFile)) {
+                    os.write(bytes);
+                }
+            }
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to save ringtone: " + e.getMessage());
+        }
+    }
+
+    /** Returns the private file path used for the custom ringtone. */
+    public static File getCustomRingtoneFile(Context ctx) {
+        return new File(ctx.getFilesDir(), "custom_ringtone.mp3");
+    }
+
     private void openAppDetailsSettings() {
         try {
             Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
             intent.setData(Uri.parse("package:" + getContext().getPackageName()));
             getActivity().startActivity(intent);
-        } catch (ActivityNotFoundException ignored) {
-        }
+        } catch (ActivityNotFoundException ignored) {}
     }
 
     private boolean isFullScreenIntentGranted() {
-        if (Build.VERSION.SDK_INT < 34) return true; // not required below API 34
+        if (Build.VERSION.SDK_INT < 34) return true;
         NotificationManager nm = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
         return nm != null && nm.canUseFullScreenIntent();
     }
 
     private boolean isNotificationsGranted() {
-        if (Build.VERSION.SDK_INT < 33) return true; // permission didn't exist pre-Android 13
+        if (Build.VERSION.SDK_INT < 33) return true;
         return androidx.core.content.ContextCompat.checkSelfPermission(
             getContext(), android.Manifest.permission.POST_NOTIFICATIONS)
             == android.content.pm.PackageManager.PERMISSION_GRANTED;
