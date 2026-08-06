@@ -103,42 +103,77 @@ public class IncomingCallActivity extends AppCompatActivity {
         startRingAndVibrate();
     }
 
+    // Index into the fallback chain: 0 = custom ringtone, 1 = default ringtone,
+    // 2 = default notification sound, 3 = hardcoded system URI, -1 = give up (vibrate only).
+    private int ringFallbackStep = 0;
+
     private void startRingAndVibrate() {
+        playRingStep(0);
+        startVibrateLoop();
+    }
+
+    // Tries each candidate ringtone source in order and falls through to the next
+    // one if MediaPlayer fails to prepare or errors out. Uses prepareAsync() (NOT
+    // the old blocking prepare()) so a slow or malformed custom MP3 can never freeze
+    // the main thread — a synchronous prepare() that takes too long is exactly the
+    // kind of thing that trips Android's ANR ("app isn't responding") watchdog,
+    // which would show up as an error dialog and a ring that never actually starts.
+    private void playRingStep(int step) {
+        ringFallbackStep = step;
+        Uri ringtoneUri = resolveRingtoneUri(step);
+        if (ringtoneUri == null) {
+            // No more candidates — vibration-only is still active from startVibrateLoop().
+            return;
+        }
+
+        releasePlayer();
         try {
-            // 1. Try the user's custom ringtone saved by VahinPermissionsPlugin.saveCustomRingtone
-            File customFile = VahinPermissionsPlugin.getCustomRingtoneFile(this);
-            Uri ringtoneUri;
-            if (customFile.exists() && customFile.length() > 0) {
-                ringtoneUri = Uri.fromFile(customFile);
-            } else {
-                // 2. Fall back to the device's default phone ringtone
-                ringtoneUri = RingtoneManager.getActualDefaultRingtoneUri(
-                    this, RingtoneManager.TYPE_RINGTONE);
-                if (ringtoneUri == null) {
-                    // 3. Last resort: default notification sound
-                    ringtoneUri = RingtoneManager.getActualDefaultRingtoneUri(
-                        this, RingtoneManager.TYPE_NOTIFICATION);
-                }
-            }
-
             ringtonePlayer = new MediaPlayer();
-            ringtonePlayer.setDataSource(this, ringtoneUri);
-
-            // USAGE_VOICE_COMMUNICATION_SIGNALLING + STREAM_RING = ringer volume slider
-            // controls call ring level, not the notification volume. This is the same
-            // pair used by AOSP's own Dialer app for incoming calls.
             ringtonePlayer.setAudioAttributes(new AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION_SIGNALLING)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .setLegacyStreamType(AudioManager.STREAM_RING)
                 .build());
             ringtonePlayer.setLooping(true);
-            ringtonePlayer.prepare();
-            ringtonePlayer.start();
-        } catch (Exception ignored) {
-            // If MediaPlayer fails, vibration alone still alerts the user.
+            ringtonePlayer.setOnPreparedListener(MediaPlayer::start);
+            ringtonePlayer.setOnErrorListener((mp, what, extra) -> {
+                // This source is broken — move to the next candidate in the chain.
+                runOnUiThread(() -> playRingStep(step + 1));
+                return true; // we handled it, don't let MediaPlayer call onCompletion too
+            });
+            ringtonePlayer.setDataSource(this, ringtoneUri);
+            ringtonePlayer.prepareAsync(); // non-blocking — onPreparedListener starts playback
+        } catch (Exception e) {
+            // setDataSource() itself can throw synchronously for a bad/missing file —
+            // move on to the next candidate immediately instead of ringing silently.
+            playRingStep(step + 1);
         }
+    }
 
+    private Uri resolveRingtoneUri(int step) {
+        switch (step) {
+            case 0: {
+                File customFile = VahinPermissionsPlugin.getCustomRingtoneFile(this);
+                if (customFile.exists() && customFile.length() > 0) {
+                    return Uri.fromFile(customFile);
+                }
+                return resolveRingtoneUri(1); // no custom ringtone set — skip straight to default
+            }
+            case 1:
+                return RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_RINGTONE);
+            case 2:
+                return RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_NOTIFICATION);
+            case 3:
+                // Hardcoded last-resort system URI — covers devices where
+                // getActualDefaultRingtoneUri() itself returns null (silent-by-default
+                // profiles, some custom ROMs).
+                return android.provider.Settings.System.DEFAULT_RINGTONE_URI;
+            default:
+                return null; // exhausted every candidate — vibration only from here
+        }
+    }
+
+    private void startVibrateLoop() {
         vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
         if (vibrator != null) {
             long[] pattern = {0, 800, 400};
@@ -151,14 +186,20 @@ public class IncomingCallActivity extends AppCompatActivity {
         }
     }
 
-    private void stopRingAndVibrate() {
+    private void releasePlayer() {
         if (ringtonePlayer != null) {
             try {
+                ringtonePlayer.setOnPreparedListener(null);
+                ringtonePlayer.setOnErrorListener(null);
                 if (ringtonePlayer.isPlaying()) ringtonePlayer.stop();
                 ringtonePlayer.release();
             } catch (Exception ignored) {}
             ringtonePlayer = null;
         }
+    }
+
+    private void stopRingAndVibrate() {
+        releasePlayer();
         if (vibrator != null) {
             vibrator.cancel();
             vibrator = null;
