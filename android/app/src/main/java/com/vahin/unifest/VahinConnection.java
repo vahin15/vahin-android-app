@@ -2,6 +2,7 @@ package com.vahin.unifest;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.telecom.Connection;
 import android.telecom.DisconnectCause;
 import android.util.Log;
@@ -99,6 +100,21 @@ public class VahinConnection extends Connection {
 
             // Dismiss the call notification (covers the case where the activity isn't on screen)
             CallNotifier.cancelCallNotification(appContext, from);
+            // FIX: same id-drift safety net as IncomingCallActivity.cancelCallNotification —
+            // sweep the calls channel so a mismatched "from" can never leave a stuck notification.
+            try {
+                android.app.NotificationManager nm =
+                    (android.app.NotificationManager) appContext.getSystemService(Context.NOTIFICATION_SERVICE);
+                if (nm != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    for (android.service.notification.StatusBarNotification sbn : nm.getActiveNotifications()) {
+                        if (CallNotifier.CHANNEL_ID_CALLS.equals(sbn.getNotification().getChannelId())) {
+                            nm.cancel(sbn.getId());
+                        }
+                    }
+                }
+            } catch (Exception sweepEx) {
+                Log.w(TAG, "onAbort: notification sweep failed — " + sweepEx.getMessage());
+            }
 
             // Signal IncomingCallActivity to finish() if it's currently showing
             Intent intent = new Intent(IncomingCallActivity.ACTION_CALL_CANCELLED);

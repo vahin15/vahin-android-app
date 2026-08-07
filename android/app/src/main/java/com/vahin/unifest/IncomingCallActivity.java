@@ -51,6 +51,12 @@ public class IncomingCallActivity extends AppCompatActivity {
     private Vibrator vibrator;
     private String from;
 
+    // FIX: Telecom's built-in self-managed ringing timeout is ~30s, which is too short.
+    // We take control of the timeout ourselves so the ring lasts RING_TIMEOUT_MS and
+    // then cleanly resolves as a missed call instead of being cut off by the OS.
+    private final android.os.Handler timeoutHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private static final long RING_TIMEOUT_MS = 60_000; // 60 seconds
+
     private final BroadcastReceiver cancelReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -126,6 +132,14 @@ public class IncomingCallActivity extends AppCompatActivity {
             }
 
             startRingAndVibrate();
+
+            // FIX: auto-dismiss as a missed call after RING_TIMEOUT_MS instead of
+            // relying on Telecom's own ~30s timeout, which we don't control.
+            timeoutHandler.postDelayed(() -> {
+                Log.d(TAG, "ring timeout (" + RING_TIMEOUT_MS + "ms) reached — treating as missed call");
+                finishWithAction("missed");
+            }, RING_TIMEOUT_MS);
+
             Log.d(TAG, "onCreate: complete");
 
         } catch (Exception e) {
@@ -297,7 +311,24 @@ public class IncomingCallActivity extends AppCompatActivity {
 
     private void cancelCallNotification() {
         try {
+            // Cancel the specific notification by its known id (from -> id mapping).
             CallNotifier.cancelCallNotification(this, from);
+
+            // FIX: belt-and-suspenders sweep. If "from" here doesn't exactly match the
+            // "from" the notification was originally posted with (e.g. null vs empty
+            // string across a process restart), the id-based cancel above silently
+            // misses and the notification is left behind after the user cuts the call.
+            // Sweeping every active notification on the calls channel guarantees it's
+            // gone regardless of id drift.
+            android.app.NotificationManager nm = getSystemService(android.app.NotificationManager.class);
+            if (nm != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                for (android.service.notification.StatusBarNotification sbn : nm.getActiveNotifications()) {
+                    if (CallNotifier.CHANNEL_ID_CALLS.equals(sbn.getNotification().getChannelId())) {
+                        nm.cancel(sbn.getId());
+                        Log.d(TAG, "cancelCallNotification: swept stray call notification id=" + sbn.getId());
+                    }
+                }
+            }
         } catch (Exception e) {
             Log.w(TAG, "cancelCallNotification: exception — " + e.getMessage(), e);
         }
@@ -306,6 +337,10 @@ public class IncomingCallActivity extends AppCompatActivity {
     private void finishWithAction(String action) {
         try {
             Log.d(TAG, "finishWithAction: action=" + action + " from=" + from);
+            // Cancel the ring timeout no matter which path got us here (user tapped a
+            // button, OS/Bluetooth answered, or the timeout itself fired) so it never
+            // double-fires against an activity that's already finishing.
+            timeoutHandler.removeCallbacksAndMessages(null);
             stopRingAndVibrate();
             cancelCallNotification();
 
@@ -313,8 +348,13 @@ public class IncomingCallActivity extends AppCompatActivity {
             try {
                 VahinConnection conn = VahinConnection.getCurrent();
                 if (conn != null) {
-                    if ("accept".equals(action)) conn.answerFromAppUi();
-                    else conn.rejectFromAppUi();
+                    if ("accept".equals(action)) {
+                        conn.answerFromAppUi();
+                    } else if ("decline".equals(action) || "missed".equals(action)) {
+                        // "missed" (our own timeout) is treated like a decline from
+                        // Telecom's perspective — the callee never answered.
+                        conn.rejectFromAppUi();
+                    }
                 } else {
                     Log.w(TAG, "finishWithAction: VahinConnection.getCurrent() is null — "
                         + "Telecom state may be out of sync (call already cancelled by OS?)");
@@ -361,6 +401,7 @@ public class IncomingCallActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
+        timeoutHandler.removeCallbacksAndMessages(null);
         stopRingAndVibrate();
         try { unregisterReceiver(cancelReceiver); } catch (Exception ignored) {}
     }
