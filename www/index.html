@@ -2965,7 +2965,12 @@ function showIncoming(pid,kind){
   document.getElementById('ring-toggle-btn').textContent='🔊 Sound';
   document.getElementById('incoming-overlay').classList.add('show');
   startRing();
-  showHUN('call',pid,kind==='conf'?'Conference invite':(kind==='voice'?'Incoming voice call':'Incoming video call'),function(){showScreen('screen-call');},function(){declineCall();});
+  // FIX: previously also called showHUN('call', ...) here, which layered a small
+  // top-of-screen banner (with its own hardcoded 30s auto-dismiss) on top of the
+  // real full-screen incoming-overlay above. The banner disappearing after 30s made
+  // the whole call UI look like it had timed out with no buttons, even though the
+  // full-screen overlay (with proper Accept/Decline) was still showing underneath.
+  // The full-screen overlay is the actual call UI — no small banner needed for calls.
   /* Replay a pending native Accept/Decline that arrived before PeerJS was ready.
      This is what makes the Answer button on the native call UI actually work when the
      app was backgrounded — the user tapped Accept, handleNativeCallAction stored it,

@@ -93,6 +93,18 @@ public class MainActivity extends BridgeActivity {
         handleIntentExtras(getIntent());
     }
 
+    // FIX FOR USERS: re-check on every resume, not just cold start. This covers two
+    // cases the old onCreate-only check missed: (1) the user grants the permission in
+    // Settings and taps back — we want that reflected immediately, not on next cold
+    // launch; (2) the user reopens the app days later still without having granted it —
+    // the cooldown inside maybePromptFullScreenIntent() decides whether to re-ask, so
+    // this is safe to call on every resume without becoming a nag on every single one.
+    @Override
+    protected void onResume() {
+        super.onResume();
+        maybePromptFullScreenIntent();
+    }
+
     // Android 14+ (API 34+) requires the user to explicitly grant USE_FULL_SCREEN_INTENT
     // in Settings — declaring it in the manifest is no longer enough on its own once
     // targetSdkVersion is 34 or higher (this app targets 35). Without this grant, the
@@ -100,6 +112,15 @@ public class MainActivity extends BridgeActivity {
     // but it degrades to a normal heads-up notification (or nothing, if the app was fully
     // killed), which is why ringing can appear to work in testing on older devices/emulators
     // but silently fail for real users on current Android versions.
+    // FIX FOR USERS: previously this asked exactly once, ever. A "Not now" tap (or an
+    // accidental dismiss, which is extremely common on a dialog that appears right after
+    // install) set a permanent flag and the app never asked again — meaning ringing stayed
+    // silently broken forever for that user with no path back except them personally
+    // digging through phone settings unprompted. Since this permission is not optional
+    // (calling literally cannot ring without it), we now re-prompt on a cooldown instead
+    // of a one-shot ask, until the user actually grants it.
+    private static final long FSI_PROMPT_COOLDOWN_MS = 24 * 60 * 60 * 1000L; // 24 hours
+
     private void maybePromptFullScreenIntent() {
         if (Build.VERSION.SDK_INT < 34) return; // permission only exists / is restricted from API 34
         if (isFinishing() || isDestroyed()) return;
@@ -111,21 +132,23 @@ public class MainActivity extends BridgeActivity {
         boolean canUse = nm != null && nm.canUseFullScreenIntent();
         Log.d(TAG, "maybePromptFullScreenIntent: canUseFullScreenIntent=" + canUse);
 
-        if (nm != null && canUse) return; // already granted
+        if (nm != null && canUse) return; // already granted — nothing to do, ever again
 
         android.content.SharedPreferences prefs = getSharedPreferences("vahin_prefs", Context.MODE_PRIVATE);
-        if (prefs.getBoolean("fsi_prompt_shown", false)) return;
+        long lastShown = prefs.getLong("fsi_prompt_last_shown", 0);
+        long now = System.currentTimeMillis();
+        if (now - lastShown < FSI_PROMPT_COOLDOWN_MS) return; // asked recently — don't nag every launch
 
         Log.w(TAG, "maybePromptFullScreenIntent: USE_FULL_SCREEN_INTENT not granted — prompting user");
 
         new AlertDialog.Builder(this)
-            .setTitle("Allow full-screen calls")
-            .setMessage("So incoming calls ring and show a full-screen call UI (like a real " +
-                "phone call) even when Unifest is closed or the phone is locked, please allow " +
-                "\"Display over other apps / full-screen notifications\" on the next screen.")
+            .setTitle("Turn on full-screen calls")
+            .setMessage("So Unifest calls ring like a real phone call — even when the app is " +
+                "closed or your phone is locked — please allow \"Full screen notifications\" " +
+                "on the next screen. Takes a few seconds.")
             .setCancelable(true)
             .setPositiveButton("Allow", (d, w) -> {
-                prefs.edit().putBoolean("fsi_prompt_shown", true).apply();
+                prefs.edit().putLong("fsi_prompt_last_shown", now).apply();
                 try {
                     Intent intent = new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT);
                     intent.setData(Uri.parse("package:" + getPackageName()));
@@ -135,7 +158,7 @@ public class MainActivity extends BridgeActivity {
                     // Some OEM builds may not expose this screen; nothing more we can do.
                 }
             })
-            .setNegativeButton("Not now", (d, w) -> prefs.edit().putBoolean("fsi_prompt_shown", true).apply())
+            .setNegativeButton("Not now", (d, w) -> prefs.edit().putLong("fsi_prompt_last_shown", now).apply())
             .show();
     }
 

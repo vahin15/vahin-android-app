@@ -122,7 +122,20 @@ public final class CallNotifier {
                     .addPerson(caller)
                     .setCategory(NotificationCompat.CATEGORY_CALL)
                     .setOngoing(true)                   // call notifications must not be swipeable
-                    .setFullScreenIntent(fullScreenPI, true);
+                    .setFullScreenIntent(fullScreenPI, true)
+                    // FIX: this branch never set a contentIntent — tapping the notification
+                    // body did nothing. Tapping now opens the full-screen call UI, same as
+                    // the buttons.
+                    .setContentIntent(fullScreenPI)
+                    // FIX: CallStyle's native green/red circular buttons are frequently
+                    // NOT rendered by heavily customized OEM notification shades (MIUI,
+                    // ColorOS, FuntouchOS, One UI on older versions) — the notification
+                    // still posts, but with no visible way to answer. Adding explicit
+                    // addAction() buttons here is redundant on stock Android (CallStyle
+                    // already shows them) but guarantees a tappable Answer/Decline row
+                    // on OEMs that silently ignore CallStyle.
+                    .addAction(android.R.drawable.ic_menu_call, "Answer", answerPI)
+                    .addAction(android.R.drawable.ic_delete, "Decline", declinePI);
             } else {
                 // Pre-Android 12 fallback
                 builder = new NotificationCompat.Builder(ctx, CHANNEL_ID_CALLS)

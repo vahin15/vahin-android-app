@@ -197,6 +197,24 @@ public class IncomingCallActivity extends AppCompatActivity {
                 Log.d(TAG, "playRingStep: onPrepared at step=" + step + " — starting playback");
                 mp.start();
             });
+            // FIX: on some OEM firmware / audio decoders, setLooping(true) is silently
+            // ignored for content:// ringtone URIs — playback fires onCompletion once
+            // and then goes quiet instead of looping, which is exactly the "ring stops
+            // after a couple seconds" symptom. This listener is a manual-restart safety
+            // net: if onCompletion ever fires while we're still meant to be ringing
+            // (activity not finishing), just start() again.
+            ringtonePlayer.setOnCompletionListener(mp -> {
+                if (isFinishing() || isDestroyed()) return;
+                Log.w(TAG, "playRingStep: onCompletion fired despite setLooping(true) "
+                    + "— OEM ignored the loop flag, restarting playback manually");
+                try {
+                    mp.start();
+                } catch (Exception e) {
+                    Log.e(TAG, "playRingStep: manual restart after onCompletion failed — "
+                        + e.getMessage() + " — falling through to next ringtone candidate");
+                    runOnUiThread(() -> playRingStep(step + 1));
+                }
+            });
             ringtonePlayer.setOnErrorListener((mp, what, extra) -> {
                 // FIX A: log the MediaPlayer error code and extra so silent playback
                 // failures are diagnosable (what/extra codes are documented in MediaPlayer.java).
