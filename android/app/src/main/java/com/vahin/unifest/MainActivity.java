@@ -100,7 +100,7 @@ public class MainActivity extends BridgeActivity {
     // the cooldown inside maybePromptFullScreenIntent() decides whether to re-ask, so
     // this is safe to call on every resume without becoming a nag on every single one.
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         maybePromptFullScreenIntent();
     }
