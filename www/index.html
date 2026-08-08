@@ -1626,6 +1626,13 @@ function handleData(from,data,conn){
         stopRing();hideHUN();document.getElementById('incoming-overlay').classList.remove('show');
         incomingCall=null;logCall(from,'missed','in');showScreen('screen-chats','back');
         toast(from+' cancelled the call');
+        /* FIX: tell native Android the call was cancelled too. Without this, if the
+           app wasn't in the foreground at this exact moment, the native notification
+           and/or full-screen IncomingCallActivity never heard about the cancellation
+           and stayed stuck ringing on screen indefinitely with no way to dismiss it. */
+        try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.VahinPermissions){
+          window.Capacitor.Plugins.VahinPermissions.dismissCallNotification({from:from});
+        }}catch(e){}
       }else if(weAreCaller&&!outCallConnected&&callPeerId===from){
         toast(from+' declined the call');logCall(from,'declined','out');weAreCaller=false;endCall();
       }
@@ -3027,6 +3034,12 @@ function declineCall(){
     logCall(incomingCall.peer,'declined','in');
     if(!_missedCallDismiss&&chatConn&&chatConn.peer===incomingCall.peer&&chatConn.open){try{chatConn.send({type:'call-cancel'});}catch(e){}}
     try{incomingCall.close();}catch(e){}
+    /* FIX: same native dismiss as the call-cancel handler — covers the case where a
+       native notification for this call is also showing and only this in-app button
+       gets tapped. */
+    try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.VahinPermissions){
+      window.Capacitor.Plugins.VahinPermissions.dismissCallNotification({from:incomingCall.peer});
+    }}catch(e){}
   }
   incomingCall=null;showScreen('screen-chats','back');
 }
@@ -3601,6 +3614,19 @@ function handleNativeCallAction(action,from){
   }
   /* PeerJS call hasn't arrived yet (common when app was backgrounded and is waking up).
      Store the action; showIncoming() will replay it as soon as incomingCall is set. */
+  if(action==='accept'){
+    /* FIX: give immediate visible feedback instead of silently doing nothing while
+       we wait for the call to arrive — this is what made Answer look completely
+       broken even when it was actually working a few seconds later in the background.
+       Also actively kick the peer connection to reconnect rather than passively
+       waiting for its own retry timer, since we know for certain right now that we
+       need it. */
+    toast('Connecting call\u2026');
+    try{
+      if(peer&&!peer.destroyed&&peer.disconnected){peer.reconnect();}
+      else if(!peer||peer.destroyed){startPeer();}
+    }catch(e){}
+  }
   clearTimeout(pendingNativeTimer);
   pendingNativeAction={action:action,from:from};
   pendingNativeTimer=setTimeout(function(){pendingNativeAction=null;},60000);

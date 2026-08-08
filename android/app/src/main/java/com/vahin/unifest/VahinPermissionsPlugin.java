@@ -124,10 +124,19 @@ public class VahinPermissionsPlugin extends Plugin {
 
     /**
      * Called from JS whenever a call ends, is answered, or is declined FROM THE WEB
-     * SIDE (e.g. the in-call screen's End Call button). The native Accept/Decline
-     * buttons already cancel the notification themselves (IncomingCallActivity /
-     * VahinConnection) — this covers ending a call from inside the app, so the
-     * "Incoming call" notification (if somehow still present) always gets cleared.
+     * SIDE (e.g. the in-call screen's End Call button, or the callee receiving a
+     * 'call-cancel' data-channel message when the caller hangs up before answer).
+     * The native Accept/Decline buttons already cancel the notification themselves
+     * (IncomingCallActivity / VahinConnection) — this covers every other path that
+     * needs the native call UI dismissed from the JS side.
+     *
+     * FIX: previously this only cancelled the notification. If IncomingCallActivity
+     * (the full-screen ringing UI) was the thing actually on screen when the caller
+     * cancelled, cancelling just the notification left the full-screen activity
+     * stuck ringing indefinitely with no way for the user to dismiss it. Now this
+     * also broadcasts ACTION_CALL_CANCELLED, the same signal VahinConnection.onAbort()
+     * sends, so IncomingCallActivity's own cancelReceiver finishes it immediately —
+     * whichever of the two (notification or full-screen activity) is actually showing.
      *
      * JS call:
      *   Capacitor.Plugins.VahinPermissions.dismissCallNotification({ from: "peerId" })
@@ -137,6 +146,15 @@ public class VahinPermissionsPlugin extends Plugin {
         String from = call.getString("from", "");
         if (!from.isEmpty()) {
             CallNotifier.cancelCallNotification(getContext(), from);
+            try {
+                Intent cancelIntent = new Intent(IncomingCallActivity.ACTION_CALL_CANCELLED);
+                cancelIntent.setPackage(getContext().getPackageName());
+                cancelIntent.putExtra("from", from);
+                getContext().sendBroadcast(cancelIntent);
+            } catch (Exception e) {
+                android.util.Log.w("VahinPermissionsPlugin",
+                    "dismissCallNotification: failed to broadcast cancel — " + e.getMessage());
+            }
         }
         call.resolve();
     }

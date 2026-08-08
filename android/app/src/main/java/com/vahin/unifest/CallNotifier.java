@@ -121,7 +121,15 @@ public final class CallNotifier {
                         .forIncomingCall(caller, declinePI, answerPI))
                     .addPerson(caller)
                     .setCategory(NotificationCompat.CATEGORY_CALL)
-                    .setOngoing(true)                   // call notifications must not be swipeable
+                    // FIX: was setOngoing(true), making the notification impossible to
+                    // manually swipe away. That's normally fine for a real phone dialer
+                    // because the OS guarantees cleanup — but every auto-cancel path in
+                    // this app (caller-cancel signal, Telecom onAbort, answer/decline)
+                    // depends on our own code running successfully, and any gap in that
+                    // chain left users with a notification that could NEVER be removed,
+                    // not even manually. Swipeable now, so a stuck notification is at
+                    // worst an annoyance instead of a permanent, un-removable one.
+                    .setOngoing(false)
                     .setFullScreenIntent(fullScreenPI, true)
                     // FIX: this branch never set a contentIntent — tapping the notification
                     // body did nothing. Tapping now opens the full-screen call UI, same as
@@ -144,7 +152,7 @@ public final class CallNotifier {
                     .setContentText(safeFrom + " is calling you on Unifest")
                     .setPriority(NotificationCompat.PRIORITY_MAX)   // MAX not HIGH for calls
                     .setCategory(NotificationCompat.CATEGORY_CALL)
-                    .setOngoing(true)
+                    .setOngoing(false) // FIX: same reasoning as the API 31+ branch above — always swipeable
                     .setFullScreenIntent(fullScreenPI, true)
                     .setContentIntent(fullScreenPI)
                     .addAction(android.R.drawable.ic_menu_call, "Answer",
