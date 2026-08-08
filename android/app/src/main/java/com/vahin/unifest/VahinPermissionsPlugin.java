@@ -119,6 +119,18 @@ public class VahinPermissionsPlugin extends Plugin {
     @PluginMethod
     public void stopSignalService(PluginCall call) {
         getContext().stopService(new Intent(getContext(), SignalService.class));
+        // Clear the credentials SignalService persists for OS-triggered restarts (see
+        // SignalService.onStartCommand). Without this, logging out on the web side and
+        // stopping the service still leaves the old session sitting in SharedPreferences,
+        // so a later system restart with a null intent would silently reconnect as the
+        // previous user.
+        try {
+            getContext().getSharedPreferences("vahin_prefs", Context.MODE_PRIVATE)
+                .edit()
+                .remove("signal_my_id")
+                .remove("signal_token")
+                .apply();
+        } catch (Exception ignored) {}
         call.resolve();
     }
 
