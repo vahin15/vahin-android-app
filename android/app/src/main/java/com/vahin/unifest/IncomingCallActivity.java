@@ -54,8 +54,13 @@ public class IncomingCallActivity extends AppCompatActivity {
     // FIX: Telecom's built-in self-managed ringing timeout is ~30s, which is too short.
     // We take control of the timeout ourselves so the ring lasts RING_TIMEOUT_MS and
     // then cleanly resolves as a missed call instead of being cut off by the OS.
+    //
+    // Increased from 60s to 120s to match the caller side's TOTAL_RING_MS (2 minutes,
+    // see index.html) — previously the callee's screen could time out and mark a call
+    // "missed" a full minute before the caller had actually given up, so calls were
+    // being dropped from this side well within the window the caller was still ringing.
     private final android.os.Handler timeoutHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-    private static final long RING_TIMEOUT_MS = 60_000; // 60 seconds
+    private static final long RING_TIMEOUT_MS = 120_000; // 120 seconds (2 minutes)
 
     private final BroadcastReceiver cancelReceiver = new BroadcastReceiver() {
         @Override

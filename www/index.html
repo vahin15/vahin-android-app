@@ -3614,6 +3614,16 @@ function getIncomingCallPeer(){if(!incomingCall)return null;return incomingCall.
 var pendingNativeAction=null;
 var pendingNativeTimer=null;
 function handleNativeCallAction(action,from){
+  /* FIX: on a cold boot (app was killed, user tapped Answer), enterApp() runs
+     maybeShowPermSetup() before this function has a chance to fire — the native
+     bridge takes a beat to become ready, so the "don't show over a call" check
+     inside maybeShowPermSetup() loses the race and the setup screen wins,
+     trapping the user on "Quick setup for reliable calls" with no way into the
+     call that's actually connecting behind it. Since we're handling a native
+     call action right now, immediately kick the setup screen out of the way if
+     it's showing, for every action (accept/decline/missed) so it can never be
+     left covering the call/chats screen. */
+  try{if(document.getElementById('screen-permsetup').classList.contains('active'))closePermSetup(false);}catch(e){}
   if(action==='message'){if(from&&myId)openDMChat(from);return;}
   if(action==='missed'||action==='decline'){
     /* Caller hung up / OS rejected — dismiss any in-app ringing UI */
