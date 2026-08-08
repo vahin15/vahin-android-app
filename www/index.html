@@ -717,6 +717,7 @@ button,input,textarea{font-family:inherit;}
         <div class="settings-row" id="notif-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(220,38,38,.1);">🔔</div><div><div class="s-label">Notifications</div><div class="s-sub" id="notif-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="fsi-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(220,38,38,.1);">📞</div><div><div class="s-label">Full-screen calls</div><div class="s-sub" id="fsi-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="battery-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(220,38,38,.1);">🔋</div><div><div class="s-label">Allow background running</div><div class="s-sub" id="battery-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="debug-log-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(107,114,128,.1);">🧪</div><div><div class="s-label">Debug log</div><div class="s-sub">View/copy call diagnostics for support</div></div></div><div class="chevron">›</div></div>
       </div>
     </div>
     <div class="settings-section">
@@ -897,6 +898,18 @@ button,input,textarea{font-family:inherit;}
       <button class="modal-btn-cancel" id="ringtone-reset-btn">Use Default</button>
       <button class="btn-primary" style="flex:1;" id="ringtone-done-btn">Done</button>
     </div>
+  </div>
+</div>
+<div class="modal-overlay" id="debug-log-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div><div class="modal-title">Debug Log</div>
+    <div style="font-size:12.5px;color:var(--text2);line-height:1.6;">The last few call events recorded on this device, in order. Trigger a test call, then open this and copy it to share.</div>
+    <textarea id="debug-log-text" readonly style="width:100%;height:260px;font-family:monospace;font-size:11px;background:var(--surface2);color:var(--text);border:1.5px solid var(--border2);border-radius:10px;padding:10px;box-sizing:border-box;resize:none;"></textarea>
+    <div class="modal-btn-row">
+      <button class="modal-btn-cancel" id="debug-log-clear-btn">Clear</button>
+      <button class="btn-primary" style="flex:1;" id="debug-log-copy-btn">Copy to clipboard</button>
+    </div>
+    <button class="btn-primary" id="debug-log-close-btn" style="background:var(--surface2);color:var(--text);box-shadow:none;border:1.5px solid var(--border2);margin-top:6px;">Close</button>
   </div>
 </div>
 <div class="ctx-overlay" id="ctx-overlay">
@@ -3954,6 +3967,39 @@ function bindEvents(){
   });
   document.getElementById('battery-row').addEventListener('click',async function(){
     if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openBatterySettings();
+  });
+  document.getElementById('debug-log-row').addEventListener('click',async function(){
+    var ta=document.getElementById('debug-log-text');
+    ta.value='Loading…';
+    document.getElementById('debug-log-modal').classList.add('show');
+    try{
+      var r=await Capacitor.Plugins.VahinPermissions.getDiagnosticLog();
+      ta.value=r&&r.log?r.log:'(no diagnostic entries yet — trigger a test call first)';
+    }catch(e){ta.value='Could not read diagnostic log: '+e.message;}
+  });
+  document.getElementById('debug-log-close-btn').addEventListener('click',function(){
+    document.getElementById('debug-log-modal').classList.remove('show');
+  });
+  document.getElementById('debug-log-modal').addEventListener('click',function(e){
+    if(e.target===this)this.classList.remove('show');
+  });
+  document.getElementById('debug-log-clear-btn').addEventListener('click',async function(){
+    try{await Capacitor.Plugins.VahinPermissions.clearDiagnosticLog();}catch(e){}
+    document.getElementById('debug-log-text').value='(cleared — trigger a test call to record new entries)';
+  });
+  document.getElementById('debug-log-copy-btn').addEventListener('click',async function(){
+    var text=document.getElementById('debug-log-text').value;
+    try{
+      await navigator.clipboard.writeText(text);
+      toast('Copied — paste it to share');
+    }catch(e){
+      /* Clipboard API can be blocked in some WebView configs — fall back to
+         select+execCommand, which works even without clipboard permission. */
+      var ta=document.getElementById('debug-log-text');
+      ta.focus();ta.select();
+      try{document.execCommand('copy');toast('Copied — paste it to share');}
+      catch(e2){toast('Could not copy — select the text manually');}
+    }
   });
   document.getElementById('ps-enable-all-btn').addEventListener('click',function(){enableAllPermissions();});
   document.getElementById('ps-done-btn').addEventListener('click',async function(){

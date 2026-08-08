@@ -168,6 +168,8 @@ public final class CallNotifier {
             }
             nm.notify(callNotifId(safeFrom), builder.build());
             Log.d(TAG, "showIncomingCall: notification posted, id=" + callNotifId(safeFrom));
+            DebugLog.log(TAG, "Notification POSTED — from=" + safeFrom
+                + " branch=" + (Build.VERSION.SDK_INT >= 31 ? "CallStyle(API31+)" : "fallback(pre-API31)"));
             // Do NOT call ctx.startActivity() here — the full-screen intent handles it.
             // A direct startActivity() from a Service pushes MainActivity to the back
             // and causes the "app closes to home screen" bug.

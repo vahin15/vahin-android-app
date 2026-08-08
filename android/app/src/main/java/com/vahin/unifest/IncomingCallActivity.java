@@ -62,6 +62,7 @@ public class IncomingCallActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             // Caller hung up — stop ringing, cancel notification, close.
             Log.d(TAG, "cancelReceiver: ACTION_CALL_CANCELLED received — finishing");
+            DebugLog.log(TAG, "cancelReceiver fired — ACTION_CALL_CANCELLED broadcast received");
             stopRingAndVibrate();
             cancelCallNotification();
             finish();
@@ -137,10 +138,12 @@ public class IncomingCallActivity extends AppCompatActivity {
             // relying on Telecom's own ~30s timeout, which we don't control.
             timeoutHandler.postDelayed(() -> {
                 Log.d(TAG, "ring timeout (" + RING_TIMEOUT_MS + "ms) reached — treating as missed call");
+                DebugLog.log(TAG, "60s ring TIMEOUT fired (our own Handler) — from=" + from);
                 finishWithAction("missed");
             }, RING_TIMEOUT_MS);
 
             Log.d(TAG, "onCreate: complete");
+            DebugLog.log(TAG, "IncomingCallActivity LAUNCHED — from=" + from);
 
         } catch (Exception e) {
             Log.e(TAG, "onCreate: fatal exception — "
@@ -355,6 +358,7 @@ public class IncomingCallActivity extends AppCompatActivity {
     private void finishWithAction(String action) {
         try {
             Log.d(TAG, "finishWithAction: action=" + action + " from=" + from);
+            DebugLog.log(TAG, "finishWithAction called — action=" + action + " from=" + from);
             // Cancel the ring timeout no matter which path got us here (user tapped a
             // button, OS/Bluetooth answered, or the timeout itself fired) so it never
             // double-fires against an activity that's already finishing.

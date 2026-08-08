@@ -195,6 +195,26 @@ public class VahinPermissionsPlugin extends Plugin {
         return new File(ctx.getFilesDir(), "custom_ringtone.mp3");
     }
 
+    /**
+     * Returns the in-memory diagnostic log (see DebugLog.java) — the key call-flow
+     * checkpoints (notification posted, activity launched, timeout fired, Telecom
+     * onAbort, etc.) recorded in order with timestamps. Lets a call be diagnosed
+     * from inside the app itself, no adb/PC required.
+     *
+     * JS call:
+     *   Capacitor.Plugins.VahinPermissions.getDiagnosticLog() -> { log: "..." }
+     */
+    @PluginMethod
+    public void getDiagnosticLog(PluginCall call) {
+        call.resolve(new JSObject().put("log", DebugLog.getAll()));
+    }
+
+    @PluginMethod
+    public void clearDiagnosticLog(PluginCall call) {
+        DebugLog.clear();
+        call.resolve();
+    }
+
     private void openAppDetailsSettings() {
         try {
             Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);

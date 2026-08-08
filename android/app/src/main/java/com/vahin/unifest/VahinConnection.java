@@ -94,6 +94,8 @@ public class VahinConnection extends Connection {
         // and cancel its notification so the user doesn't keep seeing a dead call.
         try {
             Log.d(TAG, "onAbort: caller cancelled — from=" + from);
+            DebugLog.log(TAG, "Telecom onAbort() called by OS — from=" + from
+                + " (this is Android's own Telecom framework ending the call, not our app code)");
             setDisconnected(new DisconnectCause(DisconnectCause.CANCELED));
             destroy();
             clearIfCurrent();
