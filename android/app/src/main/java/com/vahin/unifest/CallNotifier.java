@@ -3,269 +3,259 @@ package com.vahin.unifest;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
+import android.media.AudioAttributes;
+import android.media.AudioManager;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
-import android.os.IBinder;
 import android.util.Log;
-import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
-import org.json.JSONObject;
-import java.util.concurrent.TimeUnit;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.WebSocket;
-import okhttp3.WebSocketListener;
 
-/**
- * Always-on WebSocket to the backend's /presence hub — a second, independent delivery
- * path alongside FCM so calls arrive even when Google Play Services is unreliable.
- *
- * Fix: incoming call events now go through VahinTelecom.addIncomingCall() (same as
- * VahinMessagingService) instead of directly to CallNotifier. This gives the OS proper
- * awareness of the call: real ringer audio, DND bypass, Bluetooth/Auto routing, and
- * the system call UI. CallNotifier is kept as a fallback if Telecom refuses.
- */
-public class SignalService extends Service {
+public final class CallNotifier {
 
-    private static final String TAG = "SignalService";
+    private static final String TAG = "CallNotifier";
 
-    private static final String CHANNEL_ID = "vahin_signal";
-    private static final int NOTIF_ID = 4200;
-    private static final String WS_URL = "wss://vahin-backend.onrender.com/presence";
+    public static final String CHANNEL_ID_CALLS    = "vahin_calls";
+    public static final String CHANNEL_ID_MESSAGES = "vahin_messages";
 
-    private OkHttpClient client;
-    private WebSocket socket;
-    private String myId;
-    private String token;
-    private int reconnectAttempt = 0;
-    private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
-    private volatile boolean stopping = false;
+    private CallNotifier() {}
 
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        Log.d(TAG, "onCreate");
-        client = new OkHttpClient.Builder()
-            .pingInterval(20, TimeUnit.SECONDS)
-            .readTimeout(0, TimeUnit.MILLISECONDS)
-            .build();
+    public static void ensureChannels(Context ctx) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
+        // FIX D: wrap channel creation — some OEM builds have broken NotificationManager
+        // implementations that throw on createNotificationChannel().
+        try {
+            NotificationManager nm = ctx.getSystemService(NotificationManager.class);
+            if (nm == null) {
+                Log.e(TAG, "ensureChannels: NotificationManager is null — cannot create channels");
+                return;
+            }
+
+            // ── CALLS channel ────────────────────────────────────────────────────────
+            // Must be IMPORTANCE_HIGH so the heads-up / full-screen intent fires.
+            // We also set a ringtone sound on the channel so the notification itself
+            // makes noise *before* IncomingCallActivity even opens (covers the case
+            // where the full-screen intent is delayed by the OS).
+            // setSound() on a channel only takes effect the FIRST time the channel is
+            // created — after that Android ignores it (user controls it in settings).
+            // So if you previously created this channel without a sound, uninstall the
+            // app and reinstall, or clear app data, to pick it up.
+            Uri ringtoneUri = null;
+            try {
+                ringtoneUri = RingtoneManager.getActualDefaultRingtoneUri(
+                    ctx, RingtoneManager.TYPE_RINGTONE);
+            } catch (Exception e) {
+                Log.w(TAG, "ensureChannels: could not resolve default ringtone URI — " + e.getMessage());
+            }
+
+            AudioAttributes audioAttr = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION_SIGNALLING)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setLegacyStreamType(AudioManager.STREAM_RING)
+                .build();
+
+            NotificationChannel calls = new NotificationChannel(
+                CHANNEL_ID_CALLS, "Incoming calls", NotificationManager.IMPORTANCE_HIGH);
+            calls.setDescription("Rings for incoming Unifest calls");
+            calls.enableVibration(true);
+            calls.setBypassDnd(true);
+            if (ringtoneUri != null) calls.setSound(ringtoneUri, audioAttr);
+            nm.createNotificationChannel(calls);
+
+            // ── MESSAGES channel ─────────────────────────────────────────────────────
+            // Default importance = shows a heads-up with the default notification sound.
+            // No setOngoing — messages must be swipeable.
+            NotificationChannel messages = new NotificationChannel(
+                CHANNEL_ID_MESSAGES, "Messages", NotificationManager.IMPORTANCE_DEFAULT);
+            nm.createNotificationChannel(messages);
+
+            Log.d(TAG, "ensureChannels: notification channels created/verified");
+
+        } catch (Exception e) {
+            Log.e(TAG, "ensureChannels: exception creating channels — "
+                + e.getClass().getSimpleName() + ": " + e.getMessage(), e);
+        }
     }
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        String intentMyId  = intent != null ? intent.getStringExtra("myId")  : null;
-        String intentToken = intent != null ? intent.getStringExtra("token") : null;
+    public static void showIncomingCall(Context ctx, String type, String from) {
+        // FIX D: wrap entire body — if this throws (bad context after process restart,
+        // OEM notification manager bug) we log it and survive. A crash here is exactly
+        // the kind of thing that would surface as the "back error" the user reported.
+        try {
+            ensureChannels(ctx);
+            String safeFrom = (from == null) ? "Someone" : from;
+            boolean isConf  = "conf".equals(type);
 
-        if (intentMyId != null && intentToken != null) {
-            // Normal path: JS explicitly (re)started us with fresh credentials — persist
-            // them so a later OS-triggered restart (see below) can recover without JS.
-            myId = intentMyId;
-            token = intentToken;
-            savePersistedCredentials(myId, token);
-        } else {
-            // BUG FIX: START_STICKY means the system can kill this service under memory
-            // pressure and later recreate it itself with a NULL intent (no extras). That's
-            // exactly the scenario this service exists for — the app backgrounded/killed
-            // and OS memory pressure hit. Previously myId/token stayed null in that case,
-            // connect() bailed out immediately below, and the "always-on" WebSocket path
-            // silently went dead until the user manually reopened the app — defeating the
-            // entire purpose of this service. Now we fall back to SharedPreferences.
-            android.content.SharedPreferences prefs = getSharedPreferences("vahin_prefs", MODE_PRIVATE);
-            String savedMyId  = prefs.getString("signal_my_id", null);
-            String savedToken = prefs.getString("signal_token", null);
-            if (savedMyId != null && savedToken != null) {
-                myId = savedMyId;
-                token = savedToken;
-                Log.d(TAG, "onStartCommand: recovered myId/token from SharedPreferences "
-                    + "(system restarted service with a null/incomplete intent)");
+            Log.d(TAG, "showIncomingCall: from=" + safeFrom + " type=" + type);
+
+            Intent fullScreenIntent = new Intent(ctx, IncomingCallActivity.class);
+            fullScreenIntent.addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            fullScreenIntent.putExtra("from", safeFrom);
+            fullScreenIntent.putExtra("isConf", isConf);
+            PendingIntent fullScreenPI = PendingIntent.getActivity(
+                ctx, safeFrom.hashCode(), fullScreenIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+            NotificationCompat.Builder builder;
+
+            if (Build.VERSION.SDK_INT >= 31) {
+                // Android 12+ — use CallStyle: gives native green/red buttons in the shade
+                // and is the only notification shape Android guarantees won't be throttled
+                // for repeated high-priority calls.
+                androidx.core.app.Person caller = new androidx.core.app.Person.Builder()
+                    .setName(safeFrom)
+                    .setImportant(true)
+                    .build();
+                PendingIntent answerPI  = actionPendingIntent(ctx, safeFrom, "accept");
+                PendingIntent declinePI = actionPendingIntent(ctx, safeFrom, "decline");
+
+                builder = new NotificationCompat.Builder(ctx, CHANNEL_ID_CALLS)
+                    .setSmallIcon(android.R.drawable.sym_call_incoming)
+                    .setContentText(isConf ? "Conference invite \u00b7 Unifest" : "Incoming call \u00b7 Unifest")
+                    .setStyle(NotificationCompat.CallStyle
+                        .forIncomingCall(caller, declinePI, answerPI))
+                    .addPerson(caller)
+                    .setCategory(NotificationCompat.CATEGORY_CALL)
+                    // FIX: was setOngoing(true), making the notification impossible to
+                    // manually swipe away. That's normally fine for a real phone dialer
+                    // because the OS guarantees cleanup — but every auto-cancel path in
+                    // this app (caller-cancel signal, Telecom onAbort, answer/decline)
+                    // depends on our own code running successfully, and any gap in that
+                    // chain left users with a notification that could NEVER be removed,
+                    // not even manually. Swipeable now, so a stuck notification is at
+                    // worst an annoyance instead of a permanent, un-removable one.
+                    .setOngoing(false)
+                    .setFullScreenIntent(fullScreenPI, true)
+                    // FIX: this branch never set a contentIntent — tapping the notification
+                    // body did nothing. Tapping now opens the full-screen call UI, same as
+                    // the buttons.
+                    .setContentIntent(fullScreenPI)
+                    // FIX: CallStyle's native green/red circular buttons are frequently
+                    // NOT rendered by heavily customized OEM notification shades (MIUI,
+                    // ColorOS, FuntouchOS, One UI on older versions) — the notification
+                    // still posts, but with no visible way to answer. Adding explicit
+                    // addAction() buttons here is redundant on stock Android (CallStyle
+                    // already shows them) but guarantees a tappable Answer/Decline row
+                    // on OEMs that silently ignore CallStyle.
+                    .addAction(android.R.drawable.ic_menu_call, "Answer", answerPI)
+                    .addAction(android.R.drawable.ic_delete, "Decline", declinePI);
             } else {
-                Log.w(TAG, "onStartCommand: no intent extras and no persisted credentials — "
-                    + "cannot connect until JS calls startSignalService() again");
+                // Pre-Android 12 fallback
+                builder = new NotificationCompat.Builder(ctx, CHANNEL_ID_CALLS)
+                    .setSmallIcon(android.R.drawable.sym_call_incoming)
+                    .setContentTitle(isConf ? "Conference invite" : "Incoming call")
+                    .setContentText(safeFrom + " is calling you on Unifest")
+                    .setPriority(NotificationCompat.PRIORITY_MAX)   // MAX not HIGH for calls
+                    .setCategory(NotificationCompat.CATEGORY_CALL)
+                    .setOngoing(false) // FIX: same reasoning as the API 31+ branch above — always swipeable
+                    .setFullScreenIntent(fullScreenPI, true)
+                    .setContentIntent(fullScreenPI)
+                    .addAction(android.R.drawable.ic_menu_call, "Answer",
+                        actionPendingIntent(ctx, safeFrom, "accept"))
+                    .addAction(android.R.drawable.ic_delete, "Decline",
+                        actionPendingIntent(ctx, safeFrom, "decline"));
             }
-        }
 
-        Log.d(TAG, "onStartCommand: myId=" + myId + " (token present=" + (token != null) + ")");
-        startForeground(NOTIF_ID, buildForegroundNotification());
-        stopping = false;
-        connect();
-        return START_STICKY;
-    }
+            NotificationManager nm = ctx.getSystemService(NotificationManager.class);
+            if (nm == null) {
+                Log.e(TAG, "showIncomingCall: NotificationManager is null — notification cannot be posted");
+                return;
+            }
+            nm.notify(callNotifId(safeFrom), builder.build());
+            Log.d(TAG, "showIncomingCall: notification posted, id=" + callNotifId(safeFrom));
+            DebugLog.log(TAG, "Notification POSTED — from=" + safeFrom
+                + " branch=" + (Build.VERSION.SDK_INT >= 31 ? "CallStyle(API31+)" : "fallback(pre-API31)"));
+            // Do NOT call ctx.startActivity() here — the full-screen intent handles it.
+            // A direct startActivity() from a Service pushes MainActivity to the back
+            // and causes the "app closes to home screen" bug.
 
-    private void savePersistedCredentials(String myId, String token) {
-        try {
-            getSharedPreferences("vahin_prefs", MODE_PRIVATE)
-                .edit()
-                .putString("signal_my_id", myId)
-                .putString("signal_token", token)
-                .apply();
         } catch (Exception e) {
-            Log.w(TAG, "savePersistedCredentials: failed to persist — " + e.getMessage());
+            Log.e(TAG, "showIncomingCall: exception — "
+                + e.getClass().getSimpleName() + ": " + e.getMessage(), e);
         }
     }
 
-    private void clearPersistedCredentials() {
+    /** Cancel the ongoing call notification — call this when answered, rejected, or ended. */
+    public static void cancelCallNotification(Context ctx, String from) {
+        if (from == null) return;
         try {
-            getSharedPreferences("vahin_prefs", MODE_PRIVATE)
-                .edit()
-                .remove("signal_my_id")
-                .remove("signal_token")
-                .apply();
+            NotificationManager nm = ctx.getSystemService(NotificationManager.class);
+            if (nm != null) {
+                nm.cancel(callNotifId(from));
+                Log.d(TAG, "cancelCallNotification: cancelled id=" + callNotifId(from));
+            }
         } catch (Exception e) {
-            Log.w(TAG, "clearPersistedCredentials: failed — " + e.getMessage());
+            Log.w(TAG, "cancelCallNotification: exception — " + e.getMessage(), e);
         }
     }
 
-    private android.app.Notification buildForegroundNotification() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationManager nm = getSystemService(NotificationManager.class);
-            if (nm != null && nm.getNotificationChannel(CHANNEL_ID) == null) {
-                NotificationChannel ch = new NotificationChannel(
-                    CHANNEL_ID, "Always-on connection", NotificationManager.IMPORTANCE_MIN);
-                ch.setDescription("Keeps Unifest reachable for calls without relying on push notifications alone");
-                ch.setShowBadge(false);
-                nm.createNotificationChannel(ch);
-            }
-        }
-        Intent openIntent = new Intent(this, MainActivity.class);
-        PendingIntent pi = PendingIntent.getActivity(
-            this, 0, openIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        return new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.stat_sys_download_done)
-            .setContentTitle("Unifest")
-            .setContentText("Ready to receive calls")
-            .setPriority(NotificationCompat.PRIORITY_MIN)
-            .setOngoing(true)
-            .setContentIntent(pi)
-            .build();
+    public static int callNotifId(String from) {
+        return ("call-" + from).hashCode();
     }
 
-    private void connect() {
-        if (myId == null || token == null) {
-            Log.w(TAG, "connect: myId or token is null — not connecting");
-            return;
-        }
-        Log.d(TAG, "connect: attempt=" + reconnectAttempt + " url=" + WS_URL);
-        Request request = new Request.Builder().url(WS_URL).build();
-        socket = client.newWebSocket(request, new WebSocketListener() {
-            @Override
-            public void onOpen(WebSocket ws, Response response) {
-                reconnectAttempt = 0;
-                Log.d(TAG, "WebSocket onOpen: connected");
-                try {
-                    JSONObject hello = new JSONObject();
-                    hello.put("type", "hello");
-                    hello.put("id", myId);
-                    hello.put("token", token);
-                    ws.send(hello.toString());
-                } catch (Exception e) {
-                    Log.e(TAG, "WebSocket onOpen: failed to send hello — " + e.getMessage(), e);
-                }
-            }
-
-            @Override
-            public void onMessage(WebSocket ws, String text) {
-                // FIX A: wrap message handler — a crash here would silently kill the WS
-                // thread and stop all future incoming calls without any visible error.
-                try {
-                    handleMessage(text);
-                } catch (Exception e) {
-                    Log.e(TAG, "WebSocket onMessage: unhandled exception processing message — "
-                        + e.getClass().getSimpleName() + ": " + e.getMessage(), e);
-                }
-            }
-
-            @Override
-            public void onClosed(WebSocket ws, int code, String reason) {
-                Log.d(TAG, "WebSocket onClosed: code=" + code + " reason=" + reason);
-                scheduleReconnect();
-            }
-
-            @Override
-            public void onFailure(WebSocket ws, Throwable t, Response response) {
-                Log.w(TAG, "WebSocket onFailure: " + (t != null ? t.getMessage() : "null") +
-                    " reconnectAttempt=" + reconnectAttempt);
-                scheduleReconnect();
-            }
-        });
-    }
-
-    private void handleMessage(String text) {
-        // FIX A: parse exceptions now produce a visible log line rather than being
-        // silently swallowed in the outer catch-all.
-        JSONObject msg;
+    public static void showMessage(Context ctx, String from, String text) {
         try {
-            msg = new JSONObject(text);
+            ensureChannels(ctx);
+            String safeFrom = (from == null) ? "Unifest" : from;
+
+            Intent openIntent = new Intent(ctx, MainActivity.class);
+            openIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            openIntent.putExtra("vahinAction", "message");
+            openIntent.putExtra("vahinFrom", safeFrom);
+
+            PendingIntent pi = PendingIntent.getActivity(
+                ctx, safeFrom.hashCode(), openIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+            // No setOngoing — messages must be swipeable.
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(ctx, CHANNEL_ID_MESSAGES)
+                .setSmallIcon(android.R.drawable.sym_action_chat)
+                .setContentTitle(safeFrom)
+                .setContentText(text == null ? "New message" : text)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setAutoCancel(true)
+                .setContentIntent(pi);
+
+            NotificationManager nm = ctx.getSystemService(NotificationManager.class);
+            if (nm != null) nm.notify(("msg-" + safeFrom).hashCode(), builder.build());
+
         } catch (Exception e) {
-            Log.w(TAG, "handleMessage: JSON parse error — " + e.getMessage() + " raw=" + text);
-            return;
-        }
-
-        String type = msg.optString("type");
-        Log.d(TAG, "handleMessage: type=" + type);
-
-        if ("auth-error".equals(type)) {
-            Log.w(TAG, "handleMessage: auth-error from server — stopping SignalService");
-            // Clear persisted credentials too — otherwise a system-triggered restart would
-            // just reload the same bad/expired token from SharedPreferences and loop.
-            clearPersistedCredentials();
-            stopSelf();
-            return;
-        }
-
-        if ("ring".equals(type)) {
-            String callType = msg.optString("callType");
-            String from     = msg.optString("from", null);
-            String msgText  = msg.optString("text", null);
-
-            Log.d(TAG, "handleMessage: ring event — callType=" + callType + " from=" + from);
-
-            if ("call".equals(callType) || "voice-call".equals(callType) || "conf".equals(callType)) {
-                if (CallNotifier.shouldSkipDuplicateRing(from)) {
-                    Log.d(TAG, "handleMessage: duplicate ring suppressed for from=" + from);
-                    return;
-                }
-                boolean isConf = "conf".equals(callType);
-                // Route through Telecom first (gives real ringer + OS awareness).
-                // Fall back to direct notification only if Telecom refuses.
-                Log.d(TAG, "handleMessage: handing incoming call to VahinTelecom — from=" + from);
-                boolean handedToTelecom = VahinTelecom.addIncomingCall(SignalService.this, from, isConf);
-                if (!handedToTelecom) {
-                    Log.w(TAG, "handleMessage: VahinTelecom refused call — falling back to CallNotifier for from=" + from);
-                    CallNotifier.showIncomingCall(SignalService.this, callType, from);
-                }
-            } else {
-                Log.d(TAG, "handleMessage: message event from=" + from);
-                CallNotifier.showMessage(SignalService.this, from, msgText);
-            }
+            Log.e(TAG, "showMessage: exception — " + e.getMessage(), e);
         }
     }
 
-    private void scheduleReconnect() {
-        if (stopping) return;
-        reconnectAttempt++;
-        long delayMs = Math.min(60_000, 2000L * (1 << Math.min(reconnectAttempt, 5)));
-        Log.d(TAG, "scheduleReconnect: attempt=" + reconnectAttempt + " delayMs=" + delayMs);
-        handler.postDelayed(this::connect, delayMs);
-    }
-
-    @Override
-    public void onDestroy() {
-        Log.d(TAG, "onDestroy");
-        stopping = true;
-        try {
-            if (socket != null) socket.close(1000, "service stopping");
-        } catch (Exception e) {
-            Log.w(TAG, "onDestroy: exception closing socket — " + e.getMessage());
+    // Deduplicates a ring arriving over both FCM and WebSocket within a short window.
+    private static String lastRingKey = null;
+    private static long   lastRingAt  = 0;
+    public static synchronized boolean shouldSkipDuplicateRing(String from) {
+        String key = String.valueOf(from);
+        long now = System.currentTimeMillis();
+        boolean dup = key.equals(lastRingKey) && (now - lastRingAt) < 4000;
+        if (dup) {
+            Log.d(TAG, "shouldSkipDuplicateRing: skipping duplicate ring for from=" + from);
         }
-        handler.removeCallbacksAndMessages(null);
-        super.onDestroy();
+        lastRingKey = key;
+        lastRingAt  = now;
+        return dup;
     }
 
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
+    // Answer/Decline intents reuse the same accept/decline path as IncomingCallActivity
+    // buttons so tapping from the shade works identically to the full-screen UI.
+    private static PendingIntent actionPendingIntent(Context ctx, String safeFrom, String action) {
+        Intent intent = new Intent(ctx, MainActivity.class);
+        intent.addFlags(
+            Intent.FLAG_ACTIVITY_NEW_TASK
+                | Intent.FLAG_ACTIVITY_CLEAR_TOP
+                | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.putExtra("vahinAction", action);
+        intent.putExtra("vahinFrom", safeFrom);
+        return PendingIntent.getActivity(
+            ctx, (action + "-" + safeFrom).hashCode(), intent,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 }

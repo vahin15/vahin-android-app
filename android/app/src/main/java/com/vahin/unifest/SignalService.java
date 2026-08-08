@@ -55,15 +55,66 @@ public class SignalService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent != null) {
-            myId  = intent.getStringExtra("myId");
-            token = intent.getStringExtra("token");
+        String intentMyId  = intent != null ? intent.getStringExtra("myId")  : null;
+        String intentToken = intent != null ? intent.getStringExtra("token") : null;
+
+        if (intentMyId != null && intentToken != null) {
+            // Normal path: JS explicitly (re)started us with fresh credentials — persist
+            // them so a later OS-triggered restart (see below) can recover without JS.
+            myId = intentMyId;
+            token = intentToken;
+            savePersistedCredentials(myId, token);
+        } else {
+            // BUG FIX: START_STICKY means the system can kill this service under memory
+            // pressure and later recreate it itself with a NULL intent (no extras). That's
+            // exactly the scenario this service exists for — the app backgrounded/killed
+            // and OS memory pressure hit. Previously myId/token stayed null in that case,
+            // connect() bailed out immediately below, and the "always-on" WebSocket path
+            // silently went dead until the user manually reopened the app — defeating the
+            // entire purpose of this service. Now we fall back to SharedPreferences.
+            android.content.SharedPreferences prefs = getSharedPreferences("vahin_prefs", MODE_PRIVATE);
+            String savedMyId  = prefs.getString("signal_my_id", null);
+            String savedToken = prefs.getString("signal_token", null);
+            if (savedMyId != null && savedToken != null) {
+                myId = savedMyId;
+                token = savedToken;
+                Log.d(TAG, "onStartCommand: recovered myId/token from SharedPreferences "
+                    + "(system restarted service with a null/incomplete intent)");
+            } else {
+                Log.w(TAG, "onStartCommand: no intent extras and no persisted credentials — "
+                    + "cannot connect until JS calls startSignalService() again");
+            }
         }
+
         Log.d(TAG, "onStartCommand: myId=" + myId + " (token present=" + (token != null) + ")");
         startForeground(NOTIF_ID, buildForegroundNotification());
         stopping = false;
         connect();
         return START_STICKY;
+    }
+
+    private void savePersistedCredentials(String myId, String token) {
+        try {
+            getSharedPreferences("vahin_prefs", MODE_PRIVATE)
+                .edit()
+                .putString("signal_my_id", myId)
+                .putString("signal_token", token)
+                .apply();
+        } catch (Exception e) {
+            Log.w(TAG, "savePersistedCredentials: failed to persist — " + e.getMessage());
+        }
+    }
+
+    private void clearPersistedCredentials() {
+        try {
+            getSharedPreferences("vahin_prefs", MODE_PRIVATE)
+                .edit()
+                .remove("signal_my_id")
+                .remove("signal_token")
+                .apply();
+        } catch (Exception e) {
+            Log.w(TAG, "clearPersistedCredentials: failed — " + e.getMessage());
+        }
     }
 
     private android.app.Notification buildForegroundNotification() {
@@ -156,6 +207,9 @@ public class SignalService extends Service {
 
         if ("auth-error".equals(type)) {
             Log.w(TAG, "handleMessage: auth-error from server — stopping SignalService");
+            // Clear persisted credentials too — otherwise a system-triggered restart would
+            // just reload the same bad/expired token from SharedPreferences and loop.
+            clearPersistedCredentials();
             stopSelf();
             return;
         }
