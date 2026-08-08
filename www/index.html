@@ -1425,8 +1425,31 @@ function startPeerRobust(){
   }
   peerStarting=false;startPeer();
 }
+/* FIX: handleNativeCallAction used to call peer.reconnect()/startPeer() directly to
+   kick-start the connection when the user answers a call before PeerJS has finished
+   connecting. That bypassed the peerStarting guard that startPeerRobust() uses, so on
+   a cold boot it could run at the same moment enterApp()'s own normal boot sequence
+   was independently calling startPeerRobust() — two parallel attempts fighting over
+   the same `peer` variable (one destroying/recreating what the other just created)
+   instead of one clean attempt. This is the single safe entry point for "make sure
+   we're connecting, however that needs to happen" from anywhere in the app. */
+function ensurePeerConnected(){
+  if(peer&&peerReady&&!peer.destroyed)return; // already connected, nothing to do
+  try{
+    if(peer&&!peer.destroyed&&peer.disconnected){peer.reconnect();return;}
+  }catch(e){}
+  if(!peerStarting)startPeerRobust();
+}
 function startPeer(){
-  if(!window.Peer){toast('Connecting…');return;}
+  // FIX (root cause of "Answer just says Connecting… and never actually connects"):
+  // this used to bail out completely — just a toast, no retry — if the PeerJS
+  // library script hadn't finished loading yet. On a cold boot (app was killed,
+  // user tapped Answer on the native call screen), this is called within moments
+  // of the WebView starting up, often before the PeerJS <script> has even
+  // finished downloading/parsing. It would show "Connecting…" once and then
+  // silently do nothing forever — exactly the stuck screen being reported.
+  // Now it retries until the library is actually available instead of giving up.
+  if(!window.Peer){showBanner('Connecting…');setTimeout(startPeer,300);return;}
   if(peer&&!peer.destroyed){try{peer.destroy();}catch(e){}peer=null;}
   peerReady=false;showBanner('Connecting…');setOnlineDot('yellow');
   var retryDelay=1000;
@@ -3051,7 +3074,26 @@ function declineCall(){
   hideHUN();stopRing();
   if(incomingCall&&!incomingCall.isConf){
     logCall(incomingCall.peer,'declined','in');
-    if(!_missedCallDismiss&&chatConn&&chatConn.peer===incomingCall.peer&&chatConn.open){try{chatConn.send({type:'call-cancel'});}catch(e){}}
+    // FIX: previously this only sent call-cancel if chatConn was ALREADY open at the
+    // exact instant declineCall() ran — on a fresh incoming call (especially answered
+    // or declined within the first second or two) the data channel is often still
+    // mid-handshake, so the send was silently skipped and the caller never found out,
+    // leaving them ringing for their own full 2 minutes regardless of what happened
+    // here. Now: send immediately if already open, otherwise send it the moment it
+    // finishes opening (falls back to nothing after 5s if it never does — the call
+    // itself being closed below is still the caller's ultimate signal in that case).
+    if(!_missedCallDismiss&&chatConn&&chatConn.peer===incomingCall.peer){
+      if(chatConn.open){
+        try{chatConn.send({type:'call-cancel'});}catch(e){}
+      }else{
+        try{
+          var cancelConn=chatConn;
+          var sendOnOpen=function(){try{cancelConn.send({type:'call-cancel'});}catch(e){}};
+          cancelConn.on('open',sendOnOpen);
+          setTimeout(function(){try{cancelConn.off&&cancelConn.off('open',sendOnOpen);}catch(e){}},5000);
+        }catch(e){}
+      }
+    }
     try{incomingCall.close();}catch(e){}
     /* FIX: same native dismiss as the call-cancel handler — covers the case where a
        native notification for this call is also showing and only this in-app button
@@ -3649,8 +3691,22 @@ function handleNativeCallAction(action,from){
   try{if(document.getElementById('screen-permsetup').classList.contains('active'))closePermSetup(false);}catch(e){}
   if(action==='message'){if(from&&myId)openDMChat(from);return;}
   if(action==='missed'||action==='decline'){
-    /* Caller hung up / OS rejected — dismiss any in-app ringing UI */
-    if(incomingCall){_missedCallDismiss=true;declineCall();_missedCallDismiss=false;}
+    /* FIX (root cause of "decline doesn't reach the other side" / "ring doesn't
+       auto-cut"): this used to set _missedCallDismiss=true before calling
+       declineCall(), which SKIPPED sending the call-cancel signal to the caller
+       for every native decline AND every local ring-timeout ("missed"). That
+       flag was meant for cases where the caller already knows the call ended —
+       but that case (caller hangs up first) is handled entirely separately, via
+       VahinConnection.onAbort()'s own ACTION_CALL_CANCELLED broadcast straight to
+       IncomingCallActivity, and never reaches this function at all. Every actual
+       call into this branch — tapping Decline on the native full-screen call UI,
+       or our own 120s ring timeout giving up — is a LOCAL decision the caller
+       does not yet know about, so it always needs to be told. Suppressing it
+       here meant the caller's phone just kept ringing/calling for its own full
+       duration regardless of what you did on your end.
+       Also true for the OS/Bluetooth-triggered decline that shares this branch —
+       that's just as much a local decision the caller hasn't heard about yet. */
+    if(incomingCall)declineCall();
     else{stopRing();hideHUN();}
     return;
   }
@@ -3675,14 +3731,24 @@ function handleNativeCallAction(action,from){
        waiting for its own retry timer, since we know for certain right now that we
        need it. */
     toast('Connecting call\u2026');
-    try{
-      if(peer&&!peer.destroyed&&peer.disconnected){peer.reconnect();}
-      else if(!peer||peer.destroyed){startPeer();}
-    }catch(e){}
+    try{ensurePeerConnected();}catch(e){}
   }
   clearTimeout(pendingNativeTimer);
   pendingNativeAction={action:action,from:from};
-  pendingNativeTimer=setTimeout(function(){pendingNativeAction=null;},60000);
+  // FIX: previously this just cleared pendingNativeAction after 60s with no feedback —
+  // if the call still hadn't arrived by then (caller gave up, or a slow/bad connection),
+  // the person was left staring at whatever screen happened to be showing with no
+  // explanation and no way to tell the app had given up. Now it says so explicitly and
+  // makes sure you're back on a normal, usable screen instead of a dead-end wait.
+  pendingNativeTimer=setTimeout(function(){
+    if(pendingNativeAction){
+      pendingNativeAction=null;
+      if(!incomingCall&&!currentCall){
+        toast('Call no longer available');
+        showScreen('screen-chats','back');
+      }
+    }
+  },60000);
 }
 window.handleNativeCallAction=handleNativeCallAction;
 /* FIX C: VahinTelecom.register() calls this if the PhoneAccount was registered
