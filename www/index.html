@@ -1094,7 +1094,8 @@ var PEER_CONFIG={debug:0,config:{iceServers:[
   {urls:'turn:freeturn.net:3478?transport=tcp',username:'free',credential:'free'}
 ],iceCandidatePoolSize:10}};
 var SK={MYID:'uf_myid_v3',CONTACTS:'uf_contacts_v3',DM:'uf_dm_v3',GRPH:'uf_grp_hist_v3',GRPM:'uf_grp_members_v3',GROUPS:'uf_groups_v1',
-  CALLS:'uf_calls_v3',SETTINGS:'uf_settings_v3',BLOCKED:'uf_blocked_v3',PINNED:'uf_pinned_v3',ONBOARDED:'uf_onboarded_v1',RINGTONE:'uf_ringtone_v1',TOKEN:'uf_token_v1'};
+  CALLS:'uf_calls_v3',SETTINGS:'uf_settings_v3',BLOCKED:'uf_blocked_v3',PINNED:'uf_pinned_v3',ONBOARDED:'uf_onboarded_v1',RINGTONE:'uf_ringtone_v1',TOKEN:'uf_token_v1',
+  PERMSETUP_SEEN:'uf_permsetup_seen_v1'};
 var myId='',peer=null,peerReady=false,reconnTimer=null;
 var localStream=null,currentCall=null,callPeerId='';
 var callConn=null,callTimer=null,callSecs=0,weAreCaller=false;
@@ -3384,6 +3385,17 @@ function oemTipText(manufacturer){
    incentive to do. */
 async function maybeShowPermSetup(){
   if(!(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions))return;
+  // FIX: this used to show on every single app open until every permission was
+  // granted — meant to be a helpful nag, but in practice it meant it could pop up
+  // over and over, including racing with an incoming call (see handleNativeCallAction).
+  // Now it only ever shows once, the very first time the app is opened. After that,
+  // whether or not the user granted everything, it never shows itself again — the
+  // same settings are still reachable any time from Settings ▸ Reliability. It also
+  // still keeps refreshing this screen's own checkmarks live if it's already open
+  // (mid permission-chain) so "Enable everything" still works step-by-step instead
+  // of being cut off after the first permission grant.
+  var permsetupCurrentlyOpen=document.getElementById('screen-permsetup').classList.contains('active');
+  if(ls_get(SK.PERMSETUP_SEEN,false)&&!permChainActive&&!permsetupCurrentlyOpen)return;
   var status;
   try{status=await Capacitor.Plugins.VahinPermissions.getStatus();}
   catch(e){
@@ -3398,7 +3410,8 @@ async function maybeShowPermSetup(){
   var needsBattery=!status.batteryExemptionGranted;
   if(!needsNotif&&!needsFsi&&!needsBattery){
     if(document.getElementById('screen-permsetup').classList.contains('active'))closePermSetup(false);
-    return; // fully granted — never shows again
+    ls_set(SK.PERMSETUP_SEEN,true); // everything already granted — count as "seen", never show again
+    return;
   }
 
   document.getElementById('ps-notif-row').style.display=status.notificationsApplicable?'':'none';
@@ -3417,7 +3430,17 @@ async function maybeShowPermSetup(){
   if(tip){tipEl.style.display='';tipEl.textContent='ℹ️ '+tip;}else{tipEl.style.display='none';}
 
   // Safety net: never show this over a live or ringing call, no matter what called us.
-  if(incomingCall||currentCall||pendingNativeAction)return;
+  // FIX: also check the call screen's own visibility, not just these three JS variables —
+  // covers the outgoing-ring phase (you're calling someone else) where none of
+  // incomingCall/currentCall/pendingNativeAction are set yet but screen-call is already
+  // showing the "Calling…" state. Previously placing an outgoing call on a fresh install
+  // could still get interrupted by this popping up over your own "Calling…" screen.
+  var callScreenActive=document.getElementById('screen-call')&&document.getElementById('screen-call').classList.contains('active');
+  if(incomingCall||currentCall||pendingNativeAction||callScreenActive)return;
+  // Only mark it "seen" once we actually show it — if we bailed out above because a
+  // call was in progress, the user never saw it, so it's still owed to them on the
+  // next normal app open instead of being silently skipped forever.
+  ls_set(SK.PERMSETUP_SEEN,true);
   showScreen('screen-permsetup');
 }
 /* Single button, chained: Android still requires its own tap on each individual system
