@@ -1346,6 +1346,11 @@ function enterApp(){
   updateBlockedCountUI();
   document.getElementById('tab-nav').classList.add('visible');
   switchTab('chats');showScreen('screen-chats');
+  // Shows on every normal app open until the user grants everything (matches the
+  // native full-screen-intent prompt's own behavior) — but never during a call.
+  // maybeShowPermSetup() checks incomingCall/currentCall/pendingNativeAction itself
+  // and skips showing if any of them are set, so a call in progress or just answered
+  // always wins over this screen.
   maybeShowPermSetup();
   loadPeerJS(function(){startPeerRobust();startPresence();startKeepAlive();});
   startBackendKeepWarm();
@@ -3411,6 +3416,8 @@ async function maybeShowPermSetup(){
   var tipEl=document.getElementById('ps-oem-tip');
   if(tip){tipEl.style.display='';tipEl.textContent='ℹ️ '+tip;}else{tipEl.style.display='none';}
 
+  // Safety net: never show this over a live or ringing call, no matter what called us.
+  if(incomingCall||currentCall||pendingNativeAction)return;
   showScreen('screen-permsetup');
 }
 /* Single button, chained: Android still requires its own tap on each individual system
