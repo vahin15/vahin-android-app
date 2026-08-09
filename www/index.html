@@ -1458,6 +1458,7 @@ function startPeer(){
     catch(e){setTimeout(function(){peerReady=false;showBanner('Reconnecting…');scheduleReconnect();},2000);return;}
     peer.on('open',function(id){
       peerReady=true;hideBanner();setOnlineDot('green');toast('Online as '+id+' 🟢');
+      diagLog('✅ Peer connected to broker as '+id);
       if(reconnTimer){clearTimeout(reconnTimer);reconnTimer=null;}
       subscribePush();
     });
@@ -1492,16 +1493,18 @@ function startPeer(){
       peerReady=false;setOnlineDot('red');
       if(e.type==='unavailable-id'){
         hideBanner();showBanner('Reconnecting (ID busy)…');
+        diagLog('⚠️ Broker says our ID is still busy (stale session from before app was killed/backgrounded) — retrying in '+retryDelay+'ms');
         setTimeout(function(){
           if(peer&&!peer.destroyed){try{peer.destroy();}catch(ex){}peer=null;}
           setTimeout(attemptConnect,retryDelay);retryDelay=Math.min(retryDelay*1.5,8000);
         },500);
       }else if(['network','server-error','socket-error','socket-closed'].includes(e.type)){
-        showBanner('Reconnecting…');scheduleReconnect();
-      }else{showBanner('Error: '+e.type);scheduleReconnect();}
+        showBanner('Reconnecting…');diagLog('⚠️ Broker connection error ('+e.type+') — reconnecting');scheduleReconnect();
+      }else{showBanner('Error: '+e.type);diagLog('⚠️ Broker error: '+e.type+' — '+(e.message||''));scheduleReconnect();}
     });
     peer.on('disconnected',function(){
       peerReady=false;setOnlineDot('yellow');showBanner('Reconnecting…');
+      diagLog('⚠️ Broker connection dropped — reconnecting');
       try{if(peer&&!peer.destroyed){peer.reconnect();}else{scheduleReconnect();}}catch(ex){scheduleReconnect();}
     });
     peer.on('close',function(){peerReady=false;setOnlineDot('red');});
@@ -3029,6 +3032,7 @@ function showIncoming(pid,kind){
     pendingNativeAction=null;
     clearTimeout(pendingNativeTimer);
     if(!pna.from||pna.from===pid){
+      diagLog('✅ PeerJS call arrived — replaying stored native action: '+pna.action);
       /* Small delay so incomingCall is fully set before acceptCall/declineCall reads it */
       setTimeout(function(){
         if(pna.action==='accept')acceptCall();
@@ -3059,15 +3063,17 @@ async function acceptCall(){
   }
   try{
     var incMeta=incomingCall.metadata||{};callIsVoiceOnly=!!incMeta.voiceOnly;
+    diagLog('🎤 acceptCall: requesting local '+(callIsVoiceOnly?'audio-only':'camera+mic')+' stream…');
     facingMode=settings.backcam?'environment':'user';
     var stream=callIsVoiceOnly?await getAudioOnlyStream():await getStream(facingMode);localStream=stream;
+    diagLog('✅ acceptCall: got local stream — answering the WebRTC call now');
     var lv=document.getElementById('video-local');lv.srcObject=localStream;applyMirror(lv,facingMode);
     incomingCall.answer(localStream);currentCall=incomingCall;callPeerId=currentCall.peer;
     document.getElementById('call-status').textContent='Connected ✓';
-    currentCall.on('stream',function(rs){var rv=document.getElementById('video-remote');rv.srcObject=rs;startCallTimer();startQual();monitorCallConnection(currentCall);});
-    currentCall.on('close',function(){endCall();});
+    currentCall.on('stream',function(rs){diagLog('✅ acceptCall: remote stream received — call is live');var rv=document.getElementById('video-remote');rv.srcObject=rs;startCallTimer();startQual();monitorCallConnection(currentCall);});
+    currentCall.on('close',function(){diagLog('ℹ️ acceptCall: MediaConnection closed');endCall();});
     logCall(callPeerId,'connected','in');incomingCall=null;addRecentSilent(callPeerId);requestWakeLock();
-  }catch(e){toast('Camera/mic denied');endCall();}
+  }catch(e){diagLog('❌ acceptCall: failed — '+(e&&e.message?e.message:e));toast('Camera/mic denied');endCall();}
 }
 function declineCall(){
   document.getElementById('incoming-overlay').classList.remove('show');
@@ -3689,6 +3695,7 @@ function handleNativeCallAction(action,from){
      it's showing, for every action (accept/decline/missed) so it can never be
      left covering the call/chats screen. */
   try{if(document.getElementById('screen-permsetup').classList.contains('active'))closePermSetup(false);}catch(e){}
+  diagLog('📲 Native action received: '+action+' (from='+from+')');
   if(action==='message'){if(from&&myId)openDMChat(from);return;}
   if(action==='missed'||action==='decline'){
     /* FIX (root cause of "decline doesn't reach the other side" / "ring doesn't
@@ -3718,6 +3725,7 @@ function handleNativeCallAction(action,from){
   var p=getIncomingCallPeer();
   if(p&&(!from||p===from)){
     /* PeerJS call already arrived — act immediately */
+    diagLog('✅ PeerJS call already present — actioning '+action+' immediately');
     if(action==='decline')declineCall();else if(action==='accept')acceptCall();
     return;
   }
@@ -3731,6 +3739,7 @@ function handleNativeCallAction(action,from){
        waiting for its own retry timer, since we know for certain right now that we
        need it. */
     toast('Connecting call\u2026');
+    diagLog('⏳ PeerJS call not arrived yet (peer='+(peer?(peerReady?'ready':'not ready'):'null')+') — kicking ensurePeerConnected() and waiting');
     try{ensurePeerConnected();}catch(e){}
   }
   clearTimeout(pendingNativeTimer);
@@ -3744,6 +3753,7 @@ function handleNativeCallAction(action,from){
     if(pendingNativeAction){
       pendingNativeAction=null;
       if(!incomingCall&&!currentCall){
+        diagLog('❌ Gave up waiting for the PeerJS call to arrive (60s) — call no longer available');
         toast('Call no longer available');
         showScreen('screen-chats','back');
       }
