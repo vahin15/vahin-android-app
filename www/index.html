@@ -1078,7 +1078,7 @@ async function uploadDp(dataUrl){
     return true;
   }catch(e){toast('Could not update photo — check connection');return false;}
 }
-var PEER_CONFIG={debug:0,config:{iceServers:[
+var PEER_CONFIG={debug:0,host:'vahin-backend.onrender.com',secure:true,port:443,path:'/peerjs',key:'vahin-peerjs',config:{iceServers:[
   {urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'},
   {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
   {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
