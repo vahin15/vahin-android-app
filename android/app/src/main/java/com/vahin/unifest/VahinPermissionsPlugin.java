@@ -167,6 +167,25 @@ public class VahinPermissionsPlugin extends Plugin {
                 android.util.Log.w("VahinPermissionsPlugin",
                     "dismissCallNotification: failed to broadcast cancel — " + e.getMessage());
             }
+            // FIX (Telecom call flow): this used to only clean up the notification and
+            // the full-screen activity. The web app calls this whenever an incoming call
+            // ends WITHOUT ever being answered — the caller cancelling (call-cancel
+            // signal) or the user declining from the in-app incoming overlay — but
+            // VahinConnection/Telecom was never told, so the call stayed stuck RINGING
+            // from the OS's point of view: wrong Bluetooth/Android Auto state, and
+            // Telecom's own ~30s ringing timeout could tear it down unpredictably out
+            // from under the app later. Only reject if Telecom still thinks the call is
+            // RINGING — guards against a stale/late call to this method ever hanging up
+            // a call that has since actually connected.
+            try {
+                VahinConnection conn = VahinConnection.getCurrent();
+                if (conn != null && conn.getState() == android.telecom.Connection.STATE_RINGING) {
+                    conn.rejectFromAppUi();
+                }
+            } catch (Exception e) {
+                android.util.Log.w("VahinPermissionsPlugin",
+                    "dismissCallNotification: exception syncing Telecom state — " + e.getMessage());
+            }
         }
         call.resolve();
     }

@@ -55,7 +55,7 @@
         <activity
             android:name=".IncomingCallActivity"
             android:exported="false"
-            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:theme="@style/AppTheme.IncomingCall"
             android:excludeFromRecents="true"
             android:taskAffinity=""
             android:launchMode="singleInstance"

@@ -285,6 +285,33 @@ public class MainActivity extends BridgeActivity {
         // Clear so a later recreate() (e.g. rotation) doesn't replay a stale action.
         intent.removeExtra("vahinAction");
         intent.removeExtra("vahinFrom");
+
+        // FIX (Telecom call flow): keep Telecom's own VahinConnection in sync no matter
+        // which UI the accept/decline arrived from. IncomingCallActivity's own buttons
+        // already call answerFromAppUi()/rejectFromAppUi() themselves before landing
+        // here — doing it again is harmless (setActive()/setDisconnected() on an
+        // already-synced connection is a no-op). But CallNotifier's Answer/Decline
+        // buttons in the notification shade (including Android's own CallStyle buttons)
+        // jump straight here with only a vahinAction extra and never touched Telecom at
+        // all — without this, answering/declining from the shade told the web app what
+        // happened but left the Telecom connection stuck RINGING: wrong Bluetooth/
+        // Android Auto state, and Telecom's own ~30s ringing timeout could tear the call
+        // down later, out from under the app.
+        if ("accept".equals(action) || "decline".equals(action) || "missed".equals(action)) {
+            try {
+                VahinConnection conn = VahinConnection.getCurrent();
+                if (conn != null) {
+                    if ("accept".equals(action)) {
+                        conn.answerFromAppUi();
+                    } else {
+                        conn.rejectFromAppUi();
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "handleIntentExtras: exception syncing Telecom state — " + e.getMessage(), e);
+            }
+        }
+
         deliverNativeCallAction(action, from, 0);
     }
 

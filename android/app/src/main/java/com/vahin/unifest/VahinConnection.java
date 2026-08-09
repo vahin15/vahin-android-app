@@ -23,6 +23,18 @@ public class VahinConnection extends Connection {
     private final String from;
     private final boolean isConf;
 
+    // FIX (Telecom call flow): set by answerFromAppUi()/rejectFromAppUi() — tells
+    // onAnswer()/onReject() this action originated from IncomingCallActivity's own
+    // buttons, which ALREADY starts MainActivity with a vahinAction extra right after
+    // calling us (see finishWithAction()). Without this flag onAnswer()/onReject() also
+    // fired notifyWebApp() themselves, delivering the same action to the web app TWICE
+    // when the WebView was already warm: the second "accept" would arrive after the
+    // first had already cleared incomingCall, fall into the "call hasn't arrived yet"
+    // branch, and pop a spurious extra "Connecting call…" toast over an already-connected
+    // call. When this is true we skip our own delivery and let the Activity's own
+    // startActivity() do it exactly once.
+    private boolean viaAppUi = false;
+
     public VahinConnection(Context ctx, String from, boolean isConf) {
         this.appContext = ctx.getApplicationContext();
         this.from = from;
@@ -52,10 +64,26 @@ public class VahinConnection extends Connection {
     @Override
     public void onAnswer() {
         try {
-            Log.d(TAG, "onAnswer: from=" + from);
+            Log.d(TAG, "onAnswer: from=" + from + " viaAppUi=" + viaAppUi);
             setActive();
             CallNotifier.cancelCallNotification(appContext, from);
-            notifyWebApp("accept");
+            if (viaAppUi) {
+                // IncomingCallActivity.finishWithAction() is already opening Unifest
+                // with the "accept" extra right after this call returns — don't also
+                // fire it from here or the web app receives "accept" twice (see the
+                // viaAppUi field comment above).
+                Log.d(TAG, "onAnswer: viaAppUi — skipping our own delivery, "
+                    + "IncomingCallActivity is already opening Unifest");
+            } else {
+                // Answered from outside our own UI — Bluetooth headset button, Android
+                // Auto, a wearable. Nothing else is going to open/foreground Unifest for
+                // us here, so we do it the same reliable way IncomingCallActivity does:
+                // start MainActivity with the action as an extra so it survives a cold
+                // start (Unifest fully killed) and retries until the WebView is ready,
+                // instead of a fire-and-forget JS eval that silently no-ops if the
+                // WebView isn't alive yet.
+                notifyWebAppRobust("accept");
+            }
         } catch (Exception e) {
             Log.e(TAG, "onAnswer: exception — " + e.getMessage(), e);
         }
@@ -64,12 +92,18 @@ public class VahinConnection extends Connection {
     @Override
     public void onReject() {
         try {
-            Log.d(TAG, "onReject: from=" + from);
+            Log.d(TAG, "onReject: from=" + from + " viaAppUi=" + viaAppUi);
             setDisconnected(new DisconnectCause(DisconnectCause.REJECTED));
             destroy();
             clearIfCurrent();
             CallNotifier.cancelCallNotification(appContext, from);
-            notifyWebApp("decline");
+            if (viaAppUi) {
+                // Same reasoning as onAnswer() above — IncomingCallActivity delivers
+                // "decline" itself right after this returns.
+                Log.d(TAG, "onReject: viaAppUi — skipping our own delivery");
+            } else {
+                notifyWebAppRobust("decline");
+            }
         } catch (Exception e) {
             Log.e(TAG, "onReject: exception — " + e.getMessage(), e);
         }
@@ -82,7 +116,9 @@ public class VahinConnection extends Connection {
             setDisconnected(new DisconnectCause(DisconnectCause.LOCAL));
             destroy();
             clearIfCurrent();
-            notifyWebApp("end");
+            // Always OS/Telecom-initiated (no Activity flow delivers this one for us),
+            // so use the robust open-Unifest path rather than a fire-and-forget eval.
+            notifyWebAppRobust("end");
         } catch (Exception e) {
             Log.e(TAG, "onDisconnect: exception — " + e.getMessage(), e);
         }
@@ -130,12 +166,40 @@ public class VahinConnection extends Connection {
         }
     }
 
-    public void answerFromAppUi() { onAnswer(); }
-    public void rejectFromAppUi() { onReject(); }
+    public void answerFromAppUi() { viaAppUi = true; onAnswer(); }
+    public void rejectFromAppUi() { viaAppUi = true; onReject(); }
 
     private void clearIfCurrent() {
         synchronized (VahinConnection.class) {
             if (current == this) current = null;
+        }
+    }
+
+    // FIX (Telecom call flow): opens/foregrounds Unifest with vahinAction/vahinFrom
+    // extras — the exact mechanism IncomingCallActivity.finishWithAction() and
+    // CallNotifier's notification Answer/Decline buttons already rely on. MainActivity
+    // picks these up in onCreate()/onNewIntent() -> handleIntentExtras() ->
+    // deliverNativeCallAction(), which retries against the WebView until
+    // window.handleNativeCallAction is actually defined. That's what makes "tap Answer"
+    // reliably open Unifest, show "Connecting…", and kick off the existing WebRTC
+    // reconnect even from a cold start — a plain evaluateJavascript() call (see
+    // notifyWebApp() below) does nothing if the WebView isn't alive yet.
+    private void notifyWebAppRobust(String action) {
+        try {
+            Log.d(TAG, "notifyWebAppRobust: opening Unifest to deliver action=" + action + " from=" + from);
+            Intent openMain = new Intent(appContext, MainActivity.class);
+            openMain.addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            openMain.putExtra("vahinAction", action);
+            openMain.putExtra("vahinFrom", from);
+            appContext.startActivity(openMain);
+        } catch (Exception e) {
+            Log.e(TAG, "notifyWebAppRobust: exception starting MainActivity — " + e.getMessage(), e);
+            // Last-resort fallback — only reaches the web app if it happens to already
+            // be alive and ready, but better than nothing if startActivity() itself failed.
+            notifyWebApp(action);
         }
     }
 
