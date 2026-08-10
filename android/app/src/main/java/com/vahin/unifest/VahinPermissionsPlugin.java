@@ -174,13 +174,28 @@ public class VahinPermissionsPlugin extends Plugin {
             // VahinConnection/Telecom was never told, so the call stayed stuck RINGING
             // from the OS's point of view: wrong Bluetooth/Android Auto state, and
             // Telecom's own ~30s ringing timeout could tear it down unpredictably out
-            // from under the app later. Only reject if Telecom still thinks the call is
-            // RINGING — guards against a stale/late call to this method ever hanging up
-            // a call that has since actually connected.
+            // from under the app later.
+            //
+            // FIX (ringing reliability, round 2): index.html's endCall() — the in-call
+            // "End" button on BOTH sides, and the handler for the remote 'call-end'
+            // data-channel message — never called this method at all, so an ACTIVE
+            // (already-answered) Telecom connection was never disconnected either. Since
+            // self-managed accounts only permit one call at a time, that leftover ACTIVE
+            // connection silently blocked every later addNewIncomingCall() until the app
+            // process was killed — the "ringing worked last time, not this time" bug.
+            // endCall() now calls this method unconditionally when a call ends, so we
+            // branch on whatever state Telecom is actually in: RINGING -> reject (old
+            // behavior, unchanged), anything else that isn't already DISCONNECTED ->
+            // endFromAppUi() to properly tear down an active/dialing call.
             try {
                 VahinConnection conn = VahinConnection.getCurrent();
-                if (conn != null && conn.getState() == android.telecom.Connection.STATE_RINGING) {
-                    conn.rejectFromAppUi();
+                if (conn != null) {
+                    int state = conn.getState();
+                    if (state == android.telecom.Connection.STATE_RINGING) {
+                        conn.rejectFromAppUi();
+                    } else if (state != android.telecom.Connection.STATE_DISCONNECTED) {
+                        conn.endFromAppUi();
+                    }
                 }
             } catch (Exception e) {
                 android.util.Log.w("VahinPermissionsPlugin",

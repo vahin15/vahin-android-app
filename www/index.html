@@ -1253,7 +1253,19 @@ function setAdmobBannerVisible(show){
         admobBannerStarted=true;
         AdMobP.showBanner({adId:'ca-app-pub-6297134793449432/6716447548',adSize:'BANNER',position:'BOTTOM_CENTER',margin:0}).catch(function(){admobBannerStarted=false;});
       }
-    }else if(admobBannerStarted){ AdMobP.hideBanner().catch(function(){}); }
+    }else if(admobBannerStarted){
+      /* FIX (call-controls black tint): hideBanner() failing silently left the native ad
+         view sitting on top of the call screen's Mute/Speaker/End buttons, intercepting
+         taps — that's what looked like a black tint you "couldn't talk through". The
+         .catch(function(){}) here used to swallow that failure completely with no retry.
+         Now: log it (visible in the in-app diagnostic log) and immediately force
+         removeBanner() — which destroys the native view outright — as a harder fallback
+         instead of ever leaving an ad pinned over an active call. */
+      AdMobP.hideBanner().catch(function(e){
+        try{diagLog('⚠️ AdMob hideBanner failed, forcing removeBanner(): '+(e&&e.message?e.message:e));}catch(e0){}
+        try{AdMobP.removeBanner().catch(function(){});admobBannerStarted=false;}catch(e2){}
+      });
+    }
   }catch(e){}
 }
 function obRender(){
@@ -2920,6 +2932,14 @@ async function startCall(pid,voiceOnly){
   try{localStream=voiceOnly?await getAudioOnlyStream():await getStream(facingMode);}
   catch(e){toast(voiceOnly?'Microphone access denied':'Camera/mic access denied');return;}
   showScreen('screen-call');setVoiceMode(voiceOnly,pid);requestWakeLock();
+  /* FIX (call-controls black tint): don't rely only on showScreen()'s generic
+     setAdmobBannerVisible(false) — force-destroy the native ad view directly the
+     moment the call screen opens, so a call is never the one screen where a stuck
+     banner can intercept taps on Mute/Speaker/End. */
+  /* removeBanner() destroys the native view outright — mark not-started so the next
+     return to Chats recreates it with showBanner() instead of a no-op resumeBanner()
+     on a banner that's already gone (see showIncoming() for the fuller comment). */
+  try{if(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.AdMob){Capacitor.Plugins.AdMob.removeBanner().catch(function(){});admobBannerStarted=false;}}catch(e){}
   document.getElementById('call-peer-name').textContent=pid;
   document.getElementById('call-status').textContent='Calling…';
   var lv=document.getElementById('video-local');lv.srcObject=localStream;applyMirror(lv,facingMode);
@@ -3006,6 +3026,13 @@ function handlePeerUnavailable(){
 function showIncoming(pid,kind){
   weAreCaller=false;outCallConnected=false;
   showScreen('screen-call');setVoiceMode(kind==='voice',pid);
+  /* FIX (call-controls black tint): same forced ad-banner teardown as startCall() —
+     see that comment for the full reasoning. */
+  /* removeBanner() destroys the native view outright (unlike hideBanner()), so mark it
+     not-started — otherwise the next return to Chats would call resumeBanner() on a
+     banner that no longer exists (silent no-op) instead of showBanner() (recreate it),
+     and the ad would just never come back for the rest of the session. */
+  try{if(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.AdMob){Capacitor.Plugins.AdMob.removeBanner().catch(function(){});admobBannerStarted=false;}}catch(e){}
   document.getElementById('outgoing-wrap').classList.remove('show');
   document.getElementById('inc-avatar').textContent=pid[0].toUpperCase();
   document.getElementById('inc-name').textContent=pid;
@@ -3057,18 +3084,37 @@ async function acceptCall(){
         incomingCall.mc.on('stream',function(rs){addConfSlot(incomingCall.mc.peer,rs);});
         incomingCall.mc.on('close',function(){removeConfSlot(incomingCall.mc.peer);});
         updateConfGrid();showScreen('screen-conf');incomingCall=null;requestWakeLock();
-      }catch(e){toast('Camera/mic denied');showScreen('screen-chats','back');}
+      }catch(e){
+        toast('Camera/mic denied');
+        /* FIX (answer button / conf calls): IncomingCallActivity's native Accept button
+           already moved Telecom to ACTIVE before this JS function ran — a failure here
+           (camera/mic denied) previously left that connection stuck forever with zero
+           cleanup, blocking every future incoming call until the app was force-killed.
+           No currentCall/callPeerId exists for a conf call, so call the native dismiss
+           directly rather than going through endCall() (which is written for 1:1 calls). */
+        try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.VahinPermissions){
+          window.Capacitor.Plugins.VahinPermissions.dismissCallNotification({from:(incomingCall&&incomingCall.mc&&incomingCall.mc.peer)||''});
+        }}catch(e2){}
+        showScreen('screen-chats','back');
+      }
     }else{joinConf(incomingCall.peerId,incomingCall.members,incomingCall.groupId);incomingCall=null;}
     return;
   }
   try{
+    /* Set this FIRST, before any await that can throw — see the FIX comment above
+       acceptCall() for why. Telecom is already ACTIVE by the time this function runs
+       (IncomingCallActivity's native Accept button calls conn.answerFromAppUi() before
+       ever reaching JS), so if stream acquisition below fails, endCall()'s cleanup needs
+       a valid callPeerId to actually reach native code — not whatever was left over from
+       a previous call, and not an empty string that fails endCall()'s truthiness check. */
+    callPeerId=incomingCall.peer;
     var incMeta=incomingCall.metadata||{};callIsVoiceOnly=!!incMeta.voiceOnly;
     diagLog('🎤 acceptCall: requesting local '+(callIsVoiceOnly?'audio-only':'camera+mic')+' stream…');
     facingMode=settings.backcam?'environment':'user';
     var stream=callIsVoiceOnly?await getAudioOnlyStream():await getStream(facingMode);localStream=stream;
     diagLog('✅ acceptCall: got local stream — answering the WebRTC call now');
     var lv=document.getElementById('video-local');lv.srcObject=localStream;applyMirror(lv,facingMode);
-    incomingCall.answer(localStream);currentCall=incomingCall;callPeerId=currentCall.peer;
+    incomingCall.answer(localStream);currentCall=incomingCall;
     document.getElementById('call-status').textContent='Connected ✓';
     currentCall.on('stream',function(rs){diagLog('✅ acceptCall: remote stream received — call is live');var rv=document.getElementById('video-remote');rv.srcObject=rs;startCallTimer();startQual();monitorCallConnection(currentCall);});
     currentCall.on('close',function(){diagLog('ℹ️ acceptCall: MediaConnection closed');endCall();});
@@ -3112,6 +3158,19 @@ function declineCall(){
 }
 function endCall(){
   stopOutTone();stopRing();hideHUN();stopOutPhaseTimer();
+  /* FIX (ringing reliability): tell native Android the call is over EVERY time endCall()
+     runs — local "End" button press, remote 'call-end' data-channel message, connection-lost
+     path, no-answer timeout, all of it. Previously this only happened for a not-yet-answered
+     incoming call being declined/cancelled (see declineCall()/case 'call-cancel'); an ACTIVE
+     call ending never reached native code at all, so: (a) any lingering call notification
+     was never auto-cancelled, and (b) Telecom's self-managed connection was left ACTIVE
+     forever, silently blocking every future incoming call's ringing until the app was force-
+     killed. dismissCallNotification() on the native side now handles both a RINGING and an
+     ACTIVE connection correctly (see VahinPermissionsPlugin.java), so it's safe to call here
+     unconditionally. */
+  try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.VahinPermissions&&callPeerId){
+    window.Capacitor.Plugins.VahinPermissions.dismissCallNotification({from:callPeerId});
+  }}catch(e){}
   /* FIX 7: send explicit hangup signals over data connections before closing them.
      PeerJS's own close-propagation on the MediaConnection isn't reliable — the 'close'
      event is not guaranteed to fire on the remote peer, especially when the call

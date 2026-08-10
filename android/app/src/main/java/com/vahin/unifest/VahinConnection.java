@@ -169,6 +169,30 @@ public class VahinConnection extends Connection {
     public void answerFromAppUi() { viaAppUi = true; onAnswer(); }
     public void rejectFromAppUi() { viaAppUi = true; onReject(); }
 
+    // FIX (ringing reliability): called from VahinPermissionsPlugin.dismissCallNotification
+    // when the WEB side ends an already-ACTIVE call (the in-call "End" button, or the
+    // 'call-end' data-channel message from the other side). Before this fix, endCall() in
+    // index.html only tore down PeerJS/WebRTC state — it never told Telecom the call was
+    // over. Telecom self-managed accounts only allow ONE call at a time by default, so a
+    // Connection left dangling in STATE_ACTIVE silently blocks every future
+    // addNewIncomingCall() (VahinTelecom.addIncomingCall() throws IllegalStateException,
+    // logged as "another self-managed call is already ringing") until the process is
+    // killed and restarted. That is the intermittent "ringing worked before, now it
+    // doesn't" behavior. This does NOT call notifyWebAppRobust() — unlike onDisconnect(),
+    // the web side already knows the call ended (it's the one telling us), so re-opening
+    // Unifest here would be redundant/wrong.
+    public void endFromAppUi() {
+        try {
+            Log.d(TAG, "endFromAppUi: web side ended an active call, from=" + from);
+            setDisconnected(new DisconnectCause(DisconnectCause.LOCAL));
+            destroy();
+            clearIfCurrent();
+            CallNotifier.cancelCallNotification(appContext, from);
+        } catch (Exception e) {
+            Log.e(TAG, "endFromAppUi: exception — " + e.getMessage(), e);
+        }
+    }
+
     private void clearIfCurrent() {
         synchronized (VahinConnection.class) {
             if (current == this) current = null;
