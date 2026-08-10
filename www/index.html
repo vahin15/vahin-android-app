@@ -4304,8 +4304,7 @@ if(document.readyState==='loading'){
         initializeForTesting: true, // ⚠️ set to false only when going live on Play Store — real ad revenue does not count while this is true
       });
       admobInitialized=true;
-      // Catches up if the user is already sittin
-g on the Chats screen by the time
+      // Catches up if the user is already sitting on the Chats screen by the time
       // AdMob finishes initializing (this is async and can resolve after enterApp()
       // already tried to show it once).
       var chatsActive=document.getElementById('screen-chats')&&document.getElementById('screen-chats').classList.contains('active');
