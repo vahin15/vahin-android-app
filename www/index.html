@@ -1078,7 +1078,7 @@ async function uploadDp(dataUrl){
     return true;
   }catch(e){toast('Could not update photo — check connection');return false;}
 }
-var PEER_CONFIG={debug:0,host:'vahin-backend.onrender.com',secure:true,port:443,path:'/peerjs',key:'vahin-peerjs',config:{iceServers:[
+var PEER_CONFIG={debug:0,host:'vahin-backend.onrender.com',secure:true,port:443,path:'/peerjs',key:'vahin15-peerjs-9f3a7c2e1b8d4a6f',config:{iceServers:[
   {urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'},
   {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
   {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
@@ -4304,7 +4304,8 @@ if(document.readyState==='loading'){
         initializeForTesting: true, // ⚠️ set to false only when going live on Play Store — real ad revenue does not count while this is true
       });
       admobInitialized=true;
-      // Catches up if the user is already sitting on the Chats screen by the time
+      // Catches up if the user is already sittin
+g on the Chats screen by the time
       // AdMob finishes initializing (this is async and can resolve after enterApp()
       // already tried to show it once).
       var chatsActive=document.getElementById('screen-chats')&&document.getElementById('screen-chats').classList.contains('active');
