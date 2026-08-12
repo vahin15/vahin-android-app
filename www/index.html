@@ -2991,8 +2991,41 @@ function monitorCallConnection(mc){
       if(typeof pc.restartIce==='function')pc.restartIce();
     }catch(e){}
   }
+  /* DIAGNOSTICS (mobile-data connectivity): "works on wifi, fails on mobile data" could
+     mean the TURN servers are never reached at all, reached but not selected, or reached
+     and selected but the free relay service itself is down/overloaded — those need three
+     different fixes, and guessing which one it is wastes a round trip. Log every
+     candidate type as it's gathered, and on connect, log which candidate pair actually
+     got picked (via getStats()) — that tells us definitively whether TURN relay was
+     involved next time this is tested on mobile data. Check Settings → Debug log after a
+     failed mobile-data call attempt. */
+  try{
+    pc.onicecandidate=function(e){
+      if(!e.candidate)return;
+      var c=e.candidate;
+      var m=/typ (\w+)/.exec(c.candidate||'');
+      diagLog('🧊 local candidate gathered: '+(m?m[1]:'unknown')+' ('+(c.protocol||'')+')');
+    };
+  }catch(e){}
+  function logSelectedCandidatePair(){
+    if(typeof pc.getStats!=='function')return;
+    pc.getStats(null).then(function(stats){
+      var pairs=[],candidates={};
+      stats.forEach(function(r){
+        if(r.type==='candidate-pair'&&r.state==='succeeded')pairs.push(r);
+        if(r.type==='local-candidate'||r.type==='remote-candidate')candidates[r.id]=r;
+      });
+      var active=pairs.find(function(p){return p.nominated;})||pairs[0];
+      if(!active){diagLog('🧊 getStats: no succeeded candidate pair found');return;}
+      var lc=candidates[active.localCandidateId],rc=candidates[active.remoteCandidateId];
+      diagLog('🧊 selected pair — local: '+(lc?lc.candidateType:'?')+', remote: '+(rc?rc.candidateType:'?')+
+        ' — '+((lc&&lc.candidateType==='relay')||(rc&&rc.candidateType==='relay')?'went through TURN relay':'direct/no relay'));
+    }).catch(function(e){diagLog('🧊 getStats failed: '+(e&&e.message?e.message:e));});
+  }
   pc.oniceconnectionstatechange=function(){
     var st=pc.iceConnectionState;
+    diagLog('🧊 iceConnectionState → '+st);
+    if(st==='connected'||st==='completed')logSelectedCandidatePair();
     var statusEl=document.getElementById('call-status');
     if(st==='disconnected'){
       if(statusEl)statusEl.textContent='Reconnecting…';
