@@ -1487,7 +1487,7 @@ function startPeer(){
         if(isBlocked(mc.peer)){try{mc.close();}catch(e){}return;}
         incomingCall=mc;showIncoming(mc.peer,(meta&&meta.voiceOnly)?'voice':'call');
       }
-      addRecentSilent(mc.peer);notifyPeer(mc.peer,mc.metadata&&mc.metadata.type==='conf'?'conf':'call');
+      addRecentSilent(mc.peer);
     });
     peer.on('connection',function(conn){setupConn(conn);});
     peer.on('error',function(e){
