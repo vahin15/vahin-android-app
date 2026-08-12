@@ -2821,8 +2821,8 @@ function clearDiagLog(){callDiagLog=[];var panel=document.getElementById('call-d
 function dialWithPresenceCheck(pid,voiceOnly){
   clearDiagLog();diagLog('📞 Dialing '+pid+'…');
   if(isFreshlyOnline(pid)){
-    diagLog('Presence cache: FRESH — trying direct P2P + arming FCM backup');
-    startDirectRingUI();armFcmBackup(pid,voiceOnly);return;
+    diagLog('Presence cache: FRESH — trying direct P2P');
+    startDirectRingUI();return;
   }
   diagLog('Presence cache: stale/none — probing P2P (1.5s timeout)…');
   var settled=false;
@@ -2839,7 +2839,7 @@ function dialWithPresenceCheck(pid,voiceOnly){
     if(settled)return;settled=true;clearTimeout(giveUp);
     diagLog('P2P probe succeeded — they\u2019re reachable directly right now');
     onlinePeers[pid]=true;onlinePeersTs[pid]=Date.now();updateDots(pid);try{probe.close();}catch(e){}
-    startDirectRingUI();armFcmBackup(pid,voiceOnly);
+    startDirectRingUI();
   });
   probe.on('error',function(){
     if(settled)return;settled=true;clearTimeout(giveUp);
@@ -2848,6 +2848,16 @@ function dialWithPresenceCheck(pid,voiceOnly){
     notifyPeer(pid,voiceOnly?'voice-call':'call',markServerWoke);startOutPhaseTimer();
   });
 }
+/* FIX (duplicate top+bottom ring notification): this used to also fire a 4-second
+   "FCM backup" ping on the SUCCESS paths above — i.e. right after proving the callee
+   is directly P2P-reachable. Since real people rarely answer within 4 seconds, that
+   backup fired on almost every normal call, sending a second wake-up through the
+   server that popped the native Telecom call UI on top of the in-app ring screen that
+   was already showing. Direct P2P success is a strong signal on its own; the failure
+   branches above (probe timeout/error) already notify via the server directly, and the
+   2-minute no-answer timeout in startCall() still catches a call that truly never
+   connects. armFcmBackup()/fcmBackupTimer are kept only so stopOutPhaseTimer()'s
+   defensive clearTimeout() is a harmless no-op if nothing armed it.
 /* Belt-and-suspenders: even when a fresh presence probe said "online", that's a
    snapshot from up to PRESENCE_FRESH_MS ago — it can't guarantee the callee's phone
    is still reachable right now. So we always arm an FCM ping a few seconds into the
@@ -2964,22 +2974,82 @@ var callRetryCount=0,MAX_CALL_RETRIES=Math.ceil(TOTAL_RING_MS/1500); /* ~1.5s ap
 function monitorCallConnection(mc){
   if(!mc||!mc.peerConnection)return;
   var pc=mc.peerConnection;
-  var reconnectAttempted=false;
+  var reconnectAttempted=false,forcedRelayAttempted=false;
+  var disconnectRetryTimer=null,relayRetryTimer=null,disconnectGiveUpTimer=null;
+  function clearRecoveryTimers(){clearTimeout(disconnectRetryTimer);disconnectRetryTimer=null;clearTimeout(relayRetryTimer);relayRetryTimer=null;clearTimeout(disconnectGiveUpTimer);disconnectGiveUpTimer=null;}
+  /* FIX (WebRTC across different networks): the "nuclear option". A normal ICE restart
+     re-gathers candidates with the SAME policy that just failed to carry media — on two
+     genuinely different networks that's often the same outcome again. Forcing
+     iceTransportPolicy:'relay' makes every subsequent candidate go through one of the
+     TURN servers already configured in PEER_CONFIG (UDP/TCP/TLS-443 variants), trading a
+     bit of latency for actually connecting instead of silently failing. */
+  function forceRelayRestart(){
+    try{
+      var cfg=(typeof pc.getConfiguration==='function')?pc.getConfiguration():{};
+      cfg.iceTransportPolicy='relay';
+      pc.setConfiguration(cfg);
+      if(typeof pc.restartIce==='function')pc.restartIce();
+    }catch(e){}
+  }
   pc.oniceconnectionstatechange=function(){
     var st=pc.iceConnectionState;
     var statusEl=document.getElementById('call-status');
     if(st==='disconnected'){
       if(statusEl)statusEl.textContent='Reconnecting…';
+      /* FIX (call stuck forever on "Reconnecting…"): ICE spec allows 'disconnected' to
+         recover on its own, and it often does — but it doesn't reliably progress to
+         'failed' either, so a recovery trigger keyed only off 'failed' could simply
+         never fire, leaving the call frozen here forever with no way out but a manual
+         hang-up. Now: normal restart at 5s if still stuck, forced-relay restart at 12s
+         if THAT hasn't worked either (the cross-network case), hard give-up at 22s. */
+      clearRecoveryTimers();
+      disconnectRetryTimer=setTimeout(function(){
+        if(pc.iceConnectionState!=='disconnected')return;
+        if(!reconnectAttempted&&typeof pc.restartIce==='function'){
+          reconnectAttempted=true;
+          try{pc.restartIce();}catch(e){}
+        }
+      },5000);
+      relayRetryTimer=setTimeout(function(){
+        if((pc.iceConnectionState==='disconnected'||pc.iceConnectionState==='failed')&&!forcedRelayAttempted){
+          forcedRelayAttempted=true;forceRelayRestart();
+        }
+      },12000);
+      disconnectGiveUpTimer=setTimeout(function(){
+        if(pc.iceConnectionState==='disconnected'||pc.iceConnectionState==='failed'){
+          toast('Call connection lost');endCall();
+        }
+      },22000);
     }else if(st==='failed'){
+      clearRecoveryTimers();
       if(!reconnectAttempted&&typeof pc.restartIce==='function'){
         reconnectAttempted=true;
         if(statusEl)statusEl.textContent='Reconnecting…';
-        try{pc.restartIce();}catch(e){toast('Call connection lost');endCall();}
+        try{pc.restartIce();}catch(e){forceRelayRestart();}
+        relayRetryTimer=setTimeout(function(){
+          if((pc.iceConnectionState==='failed'||pc.iceConnectionState==='disconnected')&&!forcedRelayAttempted){
+            forcedRelayAttempted=true;forceRelayRestart();
+          }
+        },7000);
+        disconnectGiveUpTimer=setTimeout(function(){
+          if(pc.iceConnectionState==='failed'||pc.iceConnectionState==='disconnected'){
+            toast('Call connection lost');endCall();
+          }
+        },17000);
+      }else if(!forcedRelayAttempted){
+        forcedRelayAttempted=true;
+        if(statusEl)statusEl.textContent='Reconnecting…';
+        forceRelayRestart();
+        disconnectGiveUpTimer=setTimeout(function(){
+          if(pc.iceConnectionState==='failed'||pc.iceConnectionState==='disconnected'){
+            toast('Call connection lost');endCall();
+          }
+        },10000);
       }else{
         toast('Call connection lost');endCall();
       }
     }else if(st==='connected'||st==='completed'){
-      reconnectAttempted=false;
+      reconnectAttempted=false;forcedRelayAttempted=false;clearRecoveryTimers();
       if(statusEl&&statusEl.textContent==='Reconnecting…')statusEl.textContent='Connected ✓';
     }
   };
