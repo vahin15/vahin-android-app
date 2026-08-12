@@ -3000,12 +3000,12 @@ function monitorCallConnection(mc){
      involved next time this is tested on mobile data. Check Settings → Debug log after a
      failed mobile-data call attempt. */
   try{
-    pc.onicecandidate=function(e){
+    pc.addEventListener('icecandidate',function(e){
       if(!e.candidate)return;
       var c=e.candidate;
       var m=/typ (\w+)/.exec(c.candidate||'');
       diagLog('🧊 local candidate gathered: '+(m?m[1]:'unknown')+' ('+(c.protocol||'')+')');
-    };
+    });
   }catch(e){}
   function logSelectedCandidatePair(){
     if(typeof pc.getStats!=='function')return;
@@ -3022,7 +3022,7 @@ function monitorCallConnection(mc){
         ' — '+((lc&&lc.candidateType==='relay')||(rc&&rc.candidateType==='relay')?'went through TURN relay':'direct/no relay'));
     }).catch(function(e){diagLog('🧊 getStats failed: '+(e&&e.message?e.message:e));});
   }
-  pc.oniceconnectionstatechange=function(){
+  pc.addEventListener('iceconnectionstatechange',function(){
     var st=pc.iceConnectionState;
     diagLog('🧊 iceConnectionState → '+st);
     if(st==='connected'||st==='completed')logSelectedCandidatePair();
@@ -3085,7 +3085,7 @@ function monitorCallConnection(mc){
       reconnectAttempted=false;forcedRelayAttempted=false;clearRecoveryTimers();
       if(statusEl&&statusEl.textContent==='Reconnecting…')statusEl.textContent='Connected ✓';
     }
-  };
+  });
 }
 function placeCallAttempt(pid,voiceOnly){
   if(!localStream)return;
