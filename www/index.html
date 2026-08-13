@@ -1080,14 +1080,23 @@ async function uploadDp(dataUrl){
 }
 var PEER_CONFIG={debug:0,host:'vahin-backend.onrender.com',secure:true,port:443,path:'/peerjs',key:'vahin15-peerjs-9f3a7c2e1b8d4a6f',config:{iceServers:[
   {urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'},
+  /* FIX (zero relay candidates ever gathered — confirmed via debug log): the shared
+     public openrelayproject demo TURN credentials below were almost certainly dead/rate-
+     limited — thousands of other apps use those exact same demo credentials. These are
+     the user's own dedicated Metered.ca TURN credentials (Global region, auto-routes to
+     nearest server) — listed first so they're tried first. */
+  {urls:'turn:global.relay.metered.ca:80',username:'01c8ee08f66aeb4e626ee16f',credential:'6R16megsMkuyo1D9'},
+  {urls:'turn:global.relay.metered.ca:80?transport=tcp',username:'01c8ee08f66aeb4e626ee16f',credential:'6R16megsMkuyo1D9'},
+  {urls:'turn:global.relay.metered.ca:443',username:'01c8ee08f66aeb4e626ee16f',credential:'6R16megsMkuyo1D9'},
+  {urls:'turns:global.relay.metered.ca:443?transport=tcp',username:'01c8ee08f66aeb4e626ee16f',credential:'6R16megsMkuyo1D9'},
   {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
   {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
-  /* TCP/TLS variants: plain-UDP TURN (above) gets silently dropped on a lot of Indian
-     mobile carrier networks and campus/office wifi. These fall back to looking like
-     normal HTTPS traffic over port 443, which almost nothing blocks. Without these,
-     two people both on mobile data (the most common real case for this app) is
-     exactly the scenario most likely to fail — UDP relay is where "call connects on
-     wifi but not on mobile data" bugs come from. */
+  /* TCP/TLS variants: plain-UDP TURN gets silently dropped on a lot of Indian mobile
+     carrier networks and campus/office wifi. These fall back to looking like normal
+     HTTPS traffic over port 443, which almost nothing blocks. Without these, two people
+     both on mobile data (the most common real case for this app) is exactly the
+     scenario most likely to fail — UDP relay is where "call connects on wifi but not
+     on mobile data" bugs come from. */
   {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'},
   {urls:'turns:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'},
   {urls:'turn:freeturn.net:3478',username:'free',credential:'free'},
