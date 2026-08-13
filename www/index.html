@@ -3040,16 +3040,20 @@ function monitorCallConnection(mc){
         if(pc.iceConnectionState!=='disconnected')return;
         if(!reconnectAttempted&&typeof pc.restartIce==='function'){
           reconnectAttempted=true;
-          try{pc.restartIce();}catch(e){}
+          diagLog('🔄 still disconnected at 5s — attempting normal restartIce()');
+          try{pc.restartIce();}catch(e){diagLog('⚠️ restartIce() threw: '+(e&&e.message?e.message:e));}
         }
       },5000);
       relayRetryTimer=setTimeout(function(){
         if((pc.iceConnectionState==='disconnected'||pc.iceConnectionState==='failed')&&!forcedRelayAttempted){
-          forcedRelayAttempted=true;forceRelayRestart();
+          forcedRelayAttempted=true;
+          diagLog('🔄 still stuck at 12s — forcing TURN-relay-only restart');
+          forceRelayRestart();
         }
       },12000);
       disconnectGiveUpTimer=setTimeout(function(){
         if(pc.iceConnectionState==='disconnected'||pc.iceConnectionState==='failed'){
+          diagLog('❌ still stuck at 22s — giving up, ending call');
           toast('Call connection lost');endCall();
         }
       },22000);
@@ -3058,32 +3062,43 @@ function monitorCallConnection(mc){
       if(!reconnectAttempted&&typeof pc.restartIce==='function'){
         reconnectAttempted=true;
         if(statusEl)statusEl.textContent='Reconnecting…';
-        try{pc.restartIce();}catch(e){forceRelayRestart();}
+        diagLog('🔄 ICE failed — attempting normal restartIce()');
+        try{pc.restartIce();}catch(e){diagLog('⚠️ restartIce() threw, forcing relay: '+(e&&e.message?e.message:e));forceRelayRestart();}
         relayRetryTimer=setTimeout(function(){
           if((pc.iceConnectionState==='failed'||pc.iceConnectionState==='disconnected')&&!forcedRelayAttempted){
-            forcedRelayAttempted=true;forceRelayRestart();
+            forcedRelayAttempted=true;
+            diagLog('🔄 still stuck 7s after restart — forcing TURN-relay-only restart');
+            forceRelayRestart();
           }
         },7000);
         disconnectGiveUpTimer=setTimeout(function(){
           if(pc.iceConnectionState==='failed'||pc.iceConnectionState==='disconnected'){
+            diagLog('❌ still stuck — giving up, ending call');
             toast('Call connection lost');endCall();
           }
         },17000);
       }else if(!forcedRelayAttempted){
         forcedRelayAttempted=true;
         if(statusEl)statusEl.textContent='Reconnecting…';
+        diagLog('🔄 ICE failed again — forcing TURN-relay-only restart directly');
         forceRelayRestart();
         disconnectGiveUpTimer=setTimeout(function(){
           if(pc.iceConnectionState==='failed'||pc.iceConnectionState==='disconnected'){
+            diagLog('❌ still stuck after forced relay — giving up, ending call');
             toast('Call connection lost');endCall();
           }
         },10000);
       }else{
+        diagLog('❌ ICE failed after every recovery attempt — giving up, ending call');
         toast('Call connection lost');endCall();
       }
     }else if(st==='connected'||st==='completed'){
       reconnectAttempted=false;forcedRelayAttempted=false;clearRecoveryTimers();
-      if(statusEl&&statusEl.textContent==='Reconnecting…')statusEl.textContent='Connected ✓';
+      /* This is now the ONLY place 'Connected ✓' gets set, on either side of the call —
+         see the FIX comments in placeCallAttempt()/acceptCall() for why 'stream' was the
+         wrong signal to use. This is real ICE connectivity, confirmed by the browser. */
+      if(statusEl)statusEl.textContent='Connected ✓';
+      diagLog('✅ Real ICE connection established — call is actually live now');
     }
   });
 }
@@ -3093,10 +3108,9 @@ function placeCallAttempt(pid,voiceOnly){
     currentCall=peer.call(pid,localStream,{metadata:{facing:facingMode,voiceOnly:!!voiceOnly}});
     currentCall.on('stream',function(rs){
       stopOutTone();markOutCallConnected();var rv=document.getElementById('video-remote');rv.srcObject=rs;
-      document.getElementById('call-status').textContent='Connected ✓';
       startCallTimer();logCall(pid,'connected','out');startQual();
       monitorCallConnection(currentCall);
-      diagLog('✅ Call connected!');
+      diagLog('ℹ️ acceptCall/placeCallAttempt: SDP-level stream received — waiting for real ICE connectivity before showing Connected');
     });
     currentCall.on('close',function(){endCall();});
     currentCall.on('error',function(){});
@@ -3220,9 +3234,8 @@ async function acceptCall(){
     incomingCall.answer(localStream);currentCall=incomingCall;
     document.getElementById('call-status').textContent='Connecting…';
     currentCall.on('stream',function(rs){
-      diagLog('✅ acceptCall: remote stream received — call is live');
+      diagLog('ℹ️ acceptCall: SDP-level stream received — waiting for real ICE connectivity before showing Connected');
       var rv=document.getElementById('video-remote');rv.srcObject=rs;
-      document.getElementById('call-status').textContent='Connected ✓';
       startCallTimer();startQual();monitorCallConnection(currentCall);
     });
     currentCall.on('close',function(){diagLog('ℹ️ acceptCall: MediaConnection closed');endCall();});
@@ -3809,7 +3822,7 @@ function handleNotifyResult(toId,j,status){
     return;
   }
   if(!j){diagLog('⚠️ Server response had no readable body');return;}
-  diagLog('→ delivered='+j.delivered+' (fcm='+j.fcmDelivered+', socket='+j.socketDelivered+', push='+j.pushDelivered+', total registered='+j.total+', fcmEnabled='+j.fcmEnabled+')');
+  diagLog('→ delivered='+j.delivered+' (fcm='+j.fcmDelivered+', socket='+j.wsDelivered+', push='+j.pushDelivered+', total registered='+j.total+', fcmEnabled='+j.fcmEnabled+')');
   if(j.reason==='no subscriptions for this id'){
     diagLog('❌ '+toId+' has never registered ANY device (FCM/socket/push) with the server — they cannot be woken up');
     toast('⚠️ '+toId+' has never enabled notifications — they won\u2019t be woken up if offline');
