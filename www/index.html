@@ -3142,8 +3142,9 @@ function handlePeerUnavailable(){
     return;
   }
   callRetryCount=0;
-  // Retries exhausted (~35s of trying) — the "No answer" timeout already set up in
-  // startCall() will finish cleaning up and show the right message momentarily.
+  // Retries exhausted (covers the full ~2-minute ring window, same as TOTAL_RING_MS) —
+  // the "No answer" timeout already set up in startCall() will finish cleaning up and
+  // show the right message momentarily.
   // We don't show a separate "offline" toast here anymore: on a real call, a phone
   // that was fully closed can take several seconds to wake up via Firebase and
   // reconnect, so bailing out early used to hang up on the caller before the
@@ -3873,7 +3874,22 @@ function getIncomingCallPeer(){if(!incomingCall)return null;return incomingCall.
    Cleared after use or after 60 s (stale call). */
 var pendingNativeAction=null;
 var pendingNativeTimer=null;
+/* FIX (dedupe): the native side can now deliver the same tap through two independent
+   paths — an early "raw mailbox" write (window.__vahinPendingNativeAction, drained by
+   drainPendingNativeAction() below right after boot()) and the original probe-and-push
+   call straight into this function — designed to race each other on purpose so
+   whichever path wins first is the one that counts, instead of both being required to
+   land within a tight timing window. Since both paths can genuinely fire for the same
+   tap, guard against processing the exact same action twice in a row. */
+var lastNativeActionKey=null,lastNativeActionAt=0;
 function handleNativeCallAction(action,from){
+  var _key=action+'|'+from;
+  var _now=Date.now();
+  if(_key===lastNativeActionKey&&(_now-lastNativeActionAt)<4000){
+    diagLog('📲 Ignoring duplicate native action delivery: '+action+' (from='+from+')');
+    return;
+  }
+  lastNativeActionKey=_key;lastNativeActionAt=_now;
   /* FIX: on a cold boot (app was killed, user tapped Answer), enterApp() runs
      maybeShowPermSetup() before this function has a chance to fire — the native
      bridge takes a beat to become ready, so the "don't show over a call" check
@@ -4464,9 +4480,30 @@ document.addEventListener('backbutton',function(){
   }else if(id==='screen-call'&&!currentCall){declineCall();}
   else if(id==='screen-conf'){endConf();}
 },false);
+/* FIX (root cause of "Answer opens the general/home screen instead of the call
+   screen", worst on a cold start): MainActivity.deliverNativeCallAction() now writes
+   the native Accept/Decline tap into window.__vahinPendingNativeAction the moment its
+   WebView object exists — which can be (and on a cold start, routinely is) well before
+   this script has finished loading and running. That write lands in this same document
+   and just sits there until we get here. Drain it right after boot() — by which point
+   myId is set and enterApp() has kicked off the peer connection — so a tap that arrived
+   before we were ready is applied the very first moment we ARE ready, with no dependency
+   on winning a timing race against native's own retry loop. handleNativeCallAction()
+   itself dedupes in case the native probe-and-push path *also* ends up delivering the
+   same action (both paths are intentionally redundant, not mutually exclusive). */
+function drainPendingNativeAction(){
+  try{
+    var pna=window.__vahinPendingNativeAction;
+    if(pna&&pna.action){
+      window.__vahinPendingNativeAction=null;
+      diagLog('📲 Draining native call action stored before the page finished booting: '+pna.action);
+      handleNativeCallAction(pna.action,pna.from);
+    }
+  }catch(e){}
+}
 if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',function(){boot();setTimeout(handleStartupURL,500);});
-}else{boot();setTimeout(handleStartupURL,500);}
+  document.addEventListener('DOMContentLoaded',function(){boot();drainPendingNativeAction();setTimeout(handleStartupURL,500);});
+}else{boot();drainPendingNativeAction();setTimeout(handleStartupURL,500);}
 </script>
 
 <script>

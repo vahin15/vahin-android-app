@@ -315,7 +315,36 @@ public class MainActivity extends BridgeActivity {
         deliverNativeCallAction(action, from, 0);
     }
 
-    private static final int NATIVE_ACTION_MAX_RETRIES = 25;   // ~5s total at 200ms
+    // ROOT CAUSE of "Answer opens the general/home screen instead of the call screen"
+    // (worst on a cold start): the old code's ONLY delivery path was the probe-and-push
+    // loop below — it polled for `typeof window.handleNativeCallAction === 'function'`
+    // and gave up completely after NATIVE_ACTION_MAX_RETRIES (25 * 200ms = 5s). But
+    // window.handleNativeCallAction only becomes defined once the ENTIRE inline
+    // <script> in index.html (thousands of lines) has finished parsing and executing.
+    // On a genuinely cold start — fresh Android process, WebView engine spin-up,
+    // Capacitor bridge init, keyguard dismiss, all happening at once because the user
+    // tapped Answer from a locked full-screen call UI — that routinely takes longer
+    // than 5 seconds on real (non-flagship) devices. Once the 5s ceiling was hit, the
+    // action was silently dropped forever: no retry, no fallback, nothing. The user
+    // just ended up wherever boot() puts them (screen-chats) — exactly the reported bug.
+    //
+    // FIX: below we now ALSO write the action into a raw JS global
+    // (window.__vahinPendingNativeAction) the moment the WebView object exists — this
+    // requires only that the WebView itself has been created (near-instant, happens in
+    // BridgeActivity's super.onCreate()), NOT that the page has finished loading, let
+    // alone finished running its own script. That assignment lands in whatever document
+    // is currently loaded in the WebView and — because it's the same document that will
+    // shortly run index.html's own <script> — survives until that script reaches its own
+    // boot sequence, however long that takes, and drains it itself (see index.html:
+    // drainPendingNativeAction(), called right after boot()). This removes the 5s
+    // ceiling as a hard failure point entirely: delivery no longer depends on winning a
+    // race against page-load time.
+    //
+    // The original probe-and-push path is kept running in parallel (with its retry
+    // window substantially extended, as defense in depth for devices where the raw
+    // write somehow doesn't stick) — window.handleNativeCallAction() dedupes on its end
+    // if both paths end up delivering the same action.
+    private static final int NATIVE_ACTION_MAX_RETRIES = 100;  // ~20s total at 200ms — was 5s
     private static final int NATIVE_ACTION_RETRY_DELAY_MS = 200;
 
     private void deliverNativeCallAction(String action, String from, int attempt) {
@@ -324,6 +353,19 @@ public class MainActivity extends BridgeActivity {
             retryDeliverNativeCallAction(action, from, attempt);
             return;
         }
+
+        // FIX: raw "mailbox" write — fires on every attempt (cheap, idempotent) as soon
+        // as the WebView exists, regardless of whether index.html has finished loading.
+        // This is what actually closes the race; see the big comment above.
+        try {
+            String rawStore = "window.__vahinPendingNativeAction={action:"
+                + toJsString(action) + ",from:" + toJsString(from) + ",ts:Date.now()};";
+            bridge.getWebView().evaluateJavascript(rawStore, null);
+        } catch (Exception e) {
+            Log.w(TAG, "deliverNativeCallAction: raw-store evaluateJavascript threw — "
+                + e.getMessage());
+        }
+
         // FIX A: probe evaluateJavascript wraps its result callback — if the JS
         // engine isn't ready yet we retry; if it is ready but evaluateJavascript
         // throws, we catch and log the full exception instead of crashing silently.
@@ -354,6 +396,8 @@ public class MainActivity extends BridgeActivity {
                                 + e.getMessage(), e);
                         }
                     });
+                    // Don't retry further once we know the page is up — the raw-store
+                    // write above has already been delivered at least once by now too.
                 } else {
                     if (attempt == 0 || attempt % 5 == 0) {
                         Log.d(TAG, "deliverNativeCallAction: bridge not ready yet, attempt=" + attempt
@@ -371,9 +415,16 @@ public class MainActivity extends BridgeActivity {
 
     private void retryDeliverNativeCallAction(String action, String from, int attempt) {
         if (attempt >= NATIVE_ACTION_MAX_RETRIES) {
-            Log.w(TAG, "deliverNativeCallAction: giving up after " + NATIVE_ACTION_MAX_RETRIES
-                + " attempts — window.handleNativeCallAction never became available "
-                + "(action=" + action + " from=" + from + ")");
+            // FIX: even after giving up on the push-probe loop, the raw-store write
+            // from earlier attempts is still sitting in window.__vahinPendingNativeAction
+            // (evaluated successfully as soon as the WebView existed, well before this
+            // ceiling). index.html's own boot sequence will still pick it up whenever it
+            // finishes loading — so "giving up" here only stops the redundant push path,
+            // it does NOT mean the action itself is lost anymore.
+            Log.w(TAG, "deliverNativeCallAction: giving up on push-probe loop after "
+                + NATIVE_ACTION_MAX_RETRIES + " attempts — window.handleNativeCallAction "
+                + "never became available (action=" + action + " from=" + from + "). "
+                + "Raw mailbox write should still be picked up once the page finishes booting.");
             return;
         }
         new Handler(Looper.getMainLooper()).postDelayed(
