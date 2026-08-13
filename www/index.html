@@ -2824,7 +2824,7 @@ function dialWithPresenceCheck(pid,voiceOnly){
     diagLog('Presence cache: FRESH — trying direct P2P');
     startDirectRingUI();return;
   }
-  diagLog('Presence cache: stale/none — probing P2P (1.5s timeout)…');
+  diagLog('Presence cache: stale/none — probing P2P (4s timeout)…');
   var settled=false;
   var probe;
   try{probe=peer.connect(pid,{reliable:false,metadata:{type:'presence'}});}catch(e){diagLog('⚠️ Probe threw: '+(e&&e.message));}
@@ -2833,7 +2833,7 @@ function dialWithPresenceCheck(pid,voiceOnly){
     diagLog('P2P probe timed out — sending wake-up via server (/notify)');
     onlinePeers[pid]=false;onlinePeersTs[pid]=Date.now();
     notifyPeer(pid,voiceOnly?'voice-call':'call',markServerWoke);startOutPhaseTimer();
-  },1500);
+  },4000);
   if(!probe){clearTimeout(giveUp);diagLog('Could not start P2P probe — sending wake-up via server (/notify)');onlinePeers[pid]=false;onlinePeersTs[pid]=Date.now();notifyPeer(pid,voiceOnly?'voice-call':'call',markServerWoke);startOutPhaseTimer();return;}
   probe.on('open',function(){
     if(settled)return;settled=true;clearTimeout(giveUp);
@@ -3218,8 +3218,13 @@ async function acceptCall(){
     diagLog('✅ acceptCall: got local stream — answering the WebRTC call now');
     var lv=document.getElementById('video-local');lv.srcObject=localStream;applyMirror(lv,facingMode);
     incomingCall.answer(localStream);currentCall=incomingCall;
-    document.getElementById('call-status').textContent='Connected ✓';
-    currentCall.on('stream',function(rs){diagLog('✅ acceptCall: remote stream received — call is live');var rv=document.getElementById('video-remote');rv.srcObject=rs;startCallTimer();startQual();monitorCallConnection(currentCall);});
+    document.getElementById('call-status').textContent='Connecting…';
+    currentCall.on('stream',function(rs){
+      diagLog('✅ acceptCall: remote stream received — call is live');
+      var rv=document.getElementById('video-remote');rv.srcObject=rs;
+      document.getElementById('call-status').textContent='Connected ✓';
+      startCallTimer();startQual();monitorCallConnection(currentCall);
+    });
     currentCall.on('close',function(){diagLog('ℹ️ acceptCall: MediaConnection closed');endCall();});
     logCall(callPeerId,'connected','in');incomingCall=null;addRecentSilent(callPeerId);requestWakeLock();
   }catch(e){diagLog('❌ acceptCall: failed — '+(e&&e.message?e.message:e));toast('Camera/mic denied');endCall();}
