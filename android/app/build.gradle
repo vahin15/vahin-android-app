@@ -20,18 +20,15 @@ android {
     signingConfigs {
         release {
             def ksPath = rootProject.file('keystore/release.keystore')
-            def hasSigningSecrets = ksPath.exists() && System.getenv("ANDROID_KEYSTORE_PASSWORD") != null
-            if (hasSigningSecrets) {
+            def ksPass = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            def keyAliasVal = System.getenv("ANDROID_KEY_ALIAS") ?: "unifest"
+            def keyPassVal = System.getenv("ANDROID_KEY_PASSWORD") ?: ksPass
+            if (ksPath.exists() && ksPath.length() > 0 && ksPass != null && !ksPass.trim().isEmpty()) {
                 storeFile ksPath
-                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
-                keyAlias System.getenv("ANDROID_KEY_ALIAS")
-                keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+                storePassword ksPass
+                keyAlias keyAliasVal
+                keyPassword keyPassVal
             }
-            // NOTE: previously this threw a GradleException when the keystore/env
-            // vars were missing. That block ran during Gradle's configuration
-            // phase, so it fired for EVERY task (even a local `assembleDebug` or
-            // just opening the project) not just release builds — that was why
-            // the project wouldn't build outside of GitHub Actions.
         }
     }
 

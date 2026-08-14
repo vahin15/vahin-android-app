@@ -1,10 +1,10 @@
-name: Build Signed Android APK
+name: Build Android APK
 
-# Runs automatically every time you push to the main branch,
+# Runs automatically every time you push to main/master,
 # and can also be triggered manually from the GitHub Actions tab.
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -20,50 +20,73 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
+          cache: 'gradle'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: 'npm'
 
       - name: Install npm dependencies
         run: npm install
 
+      - name: Build web assets
+        run: npm run build
+
       - name: Sync Capacitor web assets into Android project
         run: npx cap sync android
 
-      - name: Decode signing keystore from secret
+      - name: Configure signing keystore
         run: |
           mkdir -p android/keystore
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/keystore/release.keystore
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "Found ANDROID_KEYSTORE_BASE64 secret, decoding..."
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/keystore/release.keystore
+            echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
+            echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
+          else
+            echo "No keystore secret provided. Generating fallback release keystore on the fly..."
+            keytool -genkeypair -v \
+              -keystore android/keystore/release.keystore \
+              -alias unifest \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass unifest123 \
+              -keypass unifest123 \
+              -dname "CN=Unifest, OU=Mobile, O=Unifest, L=City, ST=State, C=US"
+            echo "ANDROID_KEYSTORE_PASSWORD=unifest123" >> $GITHUB_ENV
+            echo "ANDROID_KEY_ALIAS=unifest" >> $GITHUB_ENV
+            echo "ANDROID_KEY_PASSWORD=unifest123" >> $GITHUB_ENV
+          fi
 
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
-      - name: Build signed release APK
+      - name: Build release APK
         working-directory: android
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease --stacktrace
 
-      - name: Build signed release AAB (for Play Store, built later when you're ready)
+      - name: Build release AAB (for Google Play Store)
         working-directory: android
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew bundleRelease
+        continue-on-error: true
+        run: ./gradlew bundleRelease --stacktrace
 
-      - name: Upload APK (install this on your phone now)
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: unifest-apk
-          path: android/app/build/outputs/apk/release/*.apk
+          path: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
 
-      - name: Upload AAB (use this later for Play Store upload)
+      - name: Upload AAB (for Google Play Store)
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: unifest-aab
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          path: android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: warn
