@@ -10,7 +10,7 @@
            media-src 'self' blob: mediastream: data:;
            style-src 'self' 'unsafe-inline';">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content"/>
-<meta name="theme-color" content="#6D28D9"/>
+<meta name="theme-color" content="#1E3A5F"/>
 <meta name="color-scheme" content="light dark"/>
 <title>Unifest</title>
 <meta name="mobile-web-app-capable" content="yes"/>
@@ -22,13 +22,17 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
-  --bg:#F6F4FC;--surface:#FFFFFF;--surface2:#F0ECFA;--surface3:#E1D9F6;
-  --accent:#7C3AED;--accent2:#5B21B6;--accent-light:#EEE7FD;
-  --grad-a:#8B5CF6;--grad-b:#F59E0B;--grad-c:#EC4899;
-  --green:#059669;--red:#DC2626;--yellow:#D97706;--orange:#F59E0B;
-  --text:#150F2E;--text2:#4B4468;--text3:#8F87A8;
-  --border:#E7E1F7;--border2:#D2C7F2;
-  --radius:16px;--radius-sm:12px;
+  /* Mature/professional palette (v2): neutral cool-gray surfaces, a single
+     restrained ink-navy accent family used for every gradient/avatar/button
+     (previously a violet→amber→pink "candy" tri-gradient), and deepened,
+     less-saturated semantic colors for calls/alerts. See DESIGN_NOTES.md. */
+  --bg:#F5F6F8;--surface:#FFFFFF;--surface2:#EEF0F3;--surface3:#E2E5EB;
+  --accent:#1E3A5F;--accent2:#15293F;--accent-light:#E7ECF2;
+  --grad-a:#3E6690;--grad-b:#14283D;--grad-c:#24435F;
+  --green:#1D7A5F;--red:#B3261E;--yellow:#B7791F;--orange:#C2703D;
+  --text:#171A21;--text2:#4B5160;--text3:#868D9C;
+  --border:#E4E7EC;--border2:#CBD1DB;
+  --radius:14px;--radius-sm:10px;
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);
   --nav-h:62px;
@@ -36,12 +40,12 @@
   --ads-right:0px;
 }
 html.dark{
-  --bg:#0B0E17;--surface:#141A29;--surface2:#1B2333;--surface3:#252F45;
-  --text:#F1F3FB;--text2:#B9C1D9;--text3:#7C8AAB;
-  --border:#232C40;--border2:#333F5C;--accent-light:#26224A;
-  --accent:#A78BFA;--accent2:#8B5CF6;
-  --grad-a:#A78BFA;--grad-b:#FBBF24;--grad-c:#F472B6;
-  --green:#34D399;--red:#F87171;--yellow:#FBBF24;--orange:#FB923C;
+  --bg:#0D1117;--surface:#161B22;--surface2:#1C232C;--surface3:#242C37;
+  --text:#EDEFF3;--text2:#A9B0BF;--text3:#727A8A;
+  --border:#252C36;--border2:#333B48;--accent-light:#1B2735;
+  --accent:#6E97C4;--accent2:#4E7BA8;
+  --grad-a:#6E97C4;--grad-b:#16324A;--grad-c:#3E6690;
+  --green:#2FA57D;--red:#E0554A;--yellow:#D9A441;--orange:#D98A55;
 }
 html,body{height:100%;overflow:hidden;}
 input,textarea{color:var(--text)!important;-webkit-text-fill-color:var(--text)!important;caret-color:var(--accent);}
@@ -59,17 +63,18 @@ button,input,textarea{font-family:inherit;}
 .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border:none;background:none;
   color:var(--text3);transition:color .15s;padding:8px 4px;position:relative;touch-action:manipulation;}
 .tab-btn.active{color:var(--accent);}
-.tab-btn .ti{font-size:22px;line-height:1;}
+.tab-btn .ti{display:flex;align-items:center;justify-content:center;width:24px;height:24px;line-height:1;}
+.tab-btn .ti svg{width:22px;height:22px;display:block;}
 .tab-btn .tl{font-size:10px;font-weight:600;}
 .tab-badge{position:absolute;top:6px;right:calc(50% - 20px);background:var(--red);color:#fff;font-size:9px;font-weight:800;
   border-radius:8px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--surface);}
 #screen-id{flex-direction:column;align-items:center;justify-content:center;overflow-y:auto;
-  background:radial-gradient(ellipse at 20% 0%,rgba(245,158,11,.14),transparent 55%),
-    radial-gradient(ellipse at 85% 100%,rgba(124,58,237,.20),transparent 50%),var(--bg);}
+  background:radial-gradient(ellipse at 20% 0%,rgba(62,102,144,.14),transparent 55%),
+    radial-gradient(ellipse at 85% 100%,rgba(30,58,95,.20),transparent 50%),var(--bg);}
 .land-wrap{width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;gap:26px;padding:32px 24px;
   padding-top:calc(32px + var(--safe-top));padding-bottom:calc(32px + var(--safe-bottom));}
-.logo-circle{width:88px;height:88px;border-radius:50%;overflow:hidden;border:3px solid rgba(245,158,11,.35);
-  box-shadow:0 0 40px rgba(124,58,237,.35);background:var(--surface);}
+.logo-circle{width:88px;height:88px;border-radius:50%;overflow:hidden;border:3px solid rgba(62,102,144,.35);
+  box-shadow:0 0 40px rgba(30,58,95,.35);background:var(--surface);}
 .logo-circle img{width:100%;height:100%;object-fit:cover;}
 .logo-fallback{width:100%;height:100%;background:linear-gradient(135deg,var(--grad-a),var(--grad-c) 55%,var(--grad-b));
   display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:900;color:#fff;}
@@ -84,13 +89,13 @@ button,input,textarea{font-family:inherit;}
 .id-input:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-light);}
 .id-hint{font-size:12px;color:var(--text3);text-align:center;line-height:1.6;}
 .btn-primary{background:linear-gradient(135deg,var(--grad-a),var(--grad-c) 55%,var(--grad-b));border:none;border-radius:var(--radius-sm);padding:17px;
-  font-size:16px;font-weight:700;color:#fff;cursor:pointer;width:100%;min-height:54px;touch-action:manipulation;box-shadow:0 8px 24px rgba(124,58,237,.35);}
+  font-size:16px;font-weight:700;color:#fff;cursor:pointer;width:100%;min-height:54px;touch-action:manipulation;box-shadow:0 8px 24px rgba(30,58,95,.35);}
 .btn-primary:active{opacity:.85;transform:scale(.98);}
 .feature-pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
 .pill{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:7px 14px;font-size:11.5px;color:var(--text2);
   display:flex;align-items:center;gap:6px;font-weight:600;}
 .pill-dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
-#screen-onboard{background:linear-gradient(160deg,#1E1240 0%,#0E0A1E 100%);z-index:70;}
+#screen-onboard{background:linear-gradient(160deg,#10131C 0%,#05060A 100%);z-index:70;}
 .ob-wrap{display:flex;flex-direction:column;align-items:center;justify-content:space-between;height:100%;padding:40px 28px;
   padding-top:calc(50px + var(--safe-top));padding-bottom:calc(32px + var(--safe-bottom));}
 .ob-hero{display:flex;flex-direction:column;align-items:center;gap:22px;flex:1;justify-content:center;}
@@ -154,7 +159,7 @@ button,input,textarea{font-family:inherit;}
 .cli-call-btn:active{background:var(--accent);color:#fff;}
 .fab{position:absolute;bottom:calc(var(--nav-h) + var(--safe-bottom) + var(--banner-h) + 16px);right:18px;width:56px;height:56px;border-radius:50%;
   background:linear-gradient(135deg,var(--grad-a),var(--grad-c) 55%,var(--grad-b));border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;
-  box-shadow:0 8px 24px rgba(124,58,237,.45);z-index:50;touch-action:manipulation;color:#fff;font-size:24px;}
+  box-shadow:0 8px 24px rgba(30,58,95,.45);z-index:50;touch-action:manipulation;color:#fff;font-size:24px;}
 .fab:active{transform:scale(.88);}
 .call-log-item{display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--border);min-height:72px;}
 .call-log-av{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--surface3),var(--border2));
@@ -169,12 +174,12 @@ button,input,textarea{font-family:inherit;}
 .group-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;align-items:center;
   gap:14px;cursor:pointer;transition:all .15s;touch-action:manipulation;}
 .group-card:active{border-color:var(--accent);background:var(--surface2);}
-.group-card-icon{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,var(--accent-light),rgba(245,158,11,.15));
+.group-card-icon{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,var(--accent-light),rgba(62,102,144,.15));
   display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
 .group-card-name{font-size:16px;font-weight:700;color:var(--text);}
 .group-card-sub{font-size:13px;color:var(--text3);margin-top:3px;}
 .settings-body{flex:1;overflow-y:auto;padding-bottom:16px;}
-.settings-profile{padding:24px 18px;display:flex;align-items:center;gap:16px;background:linear-gradient(135deg,var(--accent-light),rgba(245,158,11,.08));
+.settings-profile{padding:24px 18px;display:flex;align-items:center;gap:16px;background:linear-gradient(135deg,var(--accent-light),rgba(62,102,144,.08));
   border-bottom:1px solid var(--border);}
 .settings-av{width:68px;height:68px;border-radius:50%;border:3px solid var(--accent-light);flex-shrink:0;background:var(--surface2);background-size:cover;background-position:center;
   display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:var(--accent2);}
@@ -237,15 +242,15 @@ button,input,textarea{font-family:inherit;}
 .msg-row.them{align-self:flex-start;align-items:flex-start;}
 .msg-row.sys{align-self:center;max-width:90%;}
 .msg-bubble{padding:10px 14px;border-radius:18px;font-size:15.5px;line-height:1.55;word-break:break-word;}
-.msg-row.me .msg-bubble{background:linear-gradient(135deg,var(--grad-a),var(--grad-c) 55%,var(--grad-b));color:#fff;border-bottom-right-radius:4px;box-shadow:0 2px 10px rgba(124,58,237,.3);}
+.msg-row.me .msg-bubble{background:linear-gradient(135deg,var(--grad-a),var(--grad-c) 55%,var(--grad-b));color:#fff;border-bottom-right-radius:4px;box-shadow:0 2px 10px rgba(30,58,95,.3);}
 .msg-row.them .msg-bubble{background:var(--surface);color:var(--text);border-bottom-left-radius:4px;border:1px solid var(--border);}
-.msg-row.sys .msg-bubble{background:rgba(124,58,237,.08);color:var(--text2);font-size:12px;padding:6px 14px;border-radius:12px;border:1px solid rgba(124,58,237,.15);}
+.msg-row.sys .msg-bubble{background:rgba(30,58,95,.08);color:var(--text2);font-size:12px;padding:6px 14px;border-radius:12px;border:1px solid rgba(30,58,95,.15);}
 .msg-time{font-size:11px;color:var(--text3);margin-top:3px;padding:0 4px;display:flex;align-items:center;gap:3px;}
 .msg-tick{font-size:12px;color:var(--text3);}
-.msg-tick.read{color:#7C3AED;}
+.msg-tick.read{color:#1E3A5F;}
 .msg-sender{font-size:12px;color:var(--accent2);margin-bottom:3px;padding:0 4px;font-weight:600;}
 .msg-quote{border-left:3px solid rgba(255,255,255,.5);padding:5px 10px;margin-bottom:6px;border-radius:0 8px 8px 0;background:rgba(255,255,255,.12);font-size:12.5px;}
-.msg-row.them .msg-quote{border-left-color:var(--accent);background:rgba(124,58,237,.08);color:var(--text2);}
+.msg-row.them .msg-quote{border-left-color:var(--accent);background:rgba(30,58,95,.08);color:var(--text2);}
 .msg-quote-sender{font-size:11px;font-weight:700;opacity:.8;margin-bottom:2px;}
 .msg-row.them .msg-quote-sender{color:var(--accent);}
 .typing-dots{display:inline-flex;align-items:center;gap:3px;}
@@ -269,8 +274,8 @@ button,input,textarea{font-family:inherit;}
 .attach-btn{background:var(--surface2);border:1.5px solid var(--border);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;
   justify-content:center;font-size:18px;cursor:pointer;flex-shrink:0;touch-action:manipulation;transition:all .2s;color:var(--text2);}
 .attach-btn:active,.attach-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
-.attach-btn.file-attach{background:linear-gradient(135deg,rgba(124,58,237,.1),rgba(245,158,11,.1));border-color:rgba(124,58,237,.3);color:var(--accent);}
-.attach-btn.voice-rec{background:linear-gradient(135deg,rgba(220,38,38,.08),rgba(234,88,12,.08));border-color:rgba(220,38,38,.25);color:var(--red);}
+.attach-btn.file-attach{background:linear-gradient(135deg,rgba(30,58,95,.1),rgba(62,102,144,.1));border-color:rgba(30,58,95,.3);color:var(--accent);}
+.attach-btn.voice-rec{background:linear-gradient(135deg,rgba(179,38,30,.08),rgba(234,88,12,.08));border-color:rgba(179,38,30,.25);color:var(--red);}
 .attach-btn.voice-rec.recording{background:var(--red);color:#fff;border-color:var(--red);animation:rp 1s ease-in-out infinite;}
 .chat-inp-wrapper{flex:1;min-width:0;position:relative;}
 .chat-inp{width:100%;background:var(--surface2);border:1.5px solid var(--border2);border-radius:22px;padding:11px 16px;font-size:16px;
@@ -280,16 +285,16 @@ button,input,textarea{font-family:inherit;}
 .chat-inp::placeholder{color:var(--text3);}
 .send-btn{background:linear-gradient(135deg,var(--grad-a),var(--grad-c) 55%,var(--grad-b));border:none;border-radius:50%;width:44px;height:44px;display:flex;
   align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:#fff;touch-action:manipulation;font-size:18px;
-  box-shadow:0 4px 14px rgba(124,58,237,.4);transition:opacity .15s;}
+  box-shadow:0 4px 14px rgba(30,58,95,.4);transition:opacity .15s;}
 .send-btn:active{opacity:.8;}
 #blocked-bar{display:none;flex-direction:column;align-items:center;gap:12px;padding:20px 24px;
-  background:linear-gradient(135deg,rgba(220,38,38,.06),rgba(234,88,12,.04));border-top:2px solid rgba(220,38,38,.2);flex-shrink:0;}
+  background:linear-gradient(135deg,rgba(179,38,30,.06),rgba(234,88,12,.04));border-top:2px solid rgba(179,38,30,.2);flex-shrink:0;}
 .blocked-icon{font-size:32px;}
 .blocked-msg{font-size:14px;color:var(--red);font-weight:700;text-align:center;}
 .blocked-sub{font-size:12px;color:var(--text3);text-align:center;}
 .blocked-actions{display:flex;gap:10px;}
 .unblock-btn-main{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;padding:11px 24px;
-  font-size:14px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(124,58,237,.3);}
+  font-size:14px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(30,58,95,.3);}
 .report-btn{background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:11px 20px;font-size:14px;font-weight:600;
   color:var(--text2);cursor:pointer;}
 #rec-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:400;display:none;align-items:flex-end;justify-content:center;}
@@ -306,25 +311,25 @@ button,input,textarea{font-family:inherit;}
 .rec-bar:nth-child(6){height:28px;animation-delay:.5s;}
 .rec-bar:nth-child(7){height:16px;animation-delay:.6s;}
 @keyframes wave{0%{transform:scaleY(.4);}100%{transform:scaleY(1.2);}}
-@keyframes rp{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.4);}50%{box-shadow:0 0 0 12px rgba(220,38,38,0);}}
+@keyframes rp{0%,100%{box-shadow:0 0 0 0 rgba(179,38,30,.4);}50%{box-shadow:0 0 0 12px rgba(179,38,30,0);}}
 .rec-time{font-size:40px;font-weight:800;color:var(--text);margin-bottom:4px;font-variant-numeric:tabular-nums;letter-spacing:-1px;}
 .rec-hint{font-size:13px;color:var(--text3);margin-bottom:22px;}
 .rec-btns{display:flex;gap:14px;justify-content:center;}
 .rec-stop{background:linear-gradient(135deg,var(--grad-a),var(--grad-c) 55%,var(--grad-b));border:none;border-radius:14px;padding:14px 28px;font-size:15px;font-weight:700;
-  color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(124,58,237,.4);}
+  color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(30,58,95,.4);}
 .rec-cancel-btn{background:var(--surface2);border:1.5px solid var(--border2);border-radius:14px;padding:14px 22px;font-size:14px;font-weight:600;
   color:var(--text2);cursor:pointer;}
 #screen-call{background:#05050a;z-index:60;}
-#video-remote{width:100%;height:100%;object-fit:cover;background:#0d0d18;position:absolute;inset:0;}
+#video-remote{width:100%;height:100%;object-fit:cover;background:#0B0C10;position:absolute;inset:0;}
 #video-local{position:absolute;bottom:calc(96px + var(--safe-bottom));right:14px;width:86px;height:124px;object-fit:cover;border-radius:16px;
-  border:2.5px solid rgba(255,255,255,.2);background:#1a1a2e;z-index:5;box-shadow:0 8px 28px rgba(0,0,0,.6);}
+  border:2.5px solid rgba(255,255,255,.2);background:#12151B;z-index:5;box-shadow:0 8px 28px rgba(0,0,0,.6);}
 #video-local.mirror{transform:scaleX(-1);}
 #screen-call.voice-mode #video-remote,#screen-call.voice-mode #video-local{display:none;}
 #voice-call-avatar{display:none;position:absolute;inset:0;z-index:2;flex-direction:column;align-items:center;justify-content:center;gap:18px;
-  background:radial-gradient(ellipse at 50% 30%,rgba(124,58,237,.28),transparent 60%),linear-gradient(180deg,#120c26,#05050a);}
+  background:radial-gradient(ellipse at 50% 30%,rgba(30,58,95,.28),transparent 60%),linear-gradient(180deg,#0B0D12,#05050a);}
 #screen-call.voice-mode #voice-call-avatar{display:flex;}
-.voice-av-circle{width:128px;height:128px;border-radius:50%;background:linear-gradient(135deg,#6D28D9,#F59E0B);display:flex;align-items:center;
-  justify-content:center;font-size:50px;font-weight:900;color:#fff;box-shadow:0 0 60px rgba(124,58,237,.5);}
+.voice-av-circle{width:128px;height:128px;border-radius:50%;background:linear-gradient(135deg,#1E3A5F,#14283D);display:flex;align-items:center;
+  justify-content:center;font-size:50px;font-weight:900;color:#fff;box-shadow:0 0 60px rgba(30,58,95,.5);}
 .call-header{position:absolute;top:0;left:0;right:0;z-index:10;padding:calc(16px + var(--safe-top)) 18px 28px;display:flex;
   align-items:flex-start;justify-content:space-between;background:linear-gradient(rgba(0,0,0,.6),transparent);}
 .call-peer-name{font-size:18px;font-weight:700;color:#fff;}
@@ -338,14 +343,14 @@ button,input,textarea{font-family:inherit;}
 .q-bar.on{background:#fff;}
 .q-lbl{font-size:11px;color:rgba(255,255,255,.8);}
 .outgoing-wrap{position:absolute;inset:0;z-index:8;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;
-  background:linear-gradient(180deg,#0a0a0f,#05050a);}
+  background:linear-gradient(180deg,#0A0B0E,#05050a);}
 .outgoing-wrap.show{display:flex;}
 .ring-container{position:relative;width:150px;height:150px;display:flex;align-items:center;justify-content:center;}
-.ring-wave{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(124,58,237,.5);animation:ring-expand 1.9s ease-out infinite;}
+.ring-wave{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(30,58,95,.5);animation:ring-expand 1.9s ease-out infinite;}
 .ring-wave.w2{animation-delay:.63s;}.ring-wave.w3{animation-delay:1.26s;}
 @keyframes ring-expand{0%{transform:scale(.65);opacity:.9;}100%{transform:scale(2);opacity:0;}}
 .ring-circle{width:110px;height:110px;border-radius:50%;background:linear-gradient(135deg,var(--surface3),var(--surface2));
-  border:2.5px solid var(--accent);display:flex;align-items:center;justify-content:center;position:relative;z-index:2;box-shadow:0 0 50px rgba(124,58,237,.4);
+  border:2.5px solid var(--accent);display:flex;align-items:center;justify-content:center;position:relative;z-index:2;box-shadow:0 0 50px rgba(30,58,95,.4);
   font-size:40px;font-weight:800;color:var(--text);}
 .ring-name{font-size:24px;font-weight:800;color:#fff;letter-spacing:-.5px;}
 .ring-sub{font-size:14px;color:rgba(255,255,255,.6);}
@@ -358,10 +363,10 @@ button,input,textarea{font-family:inherit;}
 .ctrl-btn:active{transform:scale(.87);}
 .ctrl-glass{background:rgba(255,255,255,.12);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1);color:#fff;}
 .ctrl-glass.on{background:var(--yellow);color:#1a0a00;}
-.ctrl-end{background:var(--red);box-shadow:0 6px 22px rgba(220,38,38,.55);width:64px;height:64px;color:#fff;font-size:24px;}
+.ctrl-end{background:var(--red);box-shadow:0 6px 22px rgba(179,38,30,.55);width:64px;height:64px;color:#fff;font-size:24px;}
 .incoming-overlay{position:absolute;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;justify-content:space-between;
   padding-top:calc(48px + var(--safe-top));padding-bottom:calc(48px + var(--safe-bottom));padding-left:24px;padding-right:24px;
-  background:radial-gradient(ellipse at 50% 10%,rgba(124,58,237,.35),transparent 65%),linear-gradient(180deg,#0a0818 0%,#05050a 100%);}
+  background:radial-gradient(ellipse at 50% 10%,rgba(30,58,95,.35),transparent 65%),linear-gradient(180deg,#0A0B10 0%,#05050a 100%);}
 .incoming-overlay.show{display:flex;}
 .inc-top{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;}
 .inc-app-badge{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:6px 16px;font-size:11px;font-weight:700;
@@ -369,13 +374,13 @@ button,input,textarea{font-family:inherit;}
 .inc-call-type{font-size:13px;color:rgba(255,255,255,.5);font-weight:600;margin-top:4px;}
 .inc-avatar-section{display:flex;flex-direction:column;align-items:center;gap:16px;}
 .inc-ring-wrap{position:relative;width:160px;height:160px;display:flex;align-items:center;justify-content:center;}
-.inc-ring-pulse{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(124,58,237,.4);animation:inc-expand 2s ease-out infinite;}
-.inc-ring-pulse.p2{animation-delay:.67s;border-color:rgba(124,58,237,.25);}
-.inc-ring-pulse.p3{animation-delay:1.33s;border-color:rgba(124,58,237,.15);}
+.inc-ring-pulse{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(30,58,95,.4);animation:inc-expand 2s ease-out infinite;}
+.inc-ring-pulse.p2{animation-delay:.67s;border-color:rgba(30,58,95,.25);}
+.inc-ring-pulse.p3{animation-delay:1.33s;border-color:rgba(30,58,95,.15);}
 @keyframes inc-expand{0%{transform:scale(.7);opacity:1;}100%{transform:scale(1.9);opacity:0;}}
-.inc-av-circle{width:120px;height:120px;border-radius:50%;position:relative;z-index:2;background:linear-gradient(135deg,#6D28D9,#F59E0B);
+.inc-av-circle{width:120px;height:120px;border-radius:50%;position:relative;z-index:2;background:linear-gradient(135deg,#1E3A5F,#14283D);
   border:3px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:900;color:#fff;
-  box-shadow:0 0 60px rgba(124,58,237,.5),0 20px 50px rgba(0,0,0,.6);}
+  box-shadow:0 0 60px rgba(30,58,95,.5),0 20px 50px rgba(0,0,0,.6);}
 .inc-caller-name{font-size:30px;font-weight:800;color:#fff;letter-spacing:-.5px;text-align:center;}
 .inc-caller-sub{font-size:14px;color:rgba(255,255,255,.45);text-align:center;}
 .inc-actions-row{width:100%;display:flex;flex-direction:column;gap:16px;align-items:center;}
@@ -383,16 +388,16 @@ button,input,textarea{font-family:inherit;}
 .inc-btn-row{display:flex;gap:64px;align-items:center;}
 .inc-action{display:flex;flex-direction:column;align-items:center;gap:12px;}
 .inc-action-lbl{font-size:12px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.5px;text-transform:uppercase;}
-.btn-decline{width:72px;height:72px;border-radius:50%;border:none;background:linear-gradient(135deg,#DC2626,#B91C1C);
-  box-shadow:0 8px 28px rgba(220,38,38,.6),0 0 0 1px rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;
+.btn-decline{width:72px;height:72px;border-radius:50%;border:none;background:linear-gradient(135deg,#B3261E,#7A1C16);
+  box-shadow:0 8px 28px rgba(179,38,30,.6),0 0 0 1px rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;
   font-size:28px;cursor:pointer;touch-action:manipulation;transition:transform .15s;}
 .btn-decline:active{transform:scale(.88);}
-.btn-accept{width:72px;height:72px;border-radius:50%;border:none;background:linear-gradient(135deg,#059669,#047857);
-  box-shadow:0 8px 28px rgba(5,150,105,.6),0 0 0 1px rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;
+.btn-accept{width:72px;height:72px;border-radius:50%;border:none;background:linear-gradient(135deg,#1D7A5F,#145C46);
+  box-shadow:0 8px 28px rgba(29,122,95,.6),0 0 0 1px rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;
   font-size:28px;cursor:pointer;touch-action:manipulation;animation:accept-glow 1.8s ease-in-out infinite;transition:transform .15s;}
 .btn-accept:active{transform:scale(.88);}
-@keyframes accept-glow{0%,100%{box-shadow:0 8px 28px rgba(5,150,105,.6),0 0 0 1px rgba(255,255,255,.08);}
-  50%{box-shadow:0 8px 40px rgba(5,150,105,.9),0 0 30px rgba(5,150,105,.3),0 0 0 1px rgba(255,255,255,.12);}}
+@keyframes accept-glow{0%,100%{box-shadow:0 8px 28px rgba(29,122,95,.6),0 0 0 1px rgba(255,255,255,.08);}
+  50%{box-shadow:0 8px 40px rgba(29,122,95,.9),0 0 30px rgba(29,122,95,.3),0 0 0 1px rgba(255,255,255,.12);}}
 .sound-toggle{position:absolute;top:calc(14px + var(--safe-top));right:14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
   border-radius:12px;padding:8px 16px;font-size:13px;color:rgba(255,255,255,.7);cursor:pointer;touch-action:manipulation;font-weight:600;backdrop-filter:blur(8px);}
 .call-chat-panel{position:absolute;bottom:0;left:0;right:0;height:55%;background:var(--surface);border-top:1px solid var(--border);
@@ -410,7 +415,7 @@ button,input,textarea{font-family:inherit;}
 .conf-title{font-size:16px;font-weight:800;color:#fff;}
 .conf-sub{font-size:12px;color:rgba(255,255,255,.6);margin-top:2px;}
 .conf-grid{position:absolute;inset:0;display:grid;gap:2px;background:#05050a;}
-.conf-slot{background:#0d0d18;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+.conf-slot{background:#0B0C10;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
 .conf-slot video{width:100%;height:100%;object-fit:cover;}
 .conf-slot video.mirror{transform:scaleX(-1);}
 .conf-slot .slot-label{position:absolute;bottom:8px;left:8px;font-size:12px;font-weight:700;background:rgba(0,0,0,.65);padding:4px 10px;border-radius:8px;color:#fff;}
@@ -473,10 +478,10 @@ button,input,textarea{font-family:inherit;}
 .search-empty{padding:60px 24px;text-align:center;color:var(--text3);font-size:14px;}
 #conn-banner{position:fixed;top:calc(var(--safe-top) + 72px);right:12px;z-index:80;background:rgba(15,10,28,.95);backdrop-filter:blur(12px);
   border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:7px 12px 7px 10px;display:none;align-items:center;gap:7px;
-  font-size:11.5px;color:#EFEAFB;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.3);pointer-events:none;max-width:180px;}
+  font-size:11.5px;color:#EDEFF3;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.3);pointer-events:none;max-width:180px;}
 #conn-banner.show{display:flex;}
 .banner-dot{width:7px;height:7px;border-radius:50%;background:var(--yellow);animation:pulse 1s infinite;flex-shrink:0;}
-#notif-banner{background:linear-gradient(135deg,var(--accent-light),rgba(245,158,11,.08));border:1px solid rgba(124,58,237,.2);border-radius:var(--radius-sm);
+#notif-banner{background:linear-gradient(135deg,var(--accent-light),rgba(62,102,144,.08));border:1px solid rgba(30,58,95,.2);border-radius:var(--radius-sm);
   padding:14px 16px;display:none;align-items:center;gap:12px;margin:10px 14px 0;}
 #notif-banner.show{display:flex;}
 .nb-icon{font-size:22px;flex-shrink:0;}
@@ -485,7 +490,7 @@ button,input,textarea{font-family:inherit;}
 .nb-enable{background:var(--accent);border:none;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;white-space:nowrap;}
 .nb-close{background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;flex-shrink:0;}
 #toast{position:fixed;bottom:calc(var(--nav-h) + var(--safe-bottom) + 14px);left:50%;transform:translateX(-50%);background:rgba(15,10,30,.97);
-  backdrop-filter:blur(16px);border:1px solid var(--border2);border-radius:26px;padding:12px 24px;font-size:13.5px;color:#F3F1FA;z-index:500;opacity:0;
+  backdrop-filter:blur(16px);border:1px solid var(--border2);border-radius:26px;padding:12px 24px;font-size:13.5px;color:#F1F3F6;z-index:500;opacity:0;
   transition:opacity .25s;pointer-events:none;white-space:nowrap;font-weight:600;max-width:90vw;overflow:hidden;text-overflow:ellipsis;
   box-shadow:0 8px 32px rgba(0,0,0,.4);}
 #toast.show{opacity:1;}
@@ -499,15 +504,15 @@ button,input,textarea{font-family:inherit;}
   transition:transform .35s cubic-bezier(.34,1.56,.64,1);cursor:pointer;max-width:480px;margin:0 auto;}
 #headsup-notif.show{transform:translateY(0);}
 .hun-icon{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;font-weight:800;color:#fff;}
-.hun-icon.call{background:linear-gradient(135deg,var(--green),#047857);}
+.hun-icon.call{background:linear-gradient(135deg,var(--green),#145C46);}
 .hun-icon.msg{background:linear-gradient(135deg,var(--accent),var(--accent2));}
 .hun-body{flex:1;min-width:0;}
 .hun-title{font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .hun-sub{font-size:12px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .hun-actions{display:flex;gap:8px;flex-shrink:0;}
 .hun-btn{border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation;}
-.hun-btn.decline{background:rgba(220,38,38,.1);color:var(--red);}
-.hun-btn.accept{background:linear-gradient(135deg,var(--green),#047857);color:#fff;box-shadow:0 4px 10px rgba(5,150,105,.3);}
+.hun-btn.decline{background:rgba(179,38,30,.1);color:var(--red);}
+.hun-btn.accept{background:linear-gradient(135deg,var(--green),#145C46);color:#fff;box-shadow:0 4px 10px rgba(29,122,95,.3);}
 ::-webkit-scrollbar{width:2px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
@@ -674,7 +679,7 @@ button,input,textarea{font-family:inherit;}
     <div style="font-size:12px;color:var(--text3);font-weight:700;margin:14px 0 8px;">MEMBERS</div>
     <div id="gi-members-list"></div>
   </div>
-  <div style="padding:16px;"><button class="btn-primary" id="gi-leave-btn" style="background:rgba(220,38,38,.1);color:#dc2626;box-shadow:none;">Leave Group</button></div>
+  <div style="padding:16px;"><button class="btn-primary" id="gi-leave-btn" style="background:rgba(179,38,30,.1);color:#B3261E;box-shadow:none;">Leave Group</button></div>
 </div>
 <div id="screen-settings" class="screen tabbed">
   <div class="top-header"><div class="header-title">Settings</div></div>
@@ -691,7 +696,7 @@ button,input,textarea{font-family:inherit;}
       <div class="settings-section-title">Appearance</div>
       <div class="settings-group">
         <div class="settings-row" style="cursor:default;">
-          <div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(124,58,237,.1);">🌓</div><div><div class="s-label">Theme</div><div class="s-sub" id="theme-sub-text">System default</div></div></div>
+          <div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(30,58,95,.1);">🌓</div><div><div class="s-label">Theme</div><div class="s-sub" id="theme-sub-text">System default</div></div></div>
           <div class="theme-row"><button class="theme-opt active" id="to-auto">Auto</button><button class="theme-opt" id="to-light">☀️</button><button class="theme-opt" id="to-dark">🌙</button></div>
         </div>
       </div>
@@ -699,24 +704,24 @@ button,input,textarea{font-family:inherit;}
     <div class="settings-section">
       <div class="settings-section-title">Account</div>
       <div class="settings-group">
-        <div class="settings-row" id="switch-account-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(124,58,237,.1);">🔄</div><div><div class="s-label">Switch Account</div><div class="s-sub">Log in as a different ID</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="switch-account-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(30,58,95,.1);">🔄</div><div><div class="s-label">Switch Account</div><div class="s-sub">Log in as a different ID</div></div></div><div class="chevron">›</div></div>
       </div>
     </div>
     <div class="settings-section">
       <div class="settings-section-title">Notifications</div>
       <div class="settings-group">
-        <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(5,150,105,.1);">🔔</div><div><div class="s-label">Ringtone</div><div class="s-sub">Sound on incoming calls</div></div></div><div class="toggle-sw on" id="ringtone-sw"></div></div>
-        <div class="settings-row" id="custom-ringtone-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(124,58,237,.1);">🎵</div><div><div class="s-label">Custom Ringtone</div><div class="s-sub" id="ringtone-sub-text">Default tone</div></div></div><div class="chevron">›</div></div>
-        <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(245,158,11,.1);">📳</div><div><div class="s-label">Vibrate on call</div></div></div><div class="toggle-sw on" id="vibrate-sw"></div></div>
-        <div class="settings-row" id="push-toggle-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(245,158,11,.1);">📲</div><div><div class="s-label">Push Notifications</div><div class="s-sub" id="push-status-sub">Not enabled</div></div></div><div class="toggle-sw" id="push-sw"></div></div>
+        <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(29,122,95,.1);">🔔</div><div><div class="s-label">Ringtone</div><div class="s-sub">Sound on incoming calls</div></div></div><div class="toggle-sw on" id="ringtone-sw"></div></div>
+        <div class="settings-row" id="custom-ringtone-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(30,58,95,.1);">🎵</div><div><div class="s-label">Custom Ringtone</div><div class="s-sub" id="ringtone-sub-text">Default tone</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(62,102,144,.1);">📳</div><div><div class="s-label">Vibrate on call</div></div></div><div class="toggle-sw on" id="vibrate-sw"></div></div>
+        <div class="settings-row" id="push-toggle-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(62,102,144,.1);">📲</div><div><div class="s-label">Push Notifications</div><div class="s-sub" id="push-status-sub">Not enabled</div></div></div><div class="toggle-sw" id="push-sw"></div></div>
       </div>
     </div>
     <div class="settings-section" id="reliability-section" style="display:none;">
       <div class="settings-section-title">Reliability</div>
       <div class="settings-group">
-        <div class="settings-row" id="notif-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(220,38,38,.1);">🔔</div><div><div class="s-label">Notifications</div><div class="s-sub" id="notif-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
-        <div class="settings-row" id="fsi-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(220,38,38,.1);">📞</div><div><div class="s-label">Full-screen calls</div><div class="s-sub" id="fsi-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
-        <div class="settings-row" id="battery-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(220,38,38,.1);">🔋</div><div><div class="s-label">Allow background running</div><div class="s-sub" id="battery-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="notif-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">🔔</div><div><div class="s-label">Notifications</div><div class="s-sub" id="notif-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="fsi-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">📞</div><div><div class="s-label">Full-screen calls</div><div class="s-sub" id="fsi-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="battery-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">🔋</div><div><div class="s-label">Allow background running</div><div class="s-sub" id="battery-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="debug-log-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(107,114,128,.1);">🧪</div><div><div class="s-label">Debug log</div><div class="s-sub">View/copy call diagnostics for support</div></div></div><div class="chevron">›</div></div>
       </div>
     </div>
@@ -731,24 +736,24 @@ button,input,textarea{font-family:inherit;}
     </div>
     <div class="settings-section">
       <div class="settings-section-title">Privacy</div>
-      <div class="settings-group"><div class="settings-row" id="blocked-list-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(220,38,38,.1);">🚫</div><div><div class="s-label">Blocked Users</div><div class="s-sub" id="blocked-count-sub">No one blocked</div></div></div><div class="chevron">›</div></div></div>
+      <div class="settings-group"><div class="settings-row" id="blocked-list-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">🚫</div><div><div class="s-label">Blocked Users</div><div class="s-sub" id="blocked-count-sub">No one blocked</div></div></div><div class="chevron">›</div></div></div>
     </div>
     <div class="settings-section">
       <div class="settings-section-title">About</div>
       <div class="settings-group">
-        <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(124,58,237,.1);">✨</div><div><div class="s-label">Unifest</div><div class="s-sub">Version 3.4 · P2P Encrypted</div></div></div></div>
-        <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(245,158,11,.12);">👤</div><div><div class="s-label">Created by</div><div class="s-sub">Vahin Saxena</div></div></div></div>
-        <div class="settings-row" id="clear-calls-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(220,38,38,.08);">🗑</div><div><div class="s-label">Clear Call History</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(30,58,95,.1);">✨</div><div><div class="s-label">Unifest</div><div class="s-sub">Version 3.4 · P2P Encrypted</div></div></div></div>
+        <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(62,102,144,.12);">👤</div><div><div class="s-label">Created by</div><div class="s-sub">Vahin Saxena</div></div></div></div>
+        <div class="settings-row" id="clear-calls-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.08);">🗑</div><div><div class="s-label">Clear Call History</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="copy-diag-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(37,99,235,.1);">🩺</div><div><div class="s-label">Copy last call diagnostics</div><div class="s-sub">Step-by-step log of your last call attempt</div></div></div><div class="chevron">›</div></div>
       </div>
     </div>
   </div>
 </div>
 <nav id="tab-nav">
-  <button class="tab-btn active" data-tab="chats"><span class="ti">💬</span><span class="tl">Chats</span><span class="tab-badge" id="tab-badge-chats" style="display:none;"></span></button>
-  <button class="tab-btn" data-tab="calls"><span class="ti">📞</span><span class="tl">Calls</span></button>
-  <button class="tab-btn" data-tab="groups"><span class="ti">👥</span><span class="tl">Groups</span></button>
-  <button class="tab-btn" data-tab="settings"><span class="ti">⚙️</span><span class="tl">Settings</span></button>
+  <button class="tab-btn active" data-tab="chats"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.35 0-2.62-.32-3.75-.9L4 20l1.05-4.2A8.46 8.46 0 0 1 3.5 11.5 8.5 8.5 0 0 1 12 3a8.5 8.5 0 0 1 9 8.5Z"/></svg></span><span class="tl">Chats</span><span class="tab-badge" id="tab-badge-chats" style="display:none;"></span></button>
+  <button class="tab-btn" data-tab="calls"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.8c1.3 2.6 3.4 4.7 6 6l2-2c.3-.3.7-.4 1.1-.3 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h4c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1l-2 2Z"/></svg></span><span class="tl">Calls</span></button>
+  <button class="tab-btn" data-tab="groups"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 19.5c0-3.3 2.9-5.8 6.5-5.8s6.5 2.5 6.5 5.8"/><path d="M16.5 8.2a3 3 0 1 1 2.7 4.4"/><path d="M21.5 19.2c0-2.6-1.9-4.8-4.7-5.5"/></svg></span><span class="tl">Groups</span></button>
+  <button class="tab-btn" data-tab="settings"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.4.6a7.6 7.6 0 0 0-1.7-1L14.8 3h-4l-.5 2.7a7.6 7.6 0 0 0-1.7 1l-2.4-.6-2 3.4L6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.4-.6c.5.4 1.1.8 1.7 1l.5 2.7h4l.5-2.7c.6-.2 1.2-.6 1.7-1l2.4.6 2-3.4-2-1.5Z"/></svg></span><span class="tl">Settings</span></button>
 </nav>
 <div id="screen-chat" class="screen">
   <div class="chat-top">
@@ -858,8 +863,8 @@ button,input,textarea{font-family:inherit;}
 <div class="overlay" id="attach-overlay">
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
-    <div class="attach-opt" id="attach-image-btn"><div class="attach-opt-icon" style="background:rgba(5,150,105,.12);">🖼️</div><div><div class="attach-opt-name">Photo / Video</div><div class="attach-opt-desc">Send from your gallery</div></div></div>
-    <div class="attach-opt" id="attach-doc-btn"><div class="attach-opt-icon" style="background:rgba(124,58,237,.12);">📄</div><div><div class="attach-opt-name">Document</div><div class="attach-opt-desc">Any file up to 50 MB</div></div></div>
+    <div class="attach-opt" id="attach-image-btn"><div class="attach-opt-icon" style="background:rgba(29,122,95,.12);">🖼️</div><div><div class="attach-opt-name">Photo / Video</div><div class="attach-opt-desc">Send from your gallery</div></div></div>
+    <div class="attach-opt" id="attach-doc-btn"><div class="attach-opt-icon" style="background:rgba(30,58,95,.12);">📄</div><div><div class="attach-opt-name">Document</div><div class="attach-opt-desc">Any file up to 50 MB</div></div></div>
     <div class="attach-opt" id="attach-cancel-btn"><div class="attach-opt-icon" style="background:var(--surface2);">✕</div><div><div class="attach-opt-name">Cancel</div></div></div>
   </div>
 </div>
@@ -915,10 +920,10 @@ button,input,textarea{font-family:inherit;}
 <div class="ctx-overlay" id="ctx-overlay">
   <div class="ctx-sheet">
     <div class="ctx-preview" id="ctx-preview"></div>
-    <div class="ctx-row" id="ctx-reply-btn"><div class="ctx-ico" style="background:rgba(124,58,237,.1);">↩</div><span class="ctx-lbl">Reply</span></div>
-    <div class="ctx-row" id="ctx-copy-btn"><div class="ctx-ico" style="background:rgba(5,150,105,.1);">📋</div><span class="ctx-lbl">Copy</span></div>
-    <div class="ctx-row" id="ctx-forward-btn"><div class="ctx-ico" style="background:rgba(245,158,11,.1);">↪</div><span class="ctx-lbl">Forward</span></div>
-    <div class="ctx-row" id="ctx-delete-btn" style="color:var(--red);"><div class="ctx-ico" style="background:rgba(220,38,38,.1);">🗑</div><span class="ctx-lbl" style="color:var(--red);">Delete</span></div>
+    <div class="ctx-row" id="ctx-reply-btn"><div class="ctx-ico" style="background:rgba(30,58,95,.1);">↩</div><span class="ctx-lbl">Reply</span></div>
+    <div class="ctx-row" id="ctx-copy-btn"><div class="ctx-ico" style="background:rgba(29,122,95,.1);">📋</div><span class="ctx-lbl">Copy</span></div>
+    <div class="ctx-row" id="ctx-forward-btn"><div class="ctx-ico" style="background:rgba(62,102,144,.1);">↪</div><span class="ctx-lbl">Forward</span></div>
+    <div class="ctx-row" id="ctx-delete-btn" style="color:var(--red);"><div class="ctx-ico" style="background:rgba(179,38,30,.1);">🗑</div><span class="ctx-lbl" style="color:var(--red);">Delete</span></div>
   </div>
 </div>
 <div id="rec-overlay">
@@ -929,7 +934,7 @@ button,input,textarea{font-family:inherit;}
     <div class="rec-btns"><button class="rec-stop" id="rec-stop-btn">⏹ Stop &amp; Send</button><button class="rec-cancel-btn" id="rec-cancel-btn">✕ Cancel</button></div>
   </div>
 </div>
-<div id="sw-update-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:999;background:linear-gradient(135deg,#7C3AED,#F59E0B);color:#fff;padding:12px 18px;
+<div id="sw-update-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:999;background:linear-gradient(135deg,#1E3A5F,#14283D);color:#fff;padding:12px 18px;
   align-items:center;justify-content:space-between;gap:12px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.3);">
   <span>✨ New version available!</span>
   <button onclick="swUpdate()" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:7px 16px;color:#fff;cursor:pointer;font-weight:700;font-size:12px;">Update Now</button>
@@ -1461,6 +1466,28 @@ function ensurePeerConnected(){
   }catch(e){}
   if(!peerStarting)startPeerRobust();
 }
+var peerEverConnectedThisSession=false;
+/* FIX ("Connecting…" then a confusing "Reconnecting…" banner right after
+   answering a cold-started call): the wording of every banner update below used
+   to be hard-coded to whichever internal PeerJS event fired, including
+   'disconnected' and 'unavailable-id' — both of which fire completely normally
+   during the VERY FIRST connection attempt of a fresh app session, not just
+   after a real, established connection drops. The dominant real-world case is
+   "unavailable-id": when the OS kills the app (exactly the cold-start-answer
+   scenario), the WebSocket to the PeerJS broker never gets a clean close, so
+   the broker still thinks our old session is alive for a few seconds — our
+   brand-new connection attempt gets rejected as "ID busy" and has to retry
+   until the stale session expires server-side. To the user this is their
+   FIRST connection this session; nothing was ever connected, so a screen that
+   says "Reconnecting" is actively misleading (it reads as "the call you were
+   just on just dropped"), and understandably looks like a bug. This flag is
+   set once, the first time 'open' actually fires, and every banner call below
+   uses it to say "Connecting…" for anything that happens before that point —
+   "Reconnecting…" is now reserved for a genuine drop of a connection that was
+   actually up at some point. */
+function connBanner(everConnectedMsg){
+  showBanner(peerEverConnectedThisSession?everConnectedMsg:'Connecting…');
+}
 function startPeer(){
   // FIX (root cause of "Answer just says Connecting… and never actually connects"):
   // this used to bail out completely — just a toast, no retry — if the PeerJS
@@ -1473,12 +1500,21 @@ function startPeer(){
   if(!window.Peer){showBanner('Connecting…');setTimeout(startPeer,300);return;}
   if(peer&&!peer.destroyed){try{peer.destroy();}catch(e){}peer=null;}
   peerReady=false;showBanner('Connecting…');setOnlineDot('yellow');
-  var retryDelay=1000;
+  /* FIX (call-connect lag): the stale-session ("unavailable-id") retry cycle
+     used to pause 500ms then start its own backoff at 1000ms (capped at 8000ms)
+     before even attempting to reconnect — on the cold-start-answer path, this
+     is exactly the retry loop standing between "tapped Answer" and the receiver
+     actually reaching the broker, so every added millisecond here is added
+     call-connect lag. Tightened to a 300ms pre-wait and a 500ms→4000ms backoff:
+     still backs off (so it can't hammer the broker), just cycles enough faster
+     that a stale session clearing server-side in a second or two doesn't leave
+     the user staring at a banner for several seconds first. */
+  var retryDelay=500;
   function attemptConnect(){
     try{peer=new Peer(myId,PEER_CONFIG);}
-    catch(e){setTimeout(function(){peerReady=false;showBanner('Reconnecting…');scheduleReconnect();},2000);return;}
+    catch(e){setTimeout(function(){peerReady=false;connBanner('Reconnecting…');scheduleReconnect();},2000);return;}
     peer.on('open',function(id){
-      peerReady=true;hideBanner();setOnlineDot('green');toast('Online as '+id+' 🟢');
+      peerReady=true;peerEverConnectedThisSession=true;hideBanner();setOnlineDot('green');toast('Online as '+id+' 🟢');
       diagLog('✅ Peer connected to broker as '+id);
       if(reconnTimer){clearTimeout(reconnTimer);reconnTimer=null;}
       subscribePush();
@@ -1513,18 +1549,18 @@ function startPeer(){
       }
       peerReady=false;setOnlineDot('red');
       if(e.type==='unavailable-id'){
-        hideBanner();showBanner('Reconnecting (ID busy)…');
+        hideBanner();connBanner('Reconnecting (ID busy)…');
         diagLog('⚠️ Broker says our ID is still busy (stale session from before app was killed/backgrounded) — retrying in '+retryDelay+'ms');
         setTimeout(function(){
           if(peer&&!peer.destroyed){try{peer.destroy();}catch(ex){}peer=null;}
-          setTimeout(attemptConnect,retryDelay);retryDelay=Math.min(retryDelay*1.5,8000);
-        },500);
+          setTimeout(attemptConnect,retryDelay);retryDelay=Math.min(retryDelay*1.5,4000);
+        },300);
       }else if(['network','server-error','socket-error','socket-closed'].includes(e.type)){
-        showBanner('Reconnecting…');diagLog('⚠️ Broker connection error ('+e.type+') — reconnecting');scheduleReconnect();
+        connBanner('Reconnecting…');diagLog('⚠️ Broker connection error ('+e.type+') — reconnecting');scheduleReconnect();
       }else{showBanner('Error: '+e.type);diagLog('⚠️ Broker error: '+e.type+' — '+(e.message||''));scheduleReconnect();}
     });
     peer.on('disconnected',function(){
-      peerReady=false;setOnlineDot('yellow');showBanner('Reconnecting…');
+      peerReady=false;setOnlineDot('yellow');connBanner('Reconnecting…');
       diagLog('⚠️ Broker connection dropped — reconnecting');
       try{if(peer&&!peer.destroyed){peer.reconnect();}else{scheduleReconnect();}}catch(ex){scheduleReconnect();}
     });
@@ -1743,7 +1779,7 @@ function openBlockedModal(){
       row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);gap:12px;';
       var left=document.createElement('div');left.style.cssText='display:flex;align-items:center;gap:12px;';
       var av=document.createElement('div');
-      av.style.cssText='width:40px;height:40px;border-radius:50%;background:rgba(220,38,38,.1);border:2px solid rgba(220,38,38,.2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:var(--red);flex-shrink:0;';
+      av.style.cssText='width:40px;height:40px;border-radius:50%;background:rgba(179,38,30,.1);border:2px solid rgba(179,38,30,.2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:var(--red);flex-shrink:0;';
       av.textContent=pid[0].toUpperCase();
       var nm=document.createElement('div');
       nm.innerHTML='<div style="font-size:15px;font-weight:700;color:var(--text);">'+esc(pid)+'</div><div style="font-size:12px;color:var(--text3);margin-top:2px;">🚫 Blocked</div>';
@@ -1888,7 +1924,7 @@ function styledConfirm(message,opts){
     document.getElementById('generic-confirm-msg').textContent=message||'';
     var okBtn=document.getElementById('generic-confirm-ok-btn');
     okBtn.textContent=opts.okText||'OK';
-    okBtn.style.background=opts.danger?'#dc2626':'';
+    okBtn.style.background=opts.danger?'#B3261E':'';
     var modal=document.getElementById('generic-confirm-modal');
     function done(v){modal.classList.remove('show');okBtn.onclick=null;cancelBtn.onclick=null;overlayHandler=null;resolve(v);}
     var cancelBtn=document.getElementById('generic-confirm-cancel-btn');
@@ -1925,8 +1961,8 @@ function showChatOptions(pid){
   list.innerHTML='';
   function row(icon,label,sub,danger,fn){
     var r=document.createElement('div');r.className='settings-row';
-    r.innerHTML='<div class="settings-row-left"><div class="settings-row-icon" style="background:'+(danger?'rgba(220,38,38,.1)':'var(--accent-light)')+';'+(danger?'color:#dc2626;':'')+'">'+icon+'</div>'
-      +'<div><div class="s-label"'+(danger?' style="color:#dc2626;"':'')+'>'+label+'</div>'+(sub?'<div class="s-sub">'+sub+'</div>':'')+'</div></div>';
+    r.innerHTML='<div class="settings-row-left"><div class="settings-row-icon" style="background:'+(danger?'rgba(179,38,30,.1)':'var(--accent-light)')+';'+(danger?'color:#B3261E;':'')+'">'+icon+'</div>'
+      +'<div><div class="s-label"'+(danger?' style="color:#B3261E;"':'')+'>'+label+'</div>'+(sub?'<div class="s-sub">'+sub+'</div>':'')+'</div></div>';
     r.onclick=function(){closeChatOptions();fn();};
     list.appendChild(r);
   }
@@ -2833,16 +2869,38 @@ function dialWithPresenceCheck(pid,voiceOnly){
     diagLog('Presence cache: FRESH — trying direct P2P');
     startDirectRingUI();return;
   }
-  diagLog('Presence cache: stale/none — probing P2P (4s timeout)…');
+  /* FIX (call-connect lag / "prepare WebRTC + FCM in parallel" architecture):
+     this used to probe P2P reachability for up to 4 FULL SECONDS before falling
+     back to notifyPeer() — the server call that actually triggers the FCM push
+     that wakes the receiver's phone and starts Telecom ringing. That made the
+     wake-up push strictly SEQUENTIAL, gated behind the probe, instead of running
+     in parallel with WebRTC session prep (placeCallAttempt()/peer.call(), fired
+     separately from startCall() and already unaffected by this probe — that part
+     was already correctly parallel). For the single most common case this app
+     needs to be fast for — the receiver's app is backgrounded or fully killed —
+     the probe was *always* going to fail, so that up-to-4s ceiling was pure
+     added latency sitting in front of the one signal (FCM) that actually starts
+     the receiver's phone ringing.
+     probe.on('error') already forwards to notifyPeer() immediately once the
+     broker confirms the peer isn't reachable (typically well under a second on
+     a healthy connection) — that path was already fine. The only case that hit
+     the full ceiling was an ambiguous one: neither 'open' nor 'error' fired
+     promptly. Shortening that ceiling from 4000ms to 500ms keeps the "skip a
+     redundant wake-up push when the receiver is already reachable directly"
+     behavior (still enough time for a same-broker, already-connected peer's fast
+     probe response to land) while cutting the worst-case tail latency in front
+     of the FCM push by 3.5 seconds — the wake-up now fires essentially
+     alongside WebRTC prep instead of after a multi-second gate. */
+  diagLog('Presence cache: stale/none — probing P2P (500ms timeout)…');
   var settled=false;
   var probe;
   try{probe=peer.connect(pid,{reliable:false,metadata:{type:'presence'}});}catch(e){diagLog('⚠️ Probe threw: '+(e&&e.message));}
   var giveUp=setTimeout(function(){
     if(settled)return;settled=true;
-    diagLog('P2P probe timed out — sending wake-up via server (/notify)');
+    diagLog('P2P probe inconclusive after 500ms — sending wake-up via server (/notify) now, not waiting further');
     onlinePeers[pid]=false;onlinePeersTs[pid]=Date.now();
     notifyPeer(pid,voiceOnly?'voice-call':'call',markServerWoke);startOutPhaseTimer();
-  },4000);
+  },500);
   if(!probe){clearTimeout(giveUp);diagLog('Could not start P2P probe — sending wake-up via server (/notify)');onlinePeers[pid]=false;onlinePeersTs[pid]=Date.now();notifyPeer(pid,voiceOnly?'voice-call':'call',markServerWoke);startOutPhaseTimer();return;}
   probe.on('open',function(){
     if(settled)return;settled=true;clearTimeout(giveUp);
