@@ -12,6 +12,7 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.util.Log;
@@ -82,14 +83,31 @@ public class IncomingCallActivity extends AppCompatActivity {
         try {
             Log.d(TAG, "onCreate: starting IncomingCallActivity");
 
+            // Turn screen on and wake the device forcefully
+            try {
+                PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+                if (pm != null) {
+                    PowerManager.WakeLock wl = pm.newWakeLock(
+                        PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP | PowerManager.ON_AFTER_RELEASE,
+                        "unifest:incoming_call_screen"
+                    );
+                    wl.acquire(10_000L); // 10s timeout
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "onCreate: screen wake lock exception — " + e.getMessage());
+            }
+
             // Show over lock screen, keep screen on.
-            setShowWhenLocked(true);
-            setTurnScreenOn(true);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                setShowWhenLocked(true);
+                setTurnScreenOn(true);
+            }
             getWindow().addFlags(
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
                     | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
                     | WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
                     | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+                    | WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON
             );
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
                 try {
