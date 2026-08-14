@@ -1,10 +1,14 @@
 {
-  "name": "android-app",
+  "name": "unifest",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Unifest - WebRTC Voice, Video and Messaging App",
+  "type": "module",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "node server.js",
+    "build": "mkdir -p dist && cp -r www/* dist/",
+    "start": "node server.js",
+    "test": "echo \"No test specified\" && exit 0"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +19,7 @@
     "@capacitor/cli": "^8.4.1",
     "@capacitor/core": "^8.4.1",
     "@capacitor/keyboard": "^8.0.0",
+    "express": "^5.2.1",
     "typescript": "^5.0.0"
   }
 }

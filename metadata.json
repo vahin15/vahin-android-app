@@ -1,0 +1,11 @@
+{
+  "name": "Unifest",
+  "description": "Voice, video call and messaging web application powered by WebRTC and PeerJS",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
