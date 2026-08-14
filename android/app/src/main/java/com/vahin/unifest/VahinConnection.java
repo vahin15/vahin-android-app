@@ -3,6 +3,8 @@ package com.vahin.unifest;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.telecom.Connection;
 import android.telecom.DisconnectCause;
 import android.util.Log;
@@ -35,6 +37,44 @@ public class VahinConnection extends Connection {
     // startActivity() do it exactly once.
     private boolean viaAppUi = false;
 
+    // FIX (root cause of "ring only lasts ~30s"): IncomingCallActivity's own 180s
+    // RING_TIMEOUT_MS Handler only exists once that Activity has actually been
+    // created. But Android deliberately downgrades our full-screen intent to a
+    // plain heads-up notification whenever the screen is already on/unlocked
+    // (see the comment in CallNotifier.showIncomingCall — this is enforced by the
+    // OS and cannot be overridden by the app), which is exactly the "I was outside
+    // the app" case being reported. In that case IncomingCallActivity NEVER runs,
+    // so its timeout never gets scheduled, and the ring falls back to whatever the
+    // bare notification/channel does on its own — observed as cutting off far
+    // short of what we intend. This Handler is owned by the Connection itself,
+    // which Telecom always keeps alive for the whole ringing period regardless of
+    // which UI (if any) actually got shown, so it now sets the real ceiling on
+    // ring duration either way. Same 180s value IncomingCallActivity uses, so
+    // whichever path answers/declines first just cancels this harmlessly.
+    private static final long RING_TIMEOUT_MS = 180_000; // 180 seconds (3 minutes)
+    private final Handler ringTimeoutHandler = new Handler(Looper.getMainLooper());
+    private final Runnable ringTimeoutRunnable = () -> {
+        try {
+            Log.d(TAG, "ringTimeoutRunnable: " + RING_TIMEOUT_MS + "ms elapsed with no "
+                + "answer/decline — treating as missed call. from=" + from);
+            DebugLog.log(TAG, "VahinConnection ring TIMEOUT fired — from=" + from);
+            setDisconnected(new DisconnectCause(DisconnectCause.MISSED));
+            destroy();
+            clearIfCurrent();
+            CallNotifier.cancelCallNotification(appContext, from);
+            Intent intent = new Intent(IncomingCallActivity.ACTION_CALL_CANCELLED);
+            intent.setPackage(appContext.getPackageName());
+            appContext.sendBroadcast(intent);
+            notifyWebApp("missed");
+        } catch (Exception e) {
+            Log.e(TAG, "ringTimeoutRunnable: exception — " + e.getMessage(), e);
+        }
+    };
+
+    private void cancelRingTimeout() {
+        ringTimeoutHandler.removeCallbacks(ringTimeoutRunnable);
+    }
+
     public VahinConnection(Context ctx, String from, boolean isConf) {
         this.appContext = ctx.getApplicationContext();
         this.from = from;
@@ -55,6 +95,10 @@ public class VahinConnection extends Connection {
         try {
             Log.d(TAG, "onShowIncomingCallUi: from=" + from + " isConf=" + isConf);
             CallNotifier.showIncomingCall(appContext, isConf ? "conf" : "call", from);
+            // Always scheduled here — this callback fires whether or not Android lets
+            // the full-screen IncomingCallActivity actually appear (see comment above).
+            cancelRingTimeout();
+            ringTimeoutHandler.postDelayed(ringTimeoutRunnable, RING_TIMEOUT_MS);
         } catch (Exception e) {
             Log.e(TAG, "onShowIncomingCallUi: CallNotifier.showIncomingCall threw — "
                 + e.getClass().getSimpleName() + ": " + e.getMessage(), e);
@@ -65,6 +109,7 @@ public class VahinConnection extends Connection {
     public void onAnswer() {
         try {
             Log.d(TAG, "onAnswer: from=" + from + " viaAppUi=" + viaAppUi);
+            cancelRingTimeout();
             setActive();
             CallNotifier.cancelCallNotification(appContext, from);
             if (viaAppUi) {
@@ -93,6 +138,7 @@ public class VahinConnection extends Connection {
     public void onReject() {
         try {
             Log.d(TAG, "onReject: from=" + from + " viaAppUi=" + viaAppUi);
+            cancelRingTimeout();
             setDisconnected(new DisconnectCause(DisconnectCause.REJECTED));
             destroy();
             clearIfCurrent();
@@ -113,6 +159,7 @@ public class VahinConnection extends Connection {
     public void onDisconnect() {
         try {
             Log.d(TAG, "onDisconnect: from=" + from);
+            cancelRingTimeout();
             setDisconnected(new DisconnectCause(DisconnectCause.LOCAL));
             destroy();
             clearIfCurrent();
@@ -132,6 +179,7 @@ public class VahinConnection extends Connection {
             Log.d(TAG, "onAbort: caller cancelled — from=" + from);
             DebugLog.log(TAG, "Telecom onAbort() called by OS — from=" + from
                 + " (this is Android's own Telecom framework ending the call, not our app code)");
+            cancelRingTimeout();
             setDisconnected(new DisconnectCause(DisconnectCause.CANCELED));
             destroy();
             clearIfCurrent();
@@ -184,6 +232,7 @@ public class VahinConnection extends Connection {
     public void endFromAppUi() {
         try {
             Log.d(TAG, "endFromAppUi: web side ended an active call, from=" + from);
+            cancelRingTimeout();
             setDisconnected(new DisconnectCause(DisconnectCause.LOCAL));
             destroy();
             clearIfCurrent();
