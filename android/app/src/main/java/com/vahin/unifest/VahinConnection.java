@@ -53,32 +53,35 @@ public class VahinConnection extends Connection {
     // whichever path answers/declines first just cancels this harmlessly.
     private static final long RING_TIMEOUT_MS = 180_000; // 180 seconds (3 minutes)
     private final Handler ringTimeoutHandler = new Handler(Looper.getMainLooper());
-    private final Runnable ringTimeoutRunnable = () -> {
-        try {
-            Log.d(TAG, "ringTimeoutRunnable: " + RING_TIMEOUT_MS + "ms elapsed with no "
-                + "answer/decline — treating as missed call. from=" + from);
-            DebugLog.log(TAG, "VahinConnection ring TIMEOUT fired — from=" + from);
-            setDisconnected(new DisconnectCause(DisconnectCause.MISSED));
-            destroy();
-            clearIfCurrent();
-            CallNotifier.cancelCallNotification(appContext, from);
-            Intent intent = new Intent(IncomingCallActivity.ACTION_CALL_CANCELLED);
-            intent.setPackage(appContext.getPackageName());
-            appContext.sendBroadcast(intent);
-            notifyWebApp("missed");
-        } catch (Exception e) {
-            Log.e(TAG, "ringTimeoutRunnable: exception — " + e.getMessage(), e);
-        }
-    };
+    private final Runnable ringTimeoutRunnable;
 
     private void cancelRingTimeout() {
-        ringTimeoutHandler.removeCallbacks(ringTimeoutRunnable);
+        if (ringTimeoutRunnable != null) {
+            ringTimeoutHandler.removeCallbacks(ringTimeoutRunnable);
+        }
     }
 
     public VahinConnection(Context ctx, String from, boolean isConf) {
         this.appContext = ctx.getApplicationContext();
         this.from = from;
         this.isConf = isConf;
+        this.ringTimeoutRunnable = () -> {
+            try {
+                Log.d(TAG, "ringTimeoutRunnable: " + RING_TIMEOUT_MS + "ms elapsed with no "
+                    + "answer/decline — treating as missed call. from=" + this.from);
+                DebugLog.log(TAG, "VahinConnection ring TIMEOUT fired — from=" + this.from);
+                setDisconnected(new DisconnectCause(DisconnectCause.MISSED));
+                destroy();
+                clearIfCurrent();
+                CallNotifier.cancelCallNotification(this.appContext, this.from);
+                Intent intent = new Intent(IncomingCallActivity.ACTION_CALL_CANCELLED);
+                intent.setPackage(this.appContext.getPackageName());
+                this.appContext.sendBroadcast(intent);
+                notifyWebApp("missed");
+            } catch (Exception e) {
+                Log.e(TAG, "ringTimeoutRunnable: exception — " + e.getMessage(), e);
+            }
+        };
         setConnectionProperties(PROPERTY_SELF_MANAGED);
         setAudioModeIsVoip(true);
     }
