@@ -55,12 +55,10 @@ public class IncomingCallActivity extends AppCompatActivity {
     // We take control of the timeout ourselves so the ring lasts RING_TIMEOUT_MS and
     // then cleanly resolves as a missed call instead of being cut off by the OS.
     //
-    // Increased from 60s to 120s to match the caller side's TOTAL_RING_MS (2 minutes,
-    // see index.html) — previously the callee's screen could time out and mark a call
-    // "missed" a full minute before the caller had actually given up, so calls were
-    // being dropped from this side well within the window the caller was still ringing.
+    // Increased to 180s to match the caller side's TOTAL_RING_MS (3 minutes,
+    // see index.html) — giving phones woken from deep sleep plenty of time to connect.
     private final android.os.Handler timeoutHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-    private static final long RING_TIMEOUT_MS = 120_000; // 120 seconds (2 minutes)
+    private static final long RING_TIMEOUT_MS = 180_000; // 180 seconds (3 minutes)
 
     private final BroadcastReceiver cancelReceiver = new BroadcastReceiver() {
         @Override
@@ -143,7 +141,7 @@ public class IncomingCallActivity extends AppCompatActivity {
             // relying on Telecom's own ~30s timeout, which we don't control.
             timeoutHandler.postDelayed(() -> {
                 Log.d(TAG, "ring timeout (" + RING_TIMEOUT_MS + "ms) reached — treating as missed call");
-                DebugLog.log(TAG, "60s ring TIMEOUT fired (our own Handler) — from=" + from);
+                DebugLog.log(TAG, "180s ring TIMEOUT fired (our own Handler) — from=" + from);
                 finishWithAction("missed");
             }, RING_TIMEOUT_MS);
 

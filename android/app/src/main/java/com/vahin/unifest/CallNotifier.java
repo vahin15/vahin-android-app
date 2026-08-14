@@ -17,7 +17,16 @@ public final class CallNotifier {
 
     private static final String TAG = "CallNotifier";
 
-    public static final String CHANNEL_ID_CALLS    = "vahin_calls";
+    // FIX: bumped from "vahin_calls" — Android caches a NotificationChannel's sound/
+    // AudioAttributes the FIRST time it's created and silently ignores any changes on
+    // subsequent createNotificationChannel() calls with the same ID, even after an app
+    // update. Anyone who already had the app installed with the old
+    // USAGE_VOICE_COMMUNICATION_SIGNALLING channel (see ensureChannels() below) would
+    // keep getting the old one-shot "blip" behavior forever, since the corrected
+    // AudioAttributes would never actually apply to their already-created channel. A
+    // new channel ID makes Android create it fresh with the fixed ringtone attributes
+    // automatically on the next app launch — no reinstall/clear-data needed.
+    public static final String CHANNEL_ID_CALLS    = "vahin_calls_v2";
     public static final String CHANNEL_ID_MESSAGES = "vahin_messages";
 
     private CallNotifier() {}
@@ -37,7 +46,28 @@ public final class CallNotifier {
             // Must be IMPORTANCE_HIGH so the heads-up / full-screen intent fires.
             // We also set a ringtone sound on the channel so the notification itself
             // makes noise *before* IncomingCallActivity even opens (covers the case
-            // where the full-screen intent is delayed by the OS).
+            // where the full-screen intent is delayed by the OS, or — very common —
+            // where Android deliberately downgrades a full-screen intent to a plain
+            // heads-up notification because the device is unlocked/in active use;
+            // Android only auto-launches full-screen over the lock screen, by design,
+            // even with the USE_FULL_SCREEN_INTENT permission granted).
+            //
+            // FIX (root cause of "it rang as a notification with sound, but only for a
+            // moment, instead of ringing properly"): this channel's AudioAttributes
+            // used USAGE_VOICE_COMMUNICATION_SIGNALLING — that usage class is for
+            // short in-call signalling blips (think: a call-waiting tone), and Android
+            // plays it once, briefly, NOT as a looping ringtone. Whenever the full-
+            // screen intent above got downgraded to a plain heads-up notification
+            // (i.e., IncomingCallActivity's own looping MediaPlayer ringtone — see
+            // IncomingCallActivity — never even got a chance to start, since that only
+            // runs once the Activity itself is created), the ONLY sound the user ever
+            // heard was this channel's one-shot blip. That exactly matches "voice, but
+            // for a very short time". USAGE_NOTIFICATION_RINGTONE is the correct usage
+            // for an actual incoming-call sound — it's what tells Android's audio/
+            // notification framework to treat this as a real ringtone (loops for as
+            // long as the notification is active, respects ringer volume/silent mode
+            // the way a phone call should, same class real dialer apps use) rather
+            // than a single signalling tone.
             // setSound() on a channel only takes effect the FIRST time the channel is
             // created — after that Android ignores it (user controls it in settings).
             // So if you previously created this channel without a sound, uninstall the
@@ -51,7 +81,7 @@ public final class CallNotifier {
             }
 
             AudioAttributes audioAttr = new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION_SIGNALLING)
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .setLegacyStreamType(AudioManager.STREAM_RING)
                 .build();
