@@ -3985,12 +3985,58 @@ function notifyPeerMsg(toId,text){
    a token, and window.handleNativeCallAction() when the user taps Accept/Decline on the
    native full-screen incoming-call UI (or taps a message notification). This is what
    makes ringing work even when the app was fully killed. */
+/* _fcmRegPending: true when the last /register-fcm POST failed. The visibilitychange
+   handler below reads this on every app foreground and retries until it succeeds.
+   Without this, a single failed registration (Render cold-start race, network blip,
+   transient 401) silently leaves the device with no FCM entry on the server for the
+   lifetime of the FCM token — which can be months — so every call relies on the
+   WebSocket path alone, which OEM battery killers destroy for backgrounded apps. */
+var _fcmRegPending=false;
+var _fcmRegAttempt=0;
 function onFcmToken(token){
   if(!token)return;
   try{localStorage.setItem('uf_fcm_token_v1',token);}catch(e){}
-  if(!myId)return;
+  _fcmRegAttempt++;
+  var attempt=_fcmRegAttempt;
+  /* Log entry unconditionally — even if myId isn't ready yet, this leaves a
+     paper trail that the native side DID deliver a token to the JS layer. */
+  diagLog('📡 onFcmToken: attempt #'+attempt+(myId?' myId='+myId:' (myId not set yet)')+', token len='+(token?token.length:0));
+  if(!myId){
+    /* Can't register without an ID — mark pending so visibilitychange retries
+       once boot() has finished setting myId (enterApp() re-calls us anyway via
+       the localStorage cache, but this is a belt-and-suspenders safety net). */
+    _fcmRegPending=true;
+    diagLog('📡 onFcmToken: myId not ready — registration deferred until app is fully booted');
+    return;
+  }
+  _fcmRegPending=false; /* optimistically clear — set back to true on failure below */
   fetchWithRetries(NOTIF_API+'/register-fcm',{method:'POST',headers:apiHeaders(),
-    body:JSON.stringify({id:myId,token:token})},8000,40000).catch(function(){});
+    body:JSON.stringify({id:myId,token:token})},8000,40000)
+    .then(function(r){
+      var status=r.status;
+      return r.json().catch(function(){return null;}).then(function(j){
+        if(status>=200&&status<300){
+          diagLog('✅ onFcmToken: /register-fcm HTTP '+status
+            +' — fcmEnabled='+(j&&j.fcmEnabled)+', devices='+(j&&j.devices)
+            +' (attempt #'+attempt+')');
+          _fcmRegPending=false;
+        } else {
+          /* Non-2xx response (e.g. 401 auth race, 429 rate-limit, 5xx server error) */
+          diagLog('❌ onFcmToken: /register-fcm returned HTTP '+status
+            +' (attempt #'+attempt+') — will retry on next app foreground');
+          console.warn('[UnifestDiag] onFcmToken: /register-fcm HTTP '+status,j);
+          _fcmRegPending=true;
+        }
+      });
+    })
+    .catch(function(err){
+      /* Network failure or total budget exhausted (Render cold-start race etc.) */
+      var msg=err&&err.message?err.message:String(err);
+      diagLog('❌ onFcmToken: /register-fcm FAILED (attempt #'+attempt+') — '+msg
+        +' — will retry on next app foreground');
+      console.warn('[UnifestDiag] onFcmToken: /register-fcm failed (attempt #'+attempt+')',err);
+      _fcmRegPending=true;
+    });
 }
 window.onFcmToken=onFcmToken;
 function getIncomingCallPeer(){if(!incomingCall)return null;return incomingCall.isConf?incomingCall.peerId:incomingCall.peer;}
@@ -4132,6 +4178,15 @@ document.addEventListener('visibilitychange',async function(){
   if(document.visibilityState==='visible'&&ringtoneCtx&&ringtoneCtx.state==='suspended')try{ringtoneCtx.resume();}catch(e){}
   if(document.visibilityState==='visible'&&myId&&!peerReady){if(!reconnTimer)scheduleReconnect();}
   if(document.visibilityState==='visible'&&myId)wakeBackendServer();
+  /* FCM registration retry: if a previous /register-fcm attempt failed (Render cold-
+     start race, network blip, transient 401, etc.), re-try it now that the app is
+     back in the foreground and the backend is more likely to be warm and reachable.
+     We use the token cached in localStorage — if Android has issued a newer token
+     since, VahinMessagingService.onNewToken() will have updated it already. */
+  if(document.visibilityState==='visible'&&myId&&_fcmRegPending){
+    diagLog('📡 onFcmToken: retrying FCM registration on app foreground (previous attempt failed)');
+    try{var t=localStorage.getItem('uf_fcm_token_v1');if(t)onFcmToken(t);}catch(e){}
+  }
   if(document.visibilityState==='visible'&&document.getElementById('screen-settings').classList.contains('active'))refreshReliabilityUI();
   if(document.visibilityState==='visible'&&document.getElementById('screen-permsetup').classList.contains('active')){
     if(permChainActive)continuePermChain();else maybeShowPermSetup();
