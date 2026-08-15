@@ -103,6 +103,7 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         maybePromptFullScreenIntent();
+        maybePromptBatteryExemption();
     }
 
     // Android 14+ (API 34+) requires the user to explicitly grant USE_FULL_SCREEN_INTENT
@@ -162,31 +163,48 @@ public class MainActivity extends BridgeActivity {
             .show();
     }
 
+    // FIX FOR USERS: previously this checked prefs.getBoolean("battery_prompt_shown")
+    // and, once true, NEVER looked at the real PowerManager state again — permanently,
+    // for the life of the install. That flag got set either on first successful grant
+    // OR on a single "Not now" tap OR simply because the app happened to already be
+    // exempt the first time this ran. None of those guarantee the exemption stays
+    // granted forever: a phone system/OS update, a manufacturer battery-manager reset,
+    // or the user later un-exempting the app in Settings can all silently revoke it —
+    // and this app had no way to notice, so ringing-while-closed would break with zero
+    // trace and no path back except the user digging through Settings unprompted. Now
+    // mirrors maybePromptFullScreenIntent()'s pattern: re-check the ACTUAL current
+    // state every resume, and only use a time cooldown (not a permanent flag) to avoid
+    // nagging on every single launch.
+    private static final long BATTERY_PROMPT_COOLDOWN_MS = 24 * 60 * 60 * 1000L; // 24 hours
+
     private void maybePromptBatteryExemption() {
         if (isFinishing() || isDestroyed()) return;
-        String prefsName = "vahin_prefs";
-        android.content.SharedPreferences prefs = getSharedPreferences(prefsName, Context.MODE_PRIVATE);
-        if (prefs.getBoolean("battery_prompt_shown", false)) return;
 
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         boolean alreadyIgnoring = pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
         Log.d(TAG, "maybePromptBatteryExemption: isIgnoringBatteryOptimizations=" + alreadyIgnoring);
-        if (alreadyIgnoring) {
-            prefs.edit().putBoolean("battery_prompt_shown", true).apply();
-            return;
-        }
+        if (alreadyIgnoring) return; // genuinely fine right now — nothing to do
+
+        android.content.SharedPreferences prefs = getSharedPreferences("vahin_prefs", Context.MODE_PRIVATE);
+        long lastShown = prefs.getLong("battery_prompt_last_shown", 0);
+        long now = System.currentTimeMillis();
+        if (now - lastShown < BATTERY_PROMPT_COOLDOWN_MS) return; // asked recently — don't nag every launch
+
+        Log.w(TAG, "maybePromptBatteryExemption: battery optimization is ON (not exempt) — prompting user");
 
         new AlertDialog.Builder(this)
             .setTitle("Allow reliable ringing")
             .setMessage("To make sure calls ring even when Unifest is closed, please allow it " +
-                "to run without battery restrictions on the next screen.")
+                "to run without battery restrictions on the next screen. (If you already did this " +
+                "before, your phone's last update may have reset it — this can happen after system " +
+                "updates.)")
             .setCancelable(true)
             .setPositiveButton("Allow", (d, w) -> {
-                prefs.edit().putBoolean("battery_prompt_shown", true).apply();
+                prefs.edit().putLong("battery_prompt_last_shown", now).apply();
                 requestIgnoreBatteryOptimizations();
                 requestOemAutoStartPermission();
             })
-            .setNegativeButton("Not now", (d, w) -> prefs.edit().putBoolean("battery_prompt_shown", true).apply())
+            .setNegativeButton("Not now", (d, w) -> prefs.edit().putLong("battery_prompt_last_shown", now).apply())
             .show();
     }
 

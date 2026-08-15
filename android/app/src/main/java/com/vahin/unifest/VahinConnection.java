@@ -49,9 +49,9 @@ public class VahinConnection extends Connection {
     // short of what we intend. This Handler is owned by the Connection itself,
     // which Telecom always keeps alive for the whole ringing period regardless of
     // which UI (if any) actually got shown, so it now sets the real ceiling on
-    // ring duration either way. Same 180s value IncomingCallActivity uses, so
+    // ring duration either way. Same 240s value IncomingCallActivity uses, so
     // whichever path answers/declines first just cancels this harmlessly.
-    private static final long RING_TIMEOUT_MS = 180_000; // 180 seconds (3 minutes)
+    private static final long RING_TIMEOUT_MS = 240_000; // 240 seconds (4 minutes)
     private final Handler ringTimeoutHandler = new Handler(Looper.getMainLooper());
     private final Runnable ringTimeoutRunnable;
 

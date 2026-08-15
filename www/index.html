@@ -1572,8 +1572,15 @@ var peerEverConnectedThisSession=false;
    uses it to say "Connecting…" for anything that happens before that point —
    "Reconnecting…" is now reserved for a genuine drop of a connection that was
    actually up at some point. */
+/* reconnectAttempt: surfaced in the banner text so "Reconnecting…" visibly proves
+   it's actively retrying (with a live count) instead of reading as a dead, stuck
+   state — the exact complaint that prompted this. Reset to 0 the moment the peer
+   connection actually opens. */
+var reconnectAttempt=0;
 function connBanner(everConnectedMsg){
-  showBanner(peerEverConnectedThisSession?everConnectedMsg:'Connecting…');
+  var msg=peerEverConnectedThisSession?everConnectedMsg:'Connecting…';
+  if(msg==='Reconnecting…'&&reconnectAttempt>0)msg='Reconnecting… (attempt '+reconnectAttempt+')';
+  showBanner(msg);
 }
 function startPeer(){
   if(!window.Peer){showBanner('Connecting…');setTimeout(startPeer,200);return;}
@@ -1584,7 +1591,7 @@ function startPeer(){
     try{peer=new Peer(myId,PEER_CONFIG);}
     catch(e){setTimeout(function(){peerReady=false;connBanner('Reconnecting…');scheduleReconnect();},1000);return;}
     peer.on('open',function(id){
-      peerReady=true;peerEverConnectedThisSession=true;hideBanner();setOnlineDot('green');toast('Online as '+id+' 🟢');
+      peerReady=true;peerEverConnectedThisSession=true;reconnectAttempt=0;hideBanner();setOnlineDot('green');toast('Online as '+id+' 🟢');
       diagLog('✅ Peer connected to broker as '+id);
       if(reconnTimer){clearTimeout(reconnTimer);reconnTimer=null;}
       subscribePush();
@@ -1641,6 +1648,9 @@ function scheduleReconnect(immediate){
   var delay=immediate?300:1200;
   reconnTimer=setTimeout(function(){
     reconnTimer=null;
+    reconnectAttempt++;
+    if(peerEverConnectedThisSession)connBanner('Reconnecting…'); /* refresh the (attempt N) count even if nothing else changes yet */
+    diagLog('🔁 Reconnect attempt #'+reconnectAttempt);
     if(peer&&!peer.destroyed&&peer.disconnected){try{peer.reconnect();}catch(e){startPeer();}}
     else if(!peer||peer.destroyed){startPeer();}
     setOnlineDot('yellow');
@@ -3091,9 +3101,12 @@ async function startCall(pid,voiceOnly){
   callRetryCount=0;placeCallAttempt(pid,voiceOnly);
   callConn=peer.connect(pid,{reliable:true,metadata:{type:'dm'}});
   if(callConn){callConn.on('data',function(data){handleData(pid,data,callConn);});callConn.on('error',function(){});}
-  setTimeout(function(){var s=document.getElementById('call-status');if(s&&s.textContent==='Calling…'){diagLog('⏱️ 3 minutes elapsed with no connection — giving up (No answer)');toast('No answer');logCall(pid,'missed','out');endCall();}},TOTAL_RING_MS);
+  setTimeout(function(){var s=document.getElementById('call-status');if(s&&s.textContent==='Calling…'){diagLog('⏱️ '+(TOTAL_RING_MS/60000)+' minutes elapsed with no connection — giving up (No answer)');toast('No answer');logCall(pid,'missed','out');endCall();}},TOTAL_RING_MS);
 }
-var TOTAL_RING_MS=180000; /* full 3-minute ring window */
+/* Bumped from 180000 (3 min) to 240000 (4 min) — must stay in sync with
+   RING_TIMEOUT_MS in IncomingCallActivity.java and VahinConnection.java, or the
+   caller and callee will disagree about when a call is "missed". */
+var TOTAL_RING_MS=240000; /* full 4-minute ring window */
 var callRetryCount=0,MAX_CALL_RETRIES=Math.ceil(TOTAL_RING_MS/1500);
 function monitorCallConnection(mc){
   if(!mc||!mc.peerConnection)return;
