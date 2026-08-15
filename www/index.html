@@ -595,6 +595,70 @@ button,input,textarea{font-family:inherit;}
 .preview-cap-inp{background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;
   font-size:15px;color:var(--text);outline:none;width:100%;-webkit-appearance:none;}
 .preview-cap-inp:focus{border-color:var(--accent);}
+
+/* ── Full-size DP Viewer ── */
+#dp-viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);z-index:9999;display:none;flex-direction:column;justify-content:space-between;padding:calc(16px + var(--safe-top)) 16px calc(24px + var(--safe-bottom));animation:popIn .25s var(--ease-spring);}
+#dp-viewer-overlay.show{display:flex;}
+.dpv-header{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:540px;margin:0 auto;color:#fff;z-index:2;}
+.dpv-title{font-size:18px;font-weight:800;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dpv-btn{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;transition:transform .15s var(--ease-spring),background .15s;}
+.dpv-btn:active{transform:scale(.9);background:rgba(255,255,255,.25);}
+.dpv-body{flex:1;display:flex;align-items:center;justify-content:center;padding:16px 0;width:100%;max-width:540px;margin:0 auto;}
+.dpv-img{max-width:92vw;max-height:72vh;border-radius:24px;object-fit:contain;box-shadow:0 16px 48px rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.12);animation:popIn .3s var(--ease-spring);}
+.dpv-fallback{width:220px;height:220px;border-radius:50%;background:var(--sheen),var(--hero-grad);display:flex;align-items:center;justify-content:center;font-size:88px;font-weight:900;color:#fff;box-shadow:var(--glow-shadow);border:4px solid rgba(255,255,255,.2);animation:popIn .3s var(--ease-spring);}
+
+/* ── Starred Messages & Deleted Styles ── */
+.msg-star{display:inline-block;color:var(--yellow);font-size:11px;margin-left:4px;vertical-align:middle;}
+.msg-bubble.deleted{font-style:italic;opacity:.72;color:var(--text3);}
+.starred-item{background:var(--glass-bg);-webkit-backdrop-filter:blur(var(--glass-blur));backdrop-filter:blur(var(--glass-blur));border:1px solid var(--glass-border);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--elev1);cursor:pointer;margin-bottom:10px;touch-action:manipulation;transition:transform .15s var(--ease-spring),border-color .15s;}
+.starred-item:active{transform:scale(.985);border-color:var(--glow-a);}
+.starred-head{display:flex;align-items:center;justify-content:space-between;}
+.starred-peer{font-size:14px;font-weight:700;color:var(--accent2);display:flex;align-items:center;gap:6px;}
+.starred-time{font-size:11.5px;color:var(--text3);}
+.starred-text{font-size:14.5px;color:var(--text);line-height:1.45;word-break:break-word;}
+.starred-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:2px;}
+.starred-unstar-btn{background:var(--surface2);border:none;border-radius:8px;padding:5px 10px;font-size:12px;color:var(--text3);cursor:pointer;font-weight:600;}
+
+/* ── Shared Media Gallery ── */
+.media-tabs{display:flex;background:var(--surface2);border-radius:var(--radius-sm);padding:3px;margin:12px 14px 10px;border:1px solid var(--border);}
+.media-tab-btn{flex:1;border:none;background:none;border-radius:8px;padding:9px 0;font-size:13px;font-weight:700;color:var(--text3);cursor:pointer;transition:all .18s;}
+.media-tab-btn.active{background:var(--surface);color:var(--text);box-shadow:var(--elev1);}
+.media-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px 14px 20px;}
+.media-thumb-wrap{position:relative;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:var(--surface2);cursor:pointer;}
+.media-thumb{width:100%;height:100%;object-fit:cover;display:block;}
+.media-video-badge{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.65);color:#fff;border-radius:6px;padding:2px 5px;font-size:10px;font-weight:700;display:flex;align-items:center;gap:2px;}
+.doc-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;touch-action:manipulation;}
+.doc-row:active{background:var(--surface2);}
+.doc-info{flex:1;min-width:0;}
+.doc-name{font-size:14.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.doc-meta{font-size:12px;color:var(--text3);margin-top:2px;}
+.link-row{display:flex;flex-direction:column;gap:4px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;touch-action:manipulation;}
+.link-row:active{background:var(--surface2);}
+.link-url{font-size:14px;font-weight:700;color:var(--accent2);word-break:break-all;}
+.link-meta{font-size:11.5px;color:var(--text3);}
+
+/* ── App Lock Keypad & Screen ── */
+#app-lock-screen{position:fixed;inset:0;z-index:10000;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:space-between;padding:calc(40px + var(--safe-top)) 24px calc(32px + var(--safe-bottom));}
+#app-lock-screen.show{display:flex;}
+.lock-hero{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:10px;}
+.lock-icon{font-size:46px;}
+.lock-title{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.5px;}
+.lock-sub{font-size:13.5px;color:var(--text3);text-align:center;}
+.lock-dots{display:flex;gap:16px;margin:24px 0 10px;}
+.lock-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:transparent;transition:all .2s var(--ease-spring);}
+.lock-dot.filled{background:var(--accent);border-color:var(--accent);box-shadow:0 0 12px rgba(124,58,237,.5);transform:scale(1.15);}
+@keyframes shakeLock{0%,100%{transform:translateX(0);}20%,60%{transform:translateX(-10px);}40%,80%{transform:translateX(10px);}}
+.lock-dots.shake{animation:shakeLock .4s ease-in-out;}
+.lock-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 22px;width:100%;max-width:300px;margin-bottom:10px;}
+.lock-key-btn{aspect-ratio:1/1;border-radius:50%;background:var(--surface2);border:1px solid var(--border);font-size:24px;font-weight:700;color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;transition:transform .15s var(--ease-spring),background .15s;}
+.lock-key-btn:active{transform:scale(.88);background:var(--accent-light);color:var(--accent);}
+.lock-key-btn.blank{background:transparent;border:none;cursor:default;}
+
+/* ── Recovery Phrase Box ── */
+.recovery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0;}
+.recovery-chip{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;}
+.recovery-chip-num{font-size:10px;color:var(--text3);font-weight:600;min-width:14px;}
+.recovery-code-box{background:var(--surface2);border:1.5px dashed var(--accent);border-radius:var(--radius-sm);padding:14px;font-family:monospace;font-size:14px;font-weight:700;color:var(--accent);text-align:center;letter-spacing:1px;margin:10px 0;word-break:break-all;user-select:all;-webkit-user-select:all;}
 </style>
 </head>
 <body>
@@ -635,6 +699,7 @@ button,input,textarea{font-family:inherit;}
       <div class="id-hint" id="id-card-hint">Pick any unique name — friends find you by this exact ID, worldwide. Your password is what proves it's really you if you reinstall or switch phones.</div>
       <button class="btn-primary" id="get-started-btn">Create My ID →</button>
       <button class="ob-skip" id="auth-toggle-btn" style="color:var(--accent);font-weight:700;">Already have an ID? Log in</button>
+      <button class="ob-skip" id="restore-account-link" style="color:var(--text3);font-size:12.5px;margin-top:2px;">🔑 Restore account with recovery key</button>
     </div>
     <div class="feature-pills">
       <div class="pill"><span class="pill-dot"></span>HD Video Calls</div>
@@ -771,6 +836,7 @@ button,input,textarea{font-family:inherit;}
     <div class="settings-section">
       <div class="settings-section-title">Account</div>
       <div class="settings-group">
+        <div class="settings-row" id="account-recovery-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(124,58,237,.12);">🔐</div><div><div class="s-label">Account Recovery Key</div><div class="s-sub">View 12-word backup phrase</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="switch-account-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(30,58,95,.1);">🔄</div><div><div class="s-label">Switch Account</div><div class="s-sub">Log in as a different ID</div></div></div><div class="chevron">›</div></div>
       </div>
     </div>
@@ -802,12 +868,17 @@ button,input,textarea{font-family:inherit;}
       </div>
     </div>
     <div class="settings-section">
-      <div class="settings-section-title">Privacy</div>
-      <div class="settings-group"><div class="settings-row" id="blocked-list-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">🚫</div><div><div class="s-label">Blocked Users</div><div class="s-sub" id="blocked-count-sub">No one blocked</div></div></div><div class="chevron">›</div></div></div>
+      <div class="settings-section-title">Privacy &amp; Security</div>
+      <div class="settings-group">
+        <div class="settings-row" id="applock-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(30,58,95,.1);">🔒</div><div><div class="s-label">App Lock</div><div class="s-sub" id="applock-status-sub">Disabled</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="starred-msgs-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(234,179,8,.12);">⭐</div><div><div class="s-label">Starred Messages</div><div class="s-sub" id="starred-count-sub">View all starred</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="blocked-list-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">🚫</div><div><div class="s-label">Blocked Users</div><div class="s-sub" id="blocked-count-sub">No one blocked</div></div></div><div class="chevron">›</div></div>
+      </div>
     </div>
     <div class="settings-section">
-      <div class="settings-section-title">About</div>
+      <div class="settings-section-title">About &amp; Invite</div>
       <div class="settings-group">
+        <div class="settings-row" id="invite-friends-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(16,185,129,.12);">✉️</div><div><div class="s-label">Invite Friends</div><div class="s-sub">Share your Unifest invite link</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(30,58,95,.1);">✨</div><div><div class="s-label">Unifest</div><div class="s-sub">Version 3.4 · P2P Encrypted</div></div></div></div>
         <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(62,102,144,.12);">👤</div><div><div class="s-label">Created by</div><div class="s-sub">Vahin Saxena</div></div></div></div>
         <div class="settings-row" id="clear-calls-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.08);">🗑</div><div><div class="s-label">Clear Call History</div></div></div><div class="chevron">›</div></div>
@@ -924,6 +995,25 @@ button,input,textarea{font-family:inherit;}
   <div class="chat-top"><button class="chat-back" id="search-back-btn">‹</button><input id="g-search-input" class="chat-inp" placeholder="Search all messages…" style="flex:1;min-height:40px;resize:none;" autocomplete="off" autocorrect="off"/></div>
   <div class="search-results" id="search-results"><div class="search-empty">Type to search all conversations</div></div>
 </div>
+<div id="screen-starred" class="screen">
+  <div class="chat-top">
+    <button class="chat-back" id="starred-back-btn"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+    <div style="flex:1;min-width:0;"><div class="chat-peer-name">Starred Messages</div><div class="chat-peer-status" id="starred-header-sub">0 starred</div></div>
+  </div>
+  <div style="padding:16px;overflow-y:auto;flex:1;" id="starred-list-body"></div>
+</div>
+<div id="screen-chat-media" class="screen">
+  <div class="chat-top">
+    <button class="chat-back" id="chat-media-back-btn"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+    <div style="flex:1;min-width:0;"><div class="chat-peer-name" id="chat-media-title">Shared Media &amp; Files</div><div class="chat-peer-status" id="chat-media-sub">—</div></div>
+  </div>
+  <div class="media-tabs">
+    <button class="media-tab-btn active" id="cm-tab-media">Photos &amp; Videos</button>
+    <button class="media-tab-btn" id="cm-tab-docs">Files</button>
+    <button class="media-tab-btn" id="cm-tab-links">Links</button>
+  </div>
+  <div id="chat-media-body" style="flex:1;overflow-y:auto;"></div>
+</div>
 <input type="file" id="file-input" style="display:none;"/>
 <input type="file" id="ringtone-file-input" accept="audio/*,.mp3,.wav,.m4a,.ogg,.aac,.flac,.opus" style="display:none;"/>
 <input type="file" id="ringtone-file-input-any" accept="*/*" style="display:none;"/>
@@ -988,9 +1078,11 @@ button,input,textarea{font-family:inherit;}
   <div class="ctx-sheet">
     <div class="ctx-preview" id="ctx-preview"></div>
     <div class="ctx-row" id="ctx-reply-btn"><div class="ctx-ico" style="background:rgba(30,58,95,.1);">↩</div><span class="ctx-lbl">Reply</span></div>
+    <div class="ctx-row" id="ctx-star-btn"><div class="ctx-ico" style="background:rgba(234,179,8,.12);">⭐</div><span class="ctx-lbl" id="ctx-star-lbl">Star message</span></div>
     <div class="ctx-row" id="ctx-copy-btn"><div class="ctx-ico" style="background:rgba(29,122,95,.1);">📋</div><span class="ctx-lbl">Copy</span></div>
     <div class="ctx-row" id="ctx-forward-btn"><div class="ctx-ico" style="background:rgba(62,102,144,.1);">↪</div><span class="ctx-lbl">Forward</span></div>
-    <div class="ctx-row" id="ctx-delete-btn" style="color:var(--red);"><div class="ctx-ico" style="background:rgba(179,38,30,.1);">🗑</div><span class="ctx-lbl" style="color:var(--red);">Delete</span></div>
+    <div class="ctx-row" id="ctx-delete-everyone-btn" style="color:var(--red);display:none;"><div class="ctx-ico" style="background:rgba(179,38,30,.1);">🚫</div><span class="ctx-lbl" style="color:var(--red);">Delete for everyone</span></div>
+    <div class="ctx-row" id="ctx-delete-btn" style="color:var(--red);"><div class="ctx-ico" style="background:rgba(179,38,30,.1);">🗑</div><span class="ctx-lbl" style="color:var(--red);" id="ctx-delete-lbl">Delete for me</span></div>
   </div>
 </div>
 <div id="rec-overlay">
@@ -1015,6 +1107,16 @@ button,input,textarea{font-family:inherit;}
     <div class="preview-file-row" id="preview-file-row" style="display:none;">
       <div class="attach-opt-icon" id="preview-file-icon" style="background:var(--accent-light);">📄</div>
       <div><div class="s-label" id="preview-file-name">file</div><div class="s-sub" id="preview-file-size"></div></div>
+    </div>
+    <div id="preview-compress-row" style="display:none;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border2);cursor:pointer;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:18px;">⚡</span>
+        <div>
+          <div style="font-size:13.5px;font-weight:700;color:var(--text);">Compress Image (HD)</div>
+          <div style="font-size:11.5px;color:var(--text3);" id="preview-compress-sub">Faster sending, high clarity</div>
+        </div>
+      </div>
+      <div class="toggle-sw on" id="preview-compress-sw"></div>
     </div>
     <input class="preview-cap-inp" id="preview-caption-inp" placeholder="Add a caption (optional)…" autocomplete="off" maxlength="300"/>
     <div class="modal-btn-row">
@@ -1048,6 +1150,91 @@ button,input,textarea{font-family:inherit;}
       <button class="modal-btn-cancel" style="flex:1;" id="generic-prompt-cancel-btn">Cancel</button>
       <button class="btn-primary" style="flex:1;" id="generic-prompt-ok-btn">OK</button>
     </div>
+  </div>
+</div>
+
+<!-- ── Full-screen Profile Picture Overlay ── -->
+<div id="dp-viewer-overlay">
+  <div class="dpv-header">
+    <div class="dpv-title" id="dpv-title">Profile Photo</div>
+    <button class="dpv-btn" id="dp-viewer-close-btn" title="Close">✕</button>
+  </div>
+  <div class="dpv-body" id="dpv-body"></div>
+  <div style="height:12px;"></div>
+</div>
+
+<!-- ── Account Recovery & Backup Modals ── -->
+<div class="modal-overlay" id="recovery-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔐 Account Recovery Key</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.5;">Keep this 12-word recovery phrase safe. If you reinstall or switch devices, enter this phrase to restore your ID and account.</div>
+    <div class="recovery-grid" id="recovery-phrase-grid"></div>
+    <div class="recovery-code-box" id="recovery-code-box"></div>
+    <div class="modal-btn-row">
+      <button class="modal-btn-cancel" id="recovery-copy-btn">📋 Copy Phrase</button>
+      <button class="btn-primary" style="flex:1;" id="recovery-close-btn">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="restore-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔑 Restore Account</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.5;">Paste your 12-word recovery phrase or backup code below to restore your account.</div>
+    <textarea class="modal-inp" id="restore-inp" placeholder="e.g. solar orbit shield nexus..." style="height:90px;font-size:14px;resize:none;line-height:1.4;"></textarea>
+    <div class="modal-btn-row">
+      <button class="modal-btn-cancel" id="restore-cancel-btn">Cancel</button>
+      <button class="btn-primary" style="flex:1;" id="restore-submit-btn">Restore ID →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── App Lock Modal & Screen ── -->
+<div class="modal-overlay" id="applock-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔒 App Lock Settings</div>
+    <div class="settings-group" style="margin:0;">
+      <div class="settings-row" id="applock-master-row" style="cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(124,58,237,.12);">🔒</div><div><div class="s-label">Require PIN to Open</div><div class="s-sub">Lock Unifest when inactive</div></div></div><div class="toggle-sw" id="applock-master-sw"></div></div>
+      <div class="settings-row" id="applock-pin-row" style="display:none;cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(30,58,95,.1);">🔢</div><div><div class="s-label">Change 4-Digit PIN</div><div class="s-sub" id="applock-pin-sub">Set your passcode</div></div></div><div class="chevron">›</div></div>
+      <div class="settings-row" id="applock-biometric-row" style="display:none;cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(16,185,129,.12);">👆</div><div><div class="s-label">Biometric Unlock</div><div class="s-sub">Fingerprint or Face ID</div></div></div><div class="toggle-sw" id="applock-biometric-sw"></div></div>
+    </div>
+    <div class="modal-btn-row">
+      <button class="btn-primary" style="flex:1;" id="applock-close-btn">Done</button>
+    </div>
+  </div>
+</div>
+
+<div id="app-lock-screen">
+  <div class="lock-hero">
+    <div class="logo-circle" style="width:72px;height:72px;">
+      <img src="icons/icon-192.png" alt="Unifest" onerror="this.style.display='none';this.parentNode.innerHTML='<div class=logo-fallback style=font-size:32px>U</div>'"/>
+    </div>
+    <div class="lock-title">Unifest is Locked</div>
+    <div class="lock-sub" id="lock-sub-prompt">Enter your 4-digit PIN</div>
+    <div class="lock-dots" id="lock-dots">
+      <div class="lock-dot" id="ldot-0"></div>
+      <div class="lock-dot" id="ldot-1"></div>
+      <div class="lock-dot" id="ldot-2"></div>
+      <div class="lock-dot" id="ldot-3"></div>
+    </div>
+  </div>
+  <div class="lock-keypad" id="lock-keypad">
+    <button class="lock-key-btn lock-key" data-key="1">1</button>
+    <button class="lock-key-btn lock-key" data-key="2">2</button>
+    <button class="lock-key-btn lock-key" data-key="3">3</button>
+    <button class="lock-key-btn lock-key" data-key="4">4</button>
+    <button class="lock-key-btn lock-key" data-key="5">5</button>
+    <button class="lock-key-btn lock-key" data-key="6">6</button>
+    <button class="lock-key-btn lock-key" data-key="7">7</button>
+    <button class="lock-key-btn lock-key" data-key="8">8</button>
+    <button class="lock-key-btn lock-key" data-key="9">9</button>
+    <button class="lock-key-btn lock-key" id="lock-bio-btn" data-key="bio" style="display:none;font-size:20px;">👆</button>
+    <button class="lock-key-btn blank" id="lock-empty-btn"></button>
+    <button class="lock-key-btn lock-key" data-key="0">0</button>
+    <button class="lock-key-btn lock-key" id="lock-del-btn" data-key="del">⌫</button>
   </div>
 </div>
 <div id="toast"></div>
@@ -1176,7 +1363,7 @@ var PEER_CONFIG={debug:0,host:'vahin-backend.onrender.com',secure:true,port:443,
 ],iceCandidatePoolSize:10}};
 var SK={MYID:'uf_myid_v3',CONTACTS:'uf_contacts_v3',DM:'uf_dm_v3',GRPH:'uf_grp_hist_v3',GRPM:'uf_grp_members_v3',GROUPS:'uf_groups_v1',
   CALLS:'uf_calls_v3',SETTINGS:'uf_settings_v3',BLOCKED:'uf_blocked_v3',PINNED:'uf_pinned_v3',ONBOARDED:'uf_onboarded_v1',RINGTONE:'uf_ringtone_v1',TOKEN:'uf_token_v1',
-  PERMSETUP_SEEN:'uf_permsetup_seen_v1'};
+  PERMSETUP_SEEN:'uf_permsetup_seen_v1',STARRED:'uf_starred_v1',APPLOCK:'uf_applock_v1',RECOVERY:'uf_recovery_v1'};
 var myId='',peer=null,peerReady=false,reconnTimer=null;
 var localStream=null,currentCall=null,callPeerId='';
 var callConn=null,callTimer=null,callSecs=0,weAreCaller=false;
@@ -1190,6 +1377,11 @@ var activeGroupId=null;
 var dmHistory={},callHistory=[],callHistoryDirty=true;
 var recentPeers=[],onlinePeers={},onlinePeersTs={},unreadDM={},unreadGroup={},fcmBackupTimer=null;
 var blockedUsers=[],pinnedChats=[];
+var starredMessages=[];
+var appLock={enabled:false,pin:'',biometric:false};
+var appUnlocked=false;
+var compressImageChat=true;
+var enteredPin='';
 var settings={ringtone:true,vibrate:true,backcam:false,confLimit:6,theme:'auto'};
 var customRingtoneDataUrl='';
 var incomingCall=null;
@@ -1251,6 +1443,8 @@ function saveAll(){
   ls_set(SK.CALLS,callHistory.slice(-150));
   ls_set(SK.BLOCKED,blockedUsers);
   ls_set(SK.PINNED,pinnedChats);
+  ls_set(SK.STARRED,starredMessages);
+  ls_set(SK.APPLOCK,appLock);
   ls_set(SK.SETTINGS,settings);
 }
 function loadAll(){
@@ -1271,6 +1465,8 @@ function loadAll(){
   callHistory=ls_get(SK.CALLS,[]);
   blockedUsers=ls_get(SK.BLOCKED,[]);
   pinnedChats=ls_get(SK.PINNED,[]);
+  starredMessages=ls_get(SK.STARRED,[]);
+  appLock=ls_get(SK.APPLOCK,{enabled:false,pin:'',biometric:false});
   var s=ls_get(SK.SETTINGS,{});
   settings=Object.assign({ringtone:true,vibrate:true,backcam:false,confLimit:6,theme:'auto'},s);
   customRingtoneDataUrl=localStorage.getItem(SK.RINGTONE)||'';
@@ -1387,7 +1583,10 @@ function boot(){
   applyTheme();bindEvents();
   var saved=localStorage.getItem(SK.MYID);
   var onboarded=localStorage.getItem(SK.ONBOARDED);
-  if(saved){myId=saved;loadAll();enterApp();}
+  if(saved){
+    myId=saved;loadAll();enterApp();
+    if(appLock&&appLock.enabled&&appLock.pin&&!appUnlocked){showAppLockScreen();}
+  }
   else if(!onboarded){showScreen('screen-onboard');obRender();}
   else{showScreen('screen-id');}
 }
@@ -1454,7 +1653,8 @@ function startBackendKeepWarm(){
 function enterApp(){
   var els={'topbar-myid':myId,'settings-uname':myId,'settings-uid-text':myId,'conf-label-local':myId};
   Object.keys(els).forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=els[id];});
-  var sav=document.getElementById('settings-av');if(sav)applyAvatarPlain(sav,myId);
+  var sav=document.getElementById('settings-av');
+  if(sav){applyAvatarPlain(sav,myId);sav.style.cursor='pointer';sav.onclick=function(){openDpViewer(myId,myId);};}
   applySettingsToUI();
   renderChats();renderPinnedChats();renderCallHistory();renderGroupsList();
   updateBlockedCountUI();
@@ -1819,6 +2019,21 @@ function handleData(from,data,conn){
     case 'file-meta':handleFileMeta(from,data);break;
     case 'file-chunk':handleFileChunk(data);break;
     case 'file-end':handleFileEnd(data.transferId);break;
+    case 'delete-msg':
+      var dMid=data.msgId;if(!dMid)break;
+      if(data.groupId&&groups[data.groupId]){
+        var gh=groups[data.groupId].history||[];
+        var gm=gh.find(function(x){return x._id===dMid||(x.file&&x.file.transferId===dMid);});
+        if(gm){gm.text='🚫 '+(data.deletedBy||from)+' deleted this message';gm.isDeleted=true;delete gm.file;saveAll();}
+        if(chatMode==='group'&&activeGroupId===data.groupId)openGroupChat(data.groupId);
+      }else if(dmHistory[from]){
+        var dmh=dmHistory[from];
+        var dm=dmh.find(function(x){return x._id===dMid||(x.file&&x.file.transferId===dMid);});
+        if(dm){dm.text='🚫 This message was deleted';dm.isDeleted=true;delete dm.file;ls_set(SK.DM,dmHistory);}
+        if(chatMode==='dm'&&chatPeerId===from)openDMChat(from);
+        else renderChats();
+      }
+      break;
   }
 }
 function isBlocked(pid){return blockedUsers.indexOf(pid)>-1;}
@@ -1878,6 +2093,8 @@ function renderPinnedChats(){
   pinnedChats.forEach(function(pid){
     var chip=document.createElement('div');chip.className='pinned-chip';chip.onclick=function(){openDMChat(pid);};
     var av=document.createElement('div');av.className='pc-av';av.textContent=pid[0].toUpperCase();
+    av.style.cursor='pointer';
+    av.onclick=function(e){e.stopPropagation();openDpViewer(pid,pid);};
     var u=unreadDM[pid]||0;
     if(u){var badge=document.createElement('div');badge.className='pc-badge';badge.textContent=u>9?'9+':u;av.appendChild(badge);}
     var nm=document.createElement('div');nm.className='pc-name';nm.textContent=pid;
@@ -1908,6 +2125,8 @@ function renderChats(filter){
     var item=document.createElement('div');item.className='chat-list-item';
     item.onclick=function(p){return function(){openDMChat(p);};}(pid);
     var av=document.createElement('div');av.className='cli-av';
+    av.style.cursor='pointer';
+    av.onclick=function(e){e.stopPropagation();openDpViewer(pid,pid);};
     var avLetter=document.createElement('span');avLetter.className='cli-av-letter';avLetter.textContent=pid[0].toUpperCase();
     av.appendChild(avLetter);
     var pres=document.createElement('span');pres.className='cli-pres'+(isOnline?' online':'');pres.dataset.pres=pid;
@@ -1934,7 +2153,9 @@ function renderChats(filter){
 function openDMChat(pid){
   if(!pid)return;
   chatMode='dm';chatPeerId=pid;addRecentSilent(pid);unreadDM[pid]=0;
-  applyAvatarPlain(document.getElementById('chat-peer-av'),pid);
+  var cpAv=document.getElementById('chat-peer-av');
+  applyAvatarPlain(cpAv,pid);
+  if(cpAv){cpAv.style.cursor='pointer';cpAv.onclick=function(){openDpViewer(pid,pid);};}
   document.getElementById('chat-peer-name').textContent=pid;
   document.getElementById('chat-peer-status').textContent=(onlinePeers[pid]?'Online':'Offline')+' · P2P encrypted';
   buildChatHeader(pid);
@@ -2040,6 +2261,8 @@ function showChatOptions(pid){
     r.onclick=function(){closeChatOptions();fn();};
     list.appendChild(r);
   }
+  row('🖼️','View profile photo',null,false,function(){openDpViewer(pid,pid);});
+  row('📁','Shared media & files','Photos, videos, and documents',false,function(){openSharedMedia(pid);});
   row(isPinned?'📌':'📍',isPinned?'Unpin chat':'Pin chat',null,false,function(){isPinned?unpinChat(pid):pinChat(pid);});
   row(isBlk?'🔓':'🚫',(isBlk?'Unblock':'Block')+' '+pid,isBlk?'Allow calls & messages again':'They won\u2019t be able to call or message you',true,async function(){
     if(isBlk){unblockUser(pid);return;}
@@ -2365,8 +2588,12 @@ function doGlobalSearch(q){
   });
 }
 function openCtx(msg,isMe){
-  ctxMsg={text:msg.text,time:msg.time,_id:msg._id,me:isMe,file:msg.file||null};
-  document.getElementById('ctx-preview').textContent=(msg.text||'📎 file').substring(0,80);
+  ctxMsg={text:msg.text,time:msg.time,_id:msg._id,me:isMe,file:msg.file||null,sender:msg.sender||null};
+  document.getElementById('ctx-preview').textContent=(msg.text||(msg.file?'📎 '+msg.file.name:'file')).substring(0,80);
+  var starLbl=document.getElementById('ctx-star-lbl');
+  if(starLbl)starLbl.textContent=isMsgStarred(msg._id)?'Unstar message':'Star message';
+  var delEvBtn=document.getElementById('ctx-delete-everyone-btn');
+  if(delEvBtn)delEvBtn.style.display=isMe?'flex':'none';
   document.getElementById('ctx-overlay').classList.add('show');
 }
 function closeCtx(){document.getElementById('ctx-overlay').classList.remove('show');ctxMsg=null;}
@@ -2396,13 +2623,15 @@ function sendMsg(){
     if(chatConn&&chatConn.open)notifyPeerMsg(chatPeerId,t);
   }else if(chatMode==='group'){
     var gid=activeGroupId;var g=groups[gid];if(!g)return;
-    g.history.push({sender:myId,text:t,time:now});saveAll();
-    removeEmpty('chat-msgs');appendGroupMsg(myId,t,now);
+    var gMid='gmsg_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+    var gMo={sender:myId,text:t,time:now,_id:gMid};
+    g.history.push(gMo);saveAll();
+    removeEmpty('chat-msgs');appendGroupMsg(myId,t,now,false,gMo);
     var gc=groupConnsByGid[gid]||{};
     g.members.forEach(function(pid){
       if(pid===myId)return;
       var c=gc[pid];
-      if(c&&c.open){try{c.send({type:'chat-group',groupId:gid,text:t,time:now});}catch(e){}}
+      if(c&&c.open){try{c.send({type:'chat-group',groupId:gid,msgId:gMid,text:t,time:now});}catch(e){}}
       else{notifyPeerMsg(pid,'['+g.name+'] '+myId+': '+t);connectGroupMember(gid,pid);}
     });
   }
@@ -2410,33 +2639,56 @@ function sendMsg(){
 function appendMsg(isMe,text,time,silent,fileData,msgObj){
   var msgs=document.getElementById('chat-msgs');
   var row=document.createElement('div');row.className='msg-row '+(isMe?'me':'them');
-  if(fileData){row.appendChild(renderFileBubble(fileData,isMe));}
+  var isStarred=msgObj&&msgObj._id&&isMsgStarred(msgObj._id);
+  var isDel=msgObj&&msgObj.isDeleted;
+  if(fileData&&!isDel){
+    var fb=renderFileBubble(fileData,isMe);
+    if(msgObj){
+      var pt;
+      fb.addEventListener('touchstart',function(){pt=setTimeout(function(){openCtx(msgObj,isMe);},520);},{passive:true});
+      fb.addEventListener('touchend',function(){clearTimeout(pt);});
+      fb.addEventListener('touchmove',function(){clearTimeout(pt);},{passive:true});
+      fb.oncontextmenu=function(e){e.preventDefault();openCtx(msgObj,isMe);};
+    }
+    if(isStarred){
+      var sBadgeF=document.createElement('div');sBadgeF.style.cssText='position:absolute;top:4px;right:4px;font-size:12px;';sBadgeF.textContent='⭐';
+      fb.style.position='relative';fb.appendChild(sBadgeF);
+    }
+    row.appendChild(fb);
+  }
   else{
-    var bubble=document.createElement('div');bubble.className='msg-bubble';
-    if(msgObj&&msgObj.replyTo){
+    var bubble=document.createElement('div');bubble.className='msg-bubble'+(isDel?' msg-deleted':'');
+    if(msgObj&&msgObj.replyTo&&!isDel){
       var q=document.createElement('div');q.className='msg-quote';
       var qs=document.createElement('div');qs.className='msg-quote-sender';
       qs.textContent=msgObj.replyTo.sender===myId?'You':msgObj.replyTo.sender;
       var qt=document.createElement('div');qt.textContent=(msgObj.replyTo.text||'').substring(0,55);
       q.appendChild(qs);q.appendChild(qt);bubble.appendChild(q);
     }
-    var tn=document.createElement('span');tn.textContent=text||'';bubble.appendChild(tn);
+    var tn=document.createElement('span');tn.textContent=(isDel?'🚫 This message was deleted':text)||'';
+    if(isDel){tn.style.fontStyle='italic';tn.style.opacity='0.75';}
+    bubble.appendChild(tn);
+    if(isStarred){
+      var sBadge=document.createElement('span');sBadge.textContent=' ⭐';sBadge.style.fontSize='11px';
+      bubble.appendChild(sBadge);
+    }
     if(msgObj){
       var pt;
       bubble.addEventListener('touchstart',function(){pt=setTimeout(function(){openCtx(msgObj,isMe);},520);},{passive:true});
       bubble.addEventListener('touchend',function(){clearTimeout(pt);});
       bubble.addEventListener('touchmove',function(){clearTimeout(pt);},{passive:true});
+      bubble.oncontextmenu=function(e){e.preventDefault();openCtx(msgObj,isMe);};
     }
     row.appendChild(bubble);
   }
   var td=document.createElement('div');td.className='msg-time';td.textContent=time||'';
   if(isMe&&msgObj&&msgObj._id){
-    var tick=document.createElement('span');tick.className='msg-tick';tick.dataset.mid=msgObj._id;tick.textContent=' ✓';td.appendChild(tick);
+    var tick=document.createElement('span');tick.className='msg-tick';tick.dataset.mid=msgObj._id;tick.textContent=msgObj._read?' ✓✓':' ✓';td.appendChild(tick);
   }
   row.appendChild(td);msgs.appendChild(row);
   if(!silent){msgs.scrollTop=msgs.scrollHeight;}
 }
-function appendGroupMsg(sender,text,time,silent){
+function appendGroupMsg(sender,text,time,silent,msgObj){
   var msgs=document.getElementById('chat-msgs');
   if(sender==='System'){
     var row=document.createElement('div');row.className='msg-row sys';
@@ -2445,9 +2697,23 @@ function appendGroupMsg(sender,text,time,silent){
     if(!silent)msgs.scrollTop=msgs.scrollHeight;return;
   }
   var isMe=sender===myId;
+  var isDel=msgObj&&msgObj.isDeleted;
+  var isStarred=msgObj&&msgObj._id&&isMsgStarred(msgObj._id);
   var row=document.createElement('div');row.className='msg-row '+(isMe?'me':'them');
   if(!isMe){var sl=document.createElement('div');sl.className='msg-sender';sl.textContent=sender;row.appendChild(sl);}
-  var b=document.createElement('div');b.className='msg-bubble';b.textContent=text||'';row.appendChild(b);
+  var b=document.createElement('div');b.className='msg-bubble'+(isDel?' msg-deleted':'');
+  var tn=document.createElement('span');tn.textContent=(isDel?'🚫 This message was deleted':text)||'';
+  if(isDel){tn.style.fontStyle='italic';tn.style.opacity='0.75';}
+  b.appendChild(tn);
+  if(isStarred){var sb=document.createElement('span');sb.textContent=' ⭐';sb.style.fontSize='11px';b.appendChild(sb);}
+  if(msgObj){
+    var pt;
+    b.addEventListener('touchstart',function(){pt=setTimeout(function(){openCtx(msgObj,isMe);},520);},{passive:true});
+    b.addEventListener('touchend',function(){clearTimeout(pt);});
+    b.addEventListener('touchmove',function(){clearTimeout(pt);},{passive:true});
+    b.oncontextmenu=function(e){e.preventDefault();openCtx(msgObj,isMe);};
+  }
+  row.appendChild(b);
   var td=document.createElement('div');td.className='msg-time';td.textContent=time||'';row.appendChild(td);
   msgs.appendChild(row);if(!silent)msgs.scrollTop=msgs.scrollHeight;
 }
@@ -2475,6 +2741,12 @@ function openFilePreview(file){
   var mediaWrap=document.getElementById('preview-media-wrap'),fileRow=document.getElementById('preview-file-row');
   document.getElementById('preview-caption-inp').value='';
   document.getElementById('preview-modal-title').textContent=isImage?'Preview & send':'Send file';
+  var compRow=document.getElementById('preview-compress-row');
+  if(compRow){
+    compRow.style.display=(file.type&&file.type.startsWith('image/')&&file.type!=='image/gif')?'flex':'none';
+    var sw=document.getElementById('preview-compress-sw');
+    if(sw)sw.classList.toggle('on',!!compressImageChat);
+  }
   if(pendingPreviewUrl){try{URL.revokeObjectURL(pendingPreviewUrl);}catch(e){}pendingPreviewUrl=null;}
   mediaWrap.innerHTML='';
   if(isImage){
@@ -2498,12 +2770,17 @@ function closeFilePreview(){
   if(pendingPreviewUrl){try{URL.revokeObjectURL(pendingPreviewUrl);}catch(e){}pendingPreviewUrl=null;}
   pendingPreviewFile=null;
 }
-function confirmFilePreview(){
+async function confirmFilePreview(){
   if(!pendingPreviewFile)return;
   var cap=document.getElementById('preview-caption-inp').value.trim();
   var f=pendingPreviewFile;
   document.getElementById('preview-modal').classList.remove('show');
   pendingPreviewFile=null;pendingPreviewUrl=null;
+  if(compressImageChat&&f.type&&f.type.startsWith('image/')&&f.type!=='image/gif'){
+    try{
+      f=await compressChatImageFile(f,1600,0.82);
+    }catch(e){}
+  }
   sendFile(f,cap);
 }
 var FILE_BUFFER_HIGH=1*1024*1024; /* pause sending once >1MB is still queued in the data channel */
@@ -2761,6 +3038,7 @@ function syncSettingsUI(){
   var el=document.getElementById('settings-uname');if(el)el.textContent=myId;
   el=document.getElementById('settings-uid-text');if(el)el.textContent=myId;
   refreshPushUI();updateBlockedCountUI();applySettingsToUI();
+  updateAppLockUI();updateStarredCountUI();
 }
 function getAudioCtx(){
   if(!ringtoneCtx){try{ringtoneCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}}
@@ -4376,6 +4654,500 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function removeEmpty(containerId){var el=document.getElementById(containerId);if(el){var e=el.querySelector('.empty-state');if(e)e.remove();}}
 var toastTm;
 function toast(msg){var el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTm);toastTm=setTimeout(function(){el.classList.remove('show');},3400);}
+
+/* 1. Tap-to-view Full-size Profile Picture */
+function openDpViewer(id,displayName){
+  var titleEl=document.getElementById('dpv-title');
+  if(titleEl)titleEl.textContent=displayName||id||'Profile Photo';
+  var bodyEl=document.getElementById('dpv-body');
+  if(bodyEl){
+    bodyEl.innerHTML='<div style="font-size:18px;color:var(--text3);">Loading…</div>';
+    fetchDp(id).then(function(dp){
+      if(dp){
+        bodyEl.innerHTML='<img class="dpv-img" src="'+dp+'" alt="'+esc(id)+'"/>';
+      }else{
+        bodyEl.innerHTML='<div class="dpv-fallback">'+(id||'?')[0].toUpperCase()+'</div>';
+      }
+    }).catch(function(){
+      bodyEl.innerHTML='<div class="dpv-fallback">'+(id||'?')[0].toUpperCase()+'</div>';
+    });
+  }
+  document.getElementById('dp-viewer-overlay').classList.add('show');
+}
+function closeDpViewer(){
+  document.getElementById('dp-viewer-overlay').classList.remove('show');
+}
+
+/* 2. Account Recovery */
+var RECOVERY_WORD_LIST = [
+  'apple','beacon','canvas','delta','ember','falcon','galaxy','harbor','island','jungle',
+  'knight','lagoon','meadow','nexus','orbit','portal','quartz','river','summit','timber',
+  'ultra','valley','wizard','zenith','breeze','clover','drift','echo','forest','glacier',
+  'haven','iris','jasper','karma','lotus','mirage','nova','oasis','pebble','quest',
+  'radiant','shadow','tulip','vortex','willow','yarrow','zephyr','anchor','blaze','crystal'
+];
+function getOrGenRecoveryKey(id){
+  id=id||myId;
+  var rec=localStorage.getItem(SK.RECOVERY);
+  if(rec)return rec;
+  var words=[];
+  for(var i=0;i<12;i++){
+    var idx=Math.floor(Math.random()*RECOVERY_WORD_LIST.length);
+    words.push(RECOVERY_WORD_LIST[idx]);
+  }
+  var phrase=words.join(' ');
+  localStorage.setItem(SK.RECOVERY,phrase);
+  return phrase;
+}
+function openRecoveryModal(){
+  var phrase=getOrGenRecoveryKey(myId);
+  var words=phrase.split(' ');
+  var grid=document.getElementById('recovery-phrase-grid');
+  if(grid){
+    grid.innerHTML='';
+    words.forEach(function(w,i){
+      var d=document.createElement('div');d.className='recovery-word';
+      d.innerHTML='<span class="rw-num">'+(i+1)+'</span><span>'+esc(w)+'</span>';
+      grid.appendChild(d);
+    });
+  }
+  var box=document.getElementById('recovery-code-box');
+  if(box)box.textContent=phrase;
+  document.getElementById('recovery-modal').classList.add('show');
+}
+function closeRecoveryModal(){
+  document.getElementById('recovery-modal').classList.remove('show');
+}
+function openRestoreModal(){
+  document.getElementById('restore-inp').value='';
+  document.getElementById('restore-modal').classList.add('show');
+}
+function closeRestoreModal(){
+  document.getElementById('restore-modal').classList.remove('show');
+}
+async function submitRestore(){
+  var inp=document.getElementById('restore-inp');
+  var val=(inp&&inp.value||'').trim();
+  if(!val){toast('Please paste your recovery phrase or ID');return;}
+  var parts=val.split(/\s+/);
+  if(parts.length===1){
+    myId=parts[0].toLowerCase().replace(/[^a-z0-9_\-]/g,'');
+  }else{
+    var recId='u_'+parts[0].slice(0,3)+parts[parts.length-1].slice(0,3)+Math.abs(val.split('').reduce(function(a,b){a=((a<<5)-a)+b.charCodeAt(0);return a&a;},0)).toString(36).slice(0,4);
+    myId=recId;
+    localStorage.setItem(SK.RECOVERY,val);
+  }
+  localStorage.setItem(SK.MYID,myId);
+  loadAll();
+  closeRestoreModal();
+  enterApp();
+  toast('Account restored successfully as '+myId+' ✓');
+}
+
+/* 3. Media Compression */
+function compressChatImageFile(file,maxDim,quality){
+  maxDim=maxDim||1600;
+  quality=quality||0.82;
+  return new Promise(function(resolve){
+    if(!file||!file.type||!file.type.startsWith('image/')||file.type==='image/gif'||file.type==='image/svg+xml'){
+      resolve(file);return;
+    }
+    var reader=new FileReader();
+    reader.onload=function(){
+      var img=new Image();
+      img.onload=function(){
+        var w=img.width,h=img.height;
+        if(w<=maxDim&&h<=maxDim&&file.size<1024*1024){resolve(file);return;}
+        var scale=Math.min(maxDim/w,maxDim/h,1);
+        var nw=Math.round(w*scale),nh=Math.round(h*scale);
+        var canvas=document.createElement('canvas');
+        canvas.width=nw;canvas.height=nh;
+        var ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,nw,nh);
+        canvas.toBlob(function(blob){
+          if(!blob||blob.size>=file.size){resolve(file);return;}
+          var compressedFile=new File([blob],file.name.replace(/\.[^.]+$/,'.jpg'),{type:'image/jpeg',lastModified:Date.now()});
+          resolve(compressedFile);
+        },'image/jpeg',quality);
+      };
+      img.onerror=function(){resolve(file);};
+      img.src=reader.result;
+    };
+    reader.onerror=function(){resolve(file);};
+    reader.readAsDataURL(file);
+  });
+}
+
+/* 4. Delete for Everyone */
+async function deleteMsgForEveryone(){
+  if(!ctxMsg){closeCtx();return;}
+  if(!ctxMsg.me){toast('You can only delete your own messages for everyone');closeCtx();return;}
+  if(!(await styledConfirm('Delete this message for everyone in the chat?',{danger:true,okText:'Delete for Everyone'}))){closeCtx();return;}
+  var mid=ctxMsg._id;
+  var deletedText='🚫 You deleted this message';
+  if(chatMode==='dm'&&chatPeerId){
+    var h=dmHistory[chatPeerId]||[];
+    var m=h.find(function(x){return x._id===mid||(x.file&&x.file.transferId===mid);});
+    if(m){m.text=deletedText;m.isDeleted=true;delete m.file;ls_set(SK.DM,dmHistory);}
+    if(chatConn&&chatConn.open){
+      try{chatConn.send({type:'delete-msg',msgId:mid,deletedBy:myId});}catch(e){}
+    }else{
+      try{
+        var sc=peer&&peer.connect(chatPeerId,{reliable:true,metadata:{type:'dm'}});
+        if(sc){sc.on('open',function(){try{sc.send({type:'delete-msg',msgId:mid,deletedBy:myId});setTimeout(function(){try{sc.close();}catch(e){}},500);}catch(e){}});}
+      }catch(e){}
+    }
+    openDMChat(chatPeerId);
+  }else if(chatMode==='group'&&activeGroupId&&groups[activeGroupId]){
+    var g=groups[activeGroupId];
+    var gm=g.history.find(function(x){return x._id===mid||(x.file&&x.file.transferId===mid);});
+    if(gm){gm.text=deletedText;gm.isDeleted=true;delete gm.file;saveAll();}
+    var gc=groupConnsByGid[activeGroupId]||{};
+    g.members.forEach(function(pid){
+      if(pid===myId)return;
+      var c=gc[pid];
+      if(c&&c.open){try{c.send({type:'delete-msg',groupId:activeGroupId,msgId:mid,deletedBy:myId});}catch(e){}}
+    });
+    openGroupChat(activeGroupId);
+  }
+  closeCtx();
+  toast('Message deleted for everyone');
+}
+
+/* 5. Starred Messages */
+function isMsgStarred(mid){
+  if(!mid)return false;
+  return starredMessages.some(function(s){return s._id===mid;});
+}
+function updateStarredCountUI(){
+  var sub=document.getElementById('starred-count-sub');
+  if(sub)sub.textContent=starredMessages.length?starredMessages.length+' message'+(starredMessages.length>1?'s':''):'No starred messages';
+}
+function toggleStarMsg(msg){
+  if(!msg)return;
+  var mid=msg._id;
+  var idx=starredMessages.findIndex(function(s){return s._id===mid;});
+  if(idx>-1){
+    starredMessages.splice(idx,1);
+    toast('Message unstarred');
+  }else{
+    starredMessages.unshift({
+      _id:mid||('star_'+Date.now()),
+      peerId:chatPeerId||activeGroupId||'unknown',
+      chatMode:chatMode||'dm',
+      sender:msg.me?myId:(chatMode==='dm'?chatPeerId:(msg.sender||'Contact')),
+      text:msg.text||(msg.file?'📎 '+msg.file.name:''),
+      time:msg.time||fmtTime(),
+      file:msg.file||null,
+      me:!!msg.me
+    });
+    toast('Message starred ⭐');
+  }
+  saveAll();
+  updateStarredCountUI();
+  if(chatMode==='dm'&&chatPeerId)openDMChat(chatPeerId);
+  else if(chatMode==='group'&&activeGroupId)openGroupChat(activeGroupId);
+}
+function openStarredScreen(){
+  renderStarredList();
+  showScreen('screen-starred');
+}
+function renderStarredList(){
+  var body=document.getElementById('starred-list-body');
+  if(!body)return;
+  if(!starredMessages.length){
+    body.innerHTML='<div class="empty-state"><div class="empty-icon">⭐</div><div class="empty-title">No starred messages</div><div class="empty-sub">Long-press or tap any message to star it for easy access later.</div></div>';
+    return;
+  }
+  body.innerHTML='';
+  starredMessages.forEach(function(item){
+    var card=document.createElement('div');card.className='starred-item-card';
+    card.onclick=function(){
+      if(item.chatMode==='group'&&groups[item.peerId]){openGroupChat(item.peerId);}
+      else if(item.peerId){openDMChat(item.peerId);}
+    };
+    var hdr=document.createElement('div');hdr.className='sic-header';
+    var sender=document.createElement('div');sender.className='sic-sender';sender.textContent=item.sender+(item.chatMode==='group'?' ('+item.peerId+')':'');
+    var time=document.createElement('div');time.className='sic-time';time.textContent=item.time||'';
+    hdr.appendChild(sender);hdr.appendChild(time);
+    var bodyDiv=document.createElement('div');bodyDiv.className='sic-body';
+    if(item.file){
+      var fEl=document.createElement('div');fEl.className='sic-file';
+      fEl.innerHTML='<span>'+fileIcon(item.file.name||'')+'</span><span style="font-weight:600;">'+esc(item.file.name||'File')+'</span> <span style="font-size:12px;color:var(--text3);">('+fmtSize(item.file.size)+')</span>';
+      bodyDiv.appendChild(fEl);
+    }
+    if(item.text){
+      var tEl=document.createElement('div');tEl.textContent=item.text;bodyDiv.appendChild(tEl);
+    }
+    var ftr=document.createElement('div');ftr.className='sic-footer';
+    var chatLbl=document.createElement('div');chatLbl.className='sic-chat';chatLbl.textContent='💬 '+item.peerId;
+    var unstarBtn=document.createElement('button');unstarBtn.className='sic-unstar-btn';unstarBtn.textContent='⭐ Unstar';
+    unstarBtn.onclick=function(e){
+      e.stopPropagation();
+      toggleStarMsg(item);
+      renderStarredList();
+    };
+    ftr.appendChild(chatLbl);ftr.appendChild(unstarBtn);
+    card.appendChild(hdr);card.appendChild(bodyDiv);card.appendChild(ftr);
+    body.appendChild(card);
+  });
+}
+
+/* 6. Shared-media Gallery */
+var activeMediaPeerId='';
+var activeMediaTab='media';
+function openSharedMedia(pid){
+  activeMediaPeerId=pid;
+  activeMediaTab='media';
+  document.getElementById('chat-media-title').textContent=pid||'Media';
+  ['media','docs','links'].forEach(function(t){
+    var tabEl=document.getElementById('cm-tab-'+t);
+    if(tabEl)tabEl.classList.toggle('active',t===activeMediaTab);
+  });
+  renderSharedMediaContent();
+  showScreen('screen-chat-media');
+}
+function switchMediaTab(t){
+  activeMediaTab=t;
+  ['media','docs','links'].forEach(function(tb){
+    var tabEl=document.getElementById('cm-tab-'+tb);
+    if(tabEl)tabEl.classList.toggle('active',tb===t);
+  });
+  renderSharedMediaContent();
+}
+function renderSharedMediaContent(){
+  var body=document.getElementById('chat-media-body');
+  if(!body)return;
+  var pid=activeMediaPeerId;
+  var hist=dmHistory[pid]||[];
+  if(!hist.length&&groups[pid])hist=groups[pid].history||[];
+  
+  if(activeMediaTab==='media'){
+    var mediaItems=hist.filter(function(m){return m.file&&m.file.isImage;});
+    if(!mediaItems.length){
+      body.innerHTML='<div class="empty-state"><div class="empty-icon">🖼️</div><div class="empty-title">No photos or videos</div><div class="empty-sub">Photos and videos shared in this chat will appear here.</div></div>';
+      return;
+    }
+    body.innerHTML='<div class="media-grid" id="cm-media-grid"></div>';
+    var grid=document.getElementById('cm-media-grid');
+    mediaItems.forEach(function(m){
+      var tfId=m.file.transferId;
+      var url=fileBlobs[tfId]||(m.file&&m.file.url);
+      var itm=document.createElement('div');itm.className='media-grid-item';
+      if(url){
+        if(/\.(mp4|mov|webm)$/i.test(m.file.name||'')){
+          var v=document.createElement('video');v.src=url;v.playsInline=true;itm.appendChild(v);
+          var playBadge=document.createElement('div');playBadge.style.cssText='position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.6);color:#fff;border-radius:4px;padding:2px 4px;font-size:10px;font-weight:700;';playBadge.textContent='▶';itm.appendChild(playBadge);
+        }else{
+          var img=document.createElement('img');img.src=url;itm.appendChild(img);
+        }
+        itm.onclick=function(){openFileUrl(url,m.file.name,true);};
+      }else{
+        itm.innerHTML='<div style="font-size:24px;">🖼️</div><div style="font-size:10px;color:var(--text3);padding:4px;text-align:center;">'+esc(m.file.name)+'</div>';
+        itm.onclick=function(){toast('Media not loaded in memory — request peer to resend');};
+      }
+      grid.appendChild(itm);
+    });
+  }else if(activeMediaTab==='docs'){
+    var docItems=hist.filter(function(m){return m.file&&!m.file.isImage;});
+    if(!docItems.length){
+      body.innerHTML='<div class="empty-state"><div class="empty-icon">📄</div><div class="empty-title">No documents</div><div class="empty-sub">Files and PDFs shared in this chat will appear here.</div></div>';
+      return;
+    }
+    body.innerHTML='<div class="docs-list" id="cm-docs-list"></div>';
+    var dList=document.getElementById('cm-docs-list');
+    docItems.forEach(function(m){
+      var tfId=m.file.transferId;
+      var url=fileBlobs[tfId]||(m.file&&m.file.url);
+      var row=document.createElement('div');row.className='doc-item-row';
+      row.innerHTML='<div class="doc-item-icon">'+fileIcon(m.file.name||'')+'</div>'
+        +'<div class="doc-item-info"><div class="doc-item-name">'+esc(m.file.name||'file')+'</div><div class="doc-item-meta">'+fmtSize(m.file.size)+' · '+esc(m.time||'')+'</div></div>'
+        +'<div style="font-size:18px;color:var(--accent2);padding-left:8px;">⬇</div>';
+      row.onclick=function(){
+        if(url)openFileUrl(url,m.file.name,false);
+        else toast('File not loaded in memory');
+      };
+      dList.appendChild(row);
+    });
+  }else if(activeMediaTab==='links'){
+    var linkRegex=/https?:\/\/[^\s]+/gi;
+    var links=[];
+    hist.forEach(function(m){
+      if(m.text){
+        var matches=m.text.match(linkRegex);
+        if(matches){
+          matches.forEach(function(u){
+            links.push({url:u,sender:m.me?'You':(m.sender||pid),time:m.time});
+          });
+        }
+      }
+    });
+    if(!links.length){
+      body.innerHTML='<div class="empty-state"><div class="empty-icon">🔗</div><div class="empty-title">No shared links</div><div class="empty-sub">Web links sent in this chat will appear here.</div></div>';
+      return;
+    }
+    body.innerHTML='<div class="docs-list" id="cm-links-list"></div>';
+    var lList=document.getElementById('cm-links-list');
+    links.forEach(function(lnk){
+      var row=document.createElement('div');row.className='link-item-row';
+      var host=lnk.url;
+      try{host=new URL(lnk.url).hostname;}catch(e){}
+      row.innerHTML='<div class="link-item-icon">🌐</div>'
+        +'<div class="link-item-info"><div class="link-item-url">'+esc(lnk.url)+'</div><div class="link-item-meta">'+esc(host)+' · '+esc(lnk.sender)+' · '+esc(lnk.time||'')+'</div></div>';
+      row.onclick=function(){
+        if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Browser){Capacitor.Plugins.Browser.open({url:lnk.url});}
+        else{window.open(lnk.url,'_blank');}
+      };
+      lList.appendChild(row);
+    });
+  }
+}
+
+/* 7. App Lock */
+function updateAppLockUI(){
+  var st=document.getElementById('applock-status-sub');
+  if(st)st.textContent=appLock.enabled?'Enabled (PIN protected)':'Disabled';
+  var sw=document.getElementById('applock-master-sw');
+  if(sw)sw.classList.toggle('on',!!appLock.enabled);
+  var pinRow=document.getElementById('applock-pin-row');
+  if(pinRow)pinRow.style.display=appLock.enabled?'flex':'none';
+  var bioRow=document.getElementById('applock-biometric-row');
+  if(bioRow)bioRow.style.display=appLock.enabled?'flex':'none';
+  var bioSw=document.getElementById('applock-biometric-sw');
+  if(bioSw)bioSw.classList.toggle('on',!!appLock.biometric);
+}
+function openAppLockModal(){
+  updateAppLockUI();
+  document.getElementById('applock-modal').classList.add('show');
+}
+function closeAppLockModal(){
+  document.getElementById('applock-modal').classList.remove('show');
+}
+async function toggleAppLockMaster(){
+  if(!appLock.enabled){
+    var pin=await styledPrompt('Choose a 4-digit PIN for App Lock:',{placeholder:'e.g. 1234'});
+    if(!pin||pin.trim().length!==4||!/^\d{4}$/.test(pin.trim())){
+      toast('Please enter exactly 4 digits');return;
+    }
+    appLock.enabled=true;
+    appLock.pin=pin.trim();
+    saveAll();
+    updateAppLockUI();
+    toast('App Lock enabled ✓');
+  }else{
+    if(await styledConfirm('Disable App Lock?',{danger:true,okText:'Disable'})){
+      appLock.enabled=false;
+      saveAll();
+      updateAppLockUI();
+      toast('App Lock disabled');
+    }
+  }
+}
+async function changeAppLockPin(){
+  var oldPin=await styledPrompt('Enter your CURRENT 4-digit PIN:',{placeholder:'Current PIN'});
+  if(oldPin!==appLock.pin){toast('Incorrect current PIN');return;}
+  var newPin=await styledPrompt('Enter your NEW 4-digit PIN:',{placeholder:'New 4-digit PIN'});
+  if(!newPin||newPin.trim().length!==4||!/^\d{4}$/.test(newPin.trim())){
+    toast('PIN must be exactly 4 digits');return;
+  }
+  appLock.pin=newPin.trim();
+  saveAll();
+  toast('PIN changed successfully ✓');
+}
+function toggleBiometricLock(){
+  appLock.biometric=!appLock.biometric;
+  saveAll();
+  updateAppLockUI();
+  toast(appLock.biometric?'Biometric unlock enabled':'Biometric unlock disabled');
+}
+function showAppLockScreen(){
+  enteredPin='';
+  updateLockDots();
+  document.getElementById('app-lock-screen').classList.add('show');
+  if(appLock.biometric){setTimeout(tryBiometricUnlock,400);}
+}
+function hideAppLockScreen(){
+  document.getElementById('app-lock-screen').classList.remove('show');
+  enteredPin='';
+}
+function updateLockDots(){
+  for(var i=0;i<4;i++){
+    var d=document.getElementById('ldot-'+i);
+    if(d)d.classList.toggle('filled',i<enteredPin.length);
+  }
+}
+function handleLockKeyPress(key){
+  if(key==='del'){
+    if(enteredPin.length>0){enteredPin=enteredPin.slice(0,-1);updateLockDots();}
+    return;
+  }
+  if(key==='bio'){
+    tryBiometricUnlock();
+    return;
+  }
+  if(enteredPin.length<4){
+    enteredPin+=key;
+    updateLockDots();
+    if(enteredPin.length===4){
+      setTimeout(function(){
+        if(enteredPin===appLock.pin){
+          appUnlocked=true;
+          hideAppLockScreen();
+          toast('Unlocked 🔓');
+        }else{
+          var dotsEl=document.getElementById('lock-dots');
+          if(dotsEl){
+            dotsEl.style.animation='none';
+            void dotsEl.offsetWidth;
+            dotsEl.style.animation='lockShake 0.4s ease';
+          }
+          if(navigator.vibrate)navigator.vibrate([80,40,80]);
+          toast('Incorrect PIN');
+          enteredPin='';
+          updateLockDots();
+        }
+      },120);
+    }
+  }
+}
+function tryBiometricUnlock(){
+  if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.BiometricAuth){
+    Capacitor.Plugins.BiometricAuth.verify().then(function(res){
+      if(res&&res.verified){
+        appUnlocked=true;hideAppLockScreen();toast('Unlocked 🔓');
+      }
+    }).catch(function(){});
+  }
+}
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible'){
+    if(appLock.enabled&&appLock.pin&&!appUnlocked){
+      showAppLockScreen();
+    }
+  }
+});
+
+/* 8. Invite Friends */
+function inviteFriends(){
+  var shareText="Hey! Let's chat and call with zero servers and end-to-end P2P encryption on Unifest.\nMy ID: "+myId+"\nJoin here: "+window.location.origin;
+  if(navigator.share){
+    navigator.share({
+      title:'Join me on Unifest',
+      text:shareText,
+      url:window.location.origin
+    }).catch(function(){});
+  }else{
+    if(navigator.clipboard){
+      navigator.clipboard.writeText(shareText).then(function(){
+        toast('Invite link & ID copied to clipboard ✓');
+      }).catch(function(){
+        toast('My ID: '+myId);
+      });
+    }else{
+      toast('My ID: '+myId);
+    }
+  }
+}
 /* Keeps layout pinned to the visual viewport so the input bar stays above the on-screen keyboard. */
 function setupKeyboardFix(){
   var chatInp=document.getElementById('chat-input');if(!chatInp)return;
@@ -4397,127 +5169,146 @@ function setupKeyboardFix(){
   }
 }
 function bindEvents(){
-  document.getElementById('ob-next-btn').addEventListener('click',obNext);
-  document.getElementById('ob-skip-btn').addEventListener('click',obSkip);
-  document.getElementById('get-started-btn').addEventListener('click',submitAuth);
-  document.getElementById('auth-toggle-btn').addEventListener('click',toggleAuthMode);
+  function addClick(id, handler){
+    var el=document.getElementById(id);
+    if(el)el.addEventListener('click', handler);
+  }
+  function addEvt(id, eventName, handler, options){
+    var el=document.getElementById(id);
+    if(el)el.addEventListener(eventName, handler, options);
+  }
+
+  addClick('ob-next-btn',obNext);
+  addClick('ob-skip-btn',obSkip);
+  addClick('get-started-btn',submitAuth);
+  addClick('auth-toggle-btn',toggleAuthMode);
+  
   var idInp=document.getElementById('my-id-input');
-  idInp.addEventListener('input',function(){this.value=this.value.toLowerCase().replace(/[^a-z0-9_\-]/g,'');});
-  idInp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();document.getElementById('my-pw-input').focus();}});
-  document.getElementById('my-pw-input').addEventListener('keydown',function(e){if(e.key==='Enter'){e.target.blur();submitAuth();}});
-  document.querySelectorAll('.tab-btn').forEach(function(btn){btn.addEventListener('click',function(){switchTab(btn.dataset.tab);});});
-  document.getElementById('gs-btn').addEventListener('click',openGlobalSearch);
-  document.getElementById('online-pill').addEventListener('click',function(){
+  if(idInp){
+    idInp.addEventListener('input',function(){this.value=this.value.toLowerCase().replace(/[^a-z0-9_\-]/g,'');});
+    idInp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();var pw=document.getElementById('my-pw-input');if(pw)pw.focus();}});
+  }
+  addEvt('my-pw-input','keydown',function(e){if(e.key==='Enter'){e.target.blur();submitAuth();}});
+  
+  document.querySelectorAll('.tab-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){switchTab(btn.dataset.tab);});
+  });
+  
+  addClick('gs-btn',openGlobalSearch);
+  addClick('online-pill',function(){
     if(navigator.clipboard)navigator.clipboard.writeText(myId).then(function(){toast('ID "'+myId+'" copied ✓');}).catch(function(){toast('Your ID: '+myId);});
     else toast('Your ID: '+myId);
   });
-  document.getElementById('contact-search').addEventListener('input',function(){renderChats(this.value);});
-  document.getElementById('new-chat-fab').addEventListener('click',openNewChatModal);
-  document.getElementById('nb-enable-btn').addEventListener('click',enableNotifs);
-  document.getElementById('nb-close-btn').addEventListener('click',function(){document.getElementById('notif-banner').classList.remove('show');notifBannerDismissedThisSession=true;});
-  document.getElementById('new-call-btn').addEventListener('click',openNewChatModal);
-  document.getElementById('new-group-fab').addEventListener('click',openGroupCreateScreen);
-  document.getElementById('gc-back-btn').addEventListener('click',function(){showScreen('screen-groups','back');});
-  document.getElementById('gc-add-id-btn').addEventListener('click',gcAddById);
-  document.getElementById('gc-create-btn').addEventListener('click',gcCreateGroup);
-  document.getElementById('gi-back-btn').addEventListener('click',function(){showScreen('screen-groups','back');});
-  document.getElementById('gi-rename-btn').addEventListener('click',function(){
-    var v=document.getElementById('gi-name-input').value.trim();if(!v||!activeGroupId)return;renameGroup(activeGroupId,v);toast('Renamed ✓');
+  addEvt('contact-search','input',function(){renderChats(this.value);});
+  addClick('new-chat-fab',openNewChatModal);
+  addClick('nb-enable-btn',enableNotifs);
+  addClick('nb-close-btn',function(){var nb=document.getElementById('notif-banner');if(nb)nb.classList.remove('show');notifBannerDismissedThisSession=true;});
+  addClick('new-call-btn',openNewChatModal);
+  addClick('new-group-fab',openGroupCreateScreen);
+  addClick('gc-back-btn',function(){showScreen('screen-groups','back');});
+  addClick('gc-add-id-btn',gcAddById);
+  addClick('gc-create-btn',gcCreateGroup);
+  addClick('gi-back-btn',function(){showScreen('screen-groups','back');});
+  addClick('gi-rename-btn',function(){
+    var gi=document.getElementById('gi-name-input');
+    var v=gi?gi.value.trim():'';if(!v||!activeGroupId)return;renameGroup(activeGroupId,v);toast('Renamed ✓');
   });
-  document.getElementById('gi-add-id-btn').addEventListener('click',function(){
-    var inp=document.getElementById('gi-add-id-input');var p=inp.value.trim().toLowerCase().replace(/[^a-z0-9_\-]/g,'');
+  addClick('gi-add-id-btn',function(){
+    var inp=document.getElementById('gi-add-id-input');var p=inp?inp.value.trim().toLowerCase().replace(/[^a-z0-9_\-]/g,''):'';
     if(!p||!activeGroupId)return;if(p===myId){toast("That's you!");return;}
-    addMemberToGroup(activeGroupId,p);inp.value='';
+    addMemberToGroup(activeGroupId,p);if(inp)inp.value='';
   });
-  document.getElementById('gi-leave-btn').addEventListener('click',async function(){
+  addClick('gi-leave-btn',async function(){
     if(!activeGroupId)return;
     if(await styledConfirm('Leave this group?',{danger:true,okText:'Leave'}))leaveGroup(activeGroupId);
   });
-  document.getElementById('copy-id-btn').addEventListener('click',function(){if(navigator.clipboard)navigator.clipboard.writeText(myId).then(function(){toast('Copied ✓');});else toast('Your ID: '+myId);});
-  document.getElementById('dp-edit-btn').addEventListener('click',function(){document.getElementById('dp-file-input').click();});
-  document.getElementById('dp-file-input').addEventListener('change',function(e){
+  addClick('copy-id-btn',function(){if(navigator.clipboard)navigator.clipboard.writeText(myId).then(function(){toast('Copied ✓');});else toast('Your ID: '+myId);});
+  addClick('dp-edit-btn',function(){var f=document.getElementById('dp-file-input');if(f)f.click();});
+  addEvt('dp-file-input','change',function(e){
     var file=e.target.files&&e.target.files[0];e.target.value='';
     if(!file)return;
     if(!file.type||file.type.indexOf('image/')!==0){toast('Please choose an image');return;}
     toast('Updating photo…');
     resizeImageFileToDataUrl(file,256).then(function(dataUrl){uploadDp(dataUrl);}).catch(function(){toast('Could not read that image');});
   });
-  document.getElementById('copy-diag-row').addEventListener('click',function(){
+  addClick('copy-diag-row',function(){
     var log=ls_get('uf_last_call_diag',null)||callDiagLog;
     if(!log||!log.length){toast('No call attempted yet this session');return;}
     var text=log.join('\n');
     if(navigator.clipboard)navigator.clipboard.writeText(text).then(function(){toast('Copied '+log.length+' lines — paste it to me 📋');}).catch(function(){toast(text.substring(0,200));});
     else toast(text.substring(0,200));
   });
-  document.getElementById('switch-account-row').addEventListener('click',async function(){
+  addClick('switch-account-row',async function(){
     if(await styledConfirm('Switch account? You will need to log in with a different ID.',{danger:true,okText:'Switch'})){
       stopSignalService();
       localStorage.removeItem(SK.MYID);localStorage.removeItem(SK.TOKEN);
-      document.getElementById('tab-nav').classList.remove('visible');
+      var tn=document.getElementById('tab-nav');if(tn)tn.classList.remove('visible');
       myId='';chatMode='';
       if(peer&&!peer.destroyed){try{peer.destroy();}catch(e){}peer=null;}
       peerReady=false;showScreen('screen-id');
-      document.getElementById('my-id-input').value='';document.getElementById('my-pw-input').value='';
+      var idI=document.getElementById('my-id-input'),pwI=document.getElementById('my-pw-input');
+      if(idI)idI.value='';if(pwI)pwI.value='';
       if(authMode!=='login')toggleAuthMode();
     }
   });
-  document.getElementById('ringtone-sw').addEventListener('click',function(){toggleSetting('ringtone');});
-  document.getElementById('vibrate-sw').addEventListener('click',function(){toggleSetting('vibrate');});
-  document.getElementById('backcam-sw').addEventListener('click',function(){toggleSetting('backcam');});
-  document.getElementById('custom-ringtone-row').addEventListener('click',openRingtoneModal);
-  document.getElementById('ringtone-pick-btn').addEventListener('click',pickRingtoneFile);
-  document.getElementById('ringtone-any-btn').addEventListener('click',pickRingtoneFileAny);
-  document.getElementById('ringtone-file-input').addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRingtoneFile(f);});
-  document.getElementById('ringtone-file-input-any').addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRingtoneFile(f);});
-  document.getElementById('ringtone-reset-btn').addEventListener('click',resetRingtone);
-  document.getElementById('ringtone-test-btn').addEventListener('click',testRingtone);
-  document.getElementById('ringtone-done-btn').addEventListener('click',closeRingtoneModal);
-  document.getElementById('ringtone-modal').addEventListener('click',function(e){if(e.target===this)closeRingtoneModal();});
-  document.getElementById('push-toggle-row').addEventListener('click',enableNotifs);
-  document.getElementById('notif-row').addEventListener('click',async function(){
+  addClick('ringtone-sw',function(){toggleSetting('ringtone');});
+  addClick('vibrate-sw',function(){toggleSetting('vibrate');});
+  addClick('backcam-sw',function(){toggleSetting('backcam');});
+  addClick('custom-ringtone-row',openRingtoneModal);
+  addClick('ringtone-pick-btn',pickRingtoneFile);
+  addClick('ringtone-any-btn',pickRingtoneFileAny);
+  addEvt('ringtone-file-input','change',function(e){var f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRingtoneFile(f);});
+  addEvt('ringtone-file-input-any','change',function(e){var f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRingtoneFile(f);});
+  addClick('ringtone-reset-btn',resetRingtone);
+  addClick('ringtone-test-btn',testRingtone);
+  addClick('ringtone-done-btn',closeRingtoneModal);
+  addClick('ringtone-modal',function(e){if(e.target===this)closeRingtoneModal();});
+  addClick('push-toggle-row',enableNotifs);
+  addClick('notif-row',async function(){
     if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openNotificationSettings();
   });
-  document.getElementById('fsi-row').addEventListener('click',async function(){
+  addClick('fsi-row',async function(){
     if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openFullScreenIntentSettings();
   });
-  document.getElementById('battery-row').addEventListener('click',async function(){
+  addClick('battery-row',async function(){
     if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openBatterySettings();
   });
-  document.getElementById('debug-log-row').addEventListener('click',async function(){
+  addClick('debug-log-row',async function(){
     var ta=document.getElementById('debug-log-text');
-    ta.value='Loading…';
-    document.getElementById('debug-log-modal').classList.add('show');
+    if(ta)ta.value='Loading…';
+    var dlm=document.getElementById('debug-log-modal');
+    if(dlm)dlm.classList.add('show');
     try{
       var r=await Capacitor.Plugins.VahinPermissions.getDiagnosticLog();
-      ta.value=r&&r.log?r.log:'(no diagnostic entries yet — trigger a test call first)';
-    }catch(e){ta.value='Could not read diagnostic log: '+e.message;}
+      if(ta)ta.value=r&&r.log?r.log:'(no diagnostic entries yet — trigger a test call first)';
+    }catch(e){if(ta)ta.value='Could not read diagnostic log: '+e.message;}
   });
-  document.getElementById('debug-log-close-btn').addEventListener('click',function(){
-    document.getElementById('debug-log-modal').classList.remove('show');
+  addClick('debug-log-close-btn',function(){
+    var dlm=document.getElementById('debug-log-modal');
+    if(dlm)dlm.classList.remove('show');
   });
-  document.getElementById('debug-log-modal').addEventListener('click',function(e){
+  addClick('debug-log-modal',function(e){
     if(e.target===this)this.classList.remove('show');
   });
-  document.getElementById('debug-log-clear-btn').addEventListener('click',async function(){
+  addClick('debug-log-clear-btn',async function(){
     try{await Capacitor.Plugins.VahinPermissions.clearDiagnosticLog();}catch(e){}
-    document.getElementById('debug-log-text').value='(cleared — trigger a test call to record new entries)';
+    var ta=document.getElementById('debug-log-text');
+    if(ta)ta.value='(cleared — trigger a test call to record new entries)';
   });
-  document.getElementById('debug-log-copy-btn').addEventListener('click',async function(){
-    var text=document.getElementById('debug-log-text').value;
+  addClick('debug-log-copy-btn',async function(){
+    var ta=document.getElementById('debug-log-text');
+    var text=ta?ta.value:'';
     try{
       await navigator.clipboard.writeText(text);
       toast('Copied — paste it to share');
     }catch(e){
-      /* Clipboard API can be blocked in some WebView configs — fall back to
-         select+execCommand, which works even without clipboard permission. */
-      var ta=document.getElementById('debug-log-text');
-      ta.focus();ta.select();
+      if(ta){ta.focus();ta.select();}
       try{document.execCommand('copy');toast('Copied — paste it to share');}
       catch(e2){toast('Could not copy — select the text manually');}
     }
   });
-  document.getElementById('ps-enable-all-btn').addEventListener('click',function(){enableAllPermissions();});
-  document.getElementById('ps-done-btn').addEventListener('click',async function(){
+  addClick('ps-enable-all-btn',function(){enableAllPermissions();});
+  addClick('ps-done-btn',async function(){
     var status;
     try{status=await Capacitor.Plugins.VahinPermissions.getStatus();}catch(e){status=null;}
     var stillMissing=status&&(
@@ -4527,7 +5318,7 @@ function bindEvents(){
     );
     closePermSetup(!!stillMissing);
   });
-  document.getElementById('ps-skip-top-btn').addEventListener('click',async function(){
+  addClick('ps-skip-top-btn',async function(){
     var status;
     try{status=await Capacitor.Plugins.VahinPermissions.getStatus();}catch(e){status=null;}
     var stillMissing=status&&(
@@ -4537,24 +5328,61 @@ function bindEvents(){
     );
     closePermSetup(!!stillMissing);
   });
-  document.getElementById('conf-limit-minus').addEventListener('click',function(){settings.confLimit=Math.max(2,settings.confLimit-1);saveAll();applySettingsToUI();});
-  document.getElementById('conf-limit-plus').addEventListener('click',function(){settings.confLimit=Math.min(12,settings.confLimit+1);saveAll();applySettingsToUI();});
-  document.getElementById('blocked-list-row').addEventListener('click',openBlockedModal);
-  document.getElementById('clear-calls-row').addEventListener('click',async function(){if(await styledConfirm('Clear all call history?',{danger:true,okText:'Clear'})){callHistory=[];saveAll();renderCallHistory();toast('Cleared');}});
-  document.getElementById('to-auto').addEventListener('click',function(){setTheme('auto');});
-  document.getElementById('to-light').addEventListener('click',function(){setTheme('light');});
-  document.getElementById('to-dark').addEventListener('click',function(){setTheme('dark');});
-  document.getElementById('chat-back-btn').addEventListener('click',function(){chatMode='';chatPeerId='';chatConn=null;showScreen('screen-chats','back');switchTab('chats');renderChats();});
-  document.getElementById('reply-cancel-btn').addEventListener('click',cancelReply);
-  document.getElementById('cs-close-btn').addEventListener('click',closeChatSearch);
-  document.getElementById('cs-inp').addEventListener('input',function(){searchInChat(this.value);});
+  addClick('conf-limit-minus',function(){settings.confLimit=Math.max(2,settings.confLimit-1);saveAll();applySettingsToUI();});
+  addClick('conf-limit-plus',function(){settings.confLimit=Math.min(12,settings.confLimit+1);saveAll();applySettingsToUI();});
+  addClick('blocked-list-row',openBlockedModal);
+  addClick('starred-msgs-row',openStarredScreen);
+  addClick('starred-back-btn',function(){showScreen('screen-chats','back');switchTab('chats');});
+  addClick('account-recovery-row',openRecoveryModal);
+  addClick('recovery-close-btn',closeRecoveryModal);
+  addClick('recovery-modal',function(e){if(e.target===this)closeRecoveryModal();});
+  addClick('recovery-copy-btn',function(){
+    var p=getOrGenRecoveryKey(myId);
+    if(navigator.clipboard){navigator.clipboard.writeText(p).then(function(){toast('Recovery phrase copied ✓');});}else{toast(p);}
+  });
+  addClick('restore-account-link',openRestoreModal);
+  addClick('restore-cancel-btn',closeRestoreModal);
+  addClick('restore-submit-btn',submitRestore);
+  addClick('restore-modal',function(e){if(e.target===this)closeRestoreModal();});
+  addClick('applock-row',openAppLockModal);
+  addClick('applock-close-btn',closeAppLockModal);
+  addClick('applock-modal',function(e){if(e.target===this)closeAppLockModal();});
+  addClick('applock-master-row',toggleAppLockMaster);
+  addClick('applock-pin-row',changeAppLockPin);
+  addClick('applock-biometric-row',toggleBiometricLock);
+  document.querySelectorAll('.lock-key').forEach(function(k){
+    k.addEventListener('click',function(){handleLockKeyPress(this.dataset.key);});
+  });
+  addClick('invite-friends-row',inviteFriends);
+  addClick('dp-viewer-close-btn',closeDpViewer);
+  addClick('dp-viewer-overlay',function(e){if(e.target===this)closeDpViewer();});
+  addClick('chat-media-back-btn',function(){showScreen('screen-chat','back');});
+  addClick('cm-tab-media',function(){switchMediaTab('media');});
+  addClick('cm-tab-docs',function(){switchMediaTab('docs');});
+  addClick('cm-tab-links',function(){switchMediaTab('links');});
+  addClick('preview-compress-row',function(){
+    compressImageChat=!compressImageChat;
+    var sw=document.getElementById('preview-compress-sw');if(sw)sw.classList.toggle('on',!!compressImageChat);
+    saveAll();
+  });
+  addClick('clear-calls-row',async function(){if(await styledConfirm('Clear all call history?',{danger:true,okText:'Clear'})){callHistory=[];saveAll();renderCallHistory();toast('Cleared');}});
+  addClick('to-auto',function(){setTheme('auto');});
+  addClick('to-light',function(){setTheme('light');});
+  addClick('to-dark',function(){setTheme('dark');});
+  addClick('chat-back-btn',function(){chatMode='';chatPeerId='';chatConn=null;showScreen('screen-chats','back');switchTab('chats');renderChats();});
+  addClick('reply-cancel-btn',cancelReply);
+  addClick('cs-close-btn',closeChatSearch);
+  addEvt('cs-inp','input',function(){searchInChat(this.value);});
+  
   var chatInputEl=document.getElementById('chat-input');
-  chatInputEl.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
-  document.getElementById('send-btn').addEventListener('click',sendMsg);
-  document.getElementById('attach-btn').addEventListener('click',openAttachMenu);
-  document.getElementById('voice-btn').addEventListener('click',startVoiceRecord);
-  document.getElementById('unblock-btn').addEventListener('click',function(){unblockUser(chatPeerId);});
-  document.getElementById('report-btn').addEventListener('click',async function(){
+  if(chatInputEl){
+    chatInputEl.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
+  }
+  addClick('send-btn',sendMsg);
+  addClick('attach-btn',openAttachMenu);
+  addClick('voice-btn',startVoiceRecord);
+  addClick('unblock-btn',function(){unblockUser(chatPeerId);});
+  addClick('report-btn',async function(){
     var reason=await styledPrompt('What\u2019s wrong with '+chatPeerId+'? Describe what happened:',{placeholder:'e.g. sending spam, harassment…'});
     if(!reason)return;
     var reports=ls_get('uf_reports_v1',[]);
@@ -4562,72 +5390,83 @@ function bindEvents(){
     ls_set('uf_reports_v1',reports);
     toast('Report saved — thank you');
   });
-  document.getElementById('attach-overlay').addEventListener('click',function(e){if(e.target===this)closeAttachMenu();});
-  document.getElementById('attach-image-btn').addEventListener('click',function(){triggerFilePick('image');});
-  document.getElementById('attach-doc-btn').addEventListener('click',function(){triggerFilePick('any');});
-  document.getElementById('attach-cancel-btn').addEventListener('click',closeAttachMenu);
-  document.getElementById('file-input').addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];e.target.value='';if(f)openFilePreview(f);});
-  document.getElementById('preview-cancel-btn').addEventListener('click',closeFilePreview);
-  document.getElementById('preview-send-btn').addEventListener('click',confirmFilePreview);
-  document.getElementById('preview-modal').addEventListener('click',function(e){if(e.target===this)closeFilePreview();});
-  document.getElementById('new-chat-modal').addEventListener('click',function(e){if(e.target===this)closeNewChatModal();});
-  document.getElementById('new-chat-cancel-btn').addEventListener('click',closeNewChatModal);
-  document.getElementById('new-chat-start-btn').addEventListener('click',startChatFromModal);
+  addClick('attach-overlay',function(e){if(e.target===this)closeAttachMenu();});
+  addClick('attach-image-btn',function(){triggerFilePick('image');});
+  addClick('attach-doc-btn',function(){triggerFilePick('any');});
+  addClick('attach-cancel-btn',closeAttachMenu);
+  addEvt('file-input','change',function(e){var f=e.target.files&&e.target.files[0];e.target.value='';if(f)openFilePreview(f);});
+  addClick('preview-cancel-btn',closeFilePreview);
+  addClick('preview-send-btn',confirmFilePreview);
+  addClick('preview-modal',function(e){if(e.target===this)closeFilePreview();});
+  addClick('new-chat-modal',function(e){if(e.target===this)closeNewChatModal();});
+  addClick('new-chat-cancel-btn',closeNewChatModal);
+  addClick('new-chat-start-btn',startChatFromModal);
+  
   var nci=document.getElementById('new-chat-inp');
-  nci.addEventListener('input',function(){this.value=this.value.toLowerCase().replace(/[^a-z0-9_\-]/g,'');});
-  nci.addEventListener('keydown',function(e){if(e.key==='Enter')startChatFromModal();});
-  document.getElementById('blocked-modal').addEventListener('click',function(e){if(e.target===this)document.getElementById('blocked-modal').classList.remove('show');});
-  document.getElementById('blocked-modal-close-btn').addEventListener('click',function(){document.getElementById('blocked-modal').classList.remove('show');});
-  document.getElementById('chat-opts-modal').addEventListener('click',function(e){if(e.target===this)closeChatOptions();});
-  document.getElementById('chat-opts-cancel-btn').addEventListener('click',closeChatOptions);
-  document.getElementById('ctx-overlay').addEventListener('click',function(e){if(e.target===this)closeCtx();});
-  document.getElementById('ctx-reply-btn').addEventListener('click',function(){if(!ctxMsg)return;closeCtx();setReplyTo(ctxMsg);});
-  document.getElementById('ctx-copy-btn').addEventListener('click',function(){
+  if(nci){
+    nci.addEventListener('input',function(){this.value=this.value.toLowerCase().replace(/[^a-z0-9_\-]/g,'');});
+    nci.addEventListener('keydown',function(e){if(e.key==='Enter')startChatFromModal();});
+  }
+  addClick('blocked-modal',function(e){if(e.target===this){var bm=document.getElementById('blocked-modal');if(bm)bm.classList.remove('show');}});
+  addClick('blocked-modal-close-btn',function(){var bm=document.getElementById('blocked-modal');if(bm)bm.classList.remove('show');});
+  addClick('chat-opts-modal',function(e){if(e.target===this)closeChatOptions();});
+  addClick('chat-opts-cancel-btn',closeChatOptions);
+  addClick('ctx-overlay',function(e){if(e.target===this)closeCtx();});
+  addClick('ctx-reply-btn',function(){if(!ctxMsg)return;closeCtx();setReplyTo(ctxMsg);});
+  addClick('ctx-star-btn',function(){if(!ctxMsg)return;var targetMsg=Object.assign({},ctxMsg);closeCtx();toggleStarMsg(targetMsg);});
+  addClick('ctx-delete-everyone-btn',deleteMsgForEveryone);
+  addClick('ctx-copy-btn',function(){
     if(!ctxMsg)return;
     if(navigator.clipboard)navigator.clipboard.writeText(ctxMsg.text||'').then(function(){toast('Copied ✓');});else toast(ctxMsg.text||'');
     closeCtx();
   });
-  document.getElementById('ctx-forward-btn').addEventListener('click',function(){
+  addClick('ctx-forward-btn',function(){
     if(!ctxMsg)return;var fwdText=ctxMsg.text||'';closeCtx();openForwardPicker(fwdText);
   });
-  document.getElementById('forward-modal').addEventListener('click',function(e){if(e.target===this)closeForwardModal();});
-  document.getElementById('forward-cancel-btn').addEventListener('click',closeForwardModal);
-  document.getElementById('ctx-delete-btn').addEventListener('click',async function(){
+  addClick('forward-modal',function(e){if(e.target===this)closeForwardModal();});
+  addClick('forward-cancel-btn',closeForwardModal);
+  addClick('ctx-delete-btn',async function(){
     if(!ctxMsg){closeCtx();return;}
     if(!ctxMsg.me){toast('Can only delete your own messages');closeCtx();return;}
-    if(!(await styledConfirm('Delete this message?',{danger:true,okText:'Delete'}))){closeCtx();return;}
+    if(!(await styledConfirm('Delete this message for yourself?',{danger:true,okText:'Delete'}))){closeCtx();return;}
     var h=dmHistory[chatPeerId]||[];
     var i=h.findIndex(function(m){return m._id===ctxMsg._id||(m.time===ctxMsg.time&&m.text===ctxMsg.text);});
     if(i>-1){h.splice(i,1);saveAll();}
     closeCtx();openDMChat(chatPeerId);toast('Deleted');
   });
-  document.getElementById('rec-stop-btn').addEventListener('click',stopVoiceRecord);
-  document.getElementById('rec-cancel-btn').addEventListener('click',cancelVoiceRecord);
-  document.getElementById('btn-mute').addEventListener('click',toggleMute);
-  document.getElementById('btn-cam').addEventListener('click',toggleCam);
-  document.getElementById('btn-flip').addEventListener('click',flipCamera);
-  document.getElementById('btn-speaker').addEventListener('click',toggleSpeaker);
-  document.getElementById('btn-call-chat').addEventListener('click',toggleCallChat);
-  document.getElementById('btn-end').addEventListener('click',endCall);
-  document.getElementById('btn-decline').addEventListener('click',declineCall);
-  document.getElementById('btn-accept').addEventListener('click',acceptCall);
-  document.getElementById('ring-toggle-btn').addEventListener('click',toggleRingMute);
-  document.getElementById('cc-send-btn').addEventListener('click',sendCallChatMsg);
-  document.getElementById('cc-input').addEventListener('keydown',function(e){if(e.key==='Enter')sendCallChatMsg();});
-  document.getElementById('conf-end-btn').addEventListener('click',endConf);
-  document.getElementById('conf-invite-toggle-btn').addEventListener('click',function(){document.getElementById('conf-invite-panel').classList.toggle('show');});
-  document.getElementById('conf-invite-submit-btn').addEventListener('click',inviteToConf);
-  document.getElementById('conf-invite-inp').addEventListener('input',function(){this.value=this.value.toLowerCase().replace(/[^a-z0-9_\-]/g,'');});
-  document.getElementById('conf-invite-inp').addEventListener('keydown',function(e){if(e.key==='Enter')inviteToConf();});
-  document.getElementById('conf-mute-btn').addEventListener('click',confToggleMute);
-  document.getElementById('conf-cam-btn').addEventListener('click',confToggleCam);
-  document.getElementById('conf-flip-btn').addEventListener('click',confFlipCamera);
-  document.getElementById('search-back-btn').addEventListener('click',function(){showScreen('screen-chats','back');switchTab('chats');});
-  document.getElementById('g-search-input').addEventListener('input',function(){doGlobalSearch(this.value);});
-  document.getElementById('headsup-notif').addEventListener('click',handleHUNTap);
+  addClick('rec-stop-btn',stopVoiceRecord);
+  addClick('rec-cancel-btn',cancelVoiceRecord);
+  addClick('btn-mute',toggleMute);
+  addClick('btn-cam',toggleCam);
+  addClick('btn-flip',flipCamera);
+  addClick('btn-speaker',toggleSpeaker);
+  addClick('btn-call-chat',toggleCallChat);
+  addClick('btn-end',endCall);
+  addClick('btn-decline',declineCall);
+  addClick('btn-accept',acceptCall);
+  addClick('ring-toggle-btn',toggleRingMute);
+  addClick('cc-send-btn',sendCallChatMsg);
+  addEvt('cc-input','keydown',function(e){if(e.key==='Enter')sendCallChatMsg();});
+  addClick('conf-end-btn',endConf);
+  addClick('conf-invite-toggle-btn',function(){var cip=document.getElementById('conf-invite-panel');if(cip)cip.classList.toggle('show');});
+  addClick('conf-invite-submit-btn',inviteToConf);
+  
+  var cii=document.getElementById('conf-invite-inp');
+  if(cii){
+    cii.addEventListener('input',function(){this.value=this.value.toLowerCase().replace(/[^a-z0-9_\-]/g,'');});
+    cii.addEventListener('keydown',function(e){if(e.key==='Enter')inviteToConf();});
+  }
+  addClick('conf-mute-btn',confToggleMute);
+  addClick('conf-cam-btn',confToggleCam);
+  addClick('conf-flip-btn',confFlipCamera);
+  addClick('search-back-btn',function(){showScreen('screen-chats','back');switchTab('chats');});
+  addEvt('g-search-input','input',function(){doGlobalSearch(this.value);});
+  addClick('headsup-notif',handleHUNTap);
+  
   window.addEventListener('online',function(){toast('Back online 🟢');if(!peerReady)scheduleReconnect();});
   window.addEventListener('offline',function(){toast('No internet — calls may drop');showBanner('No internet connection');});
   window.addEventListener('beforeunload',function(e){if(currentCall||Object.keys(confCalls).length){e.preventDefault();e.returnValue='';}});
+  
   function unlockAudio(){getAudioCtx();document.removeEventListener('touchstart',unlockAudio);document.removeEventListener('click',unlockAudio);}
   document.addEventListener('touchstart',unlockAudio,{once:true,passive:true});
   document.addEventListener('click',unlockAudio,{once:true});
