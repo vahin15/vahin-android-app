@@ -1385,6 +1385,59 @@ var enteredPin='';
 var settings={ringtone:true,vibrate:true,backcam:false,confLimit:6,theme:'auto'};
 var customRingtoneDataUrl='';
 var incomingCall=null;
+/* FIX (fast-accept / pre-warmed RTC): getUserMedia() (camera/mic acquisition) is the
+   single biggest source of delay between tapping Accept and actually talking — it
+   involves an OS permission check, hardware startup, and on some devices a visible
+   permission prompt. Previously this only ever ran INSIDE acceptCall(), i.e. after the
+   user already tapped Accept, so that whole delay sat directly in the critical path
+   every single time. Now we kick it off the instant the ring starts (showIncoming()),
+   in the background, while the phone is still ringing — by the time the user actually
+   taps Accept (or the native full-screen UI's Accept button, which lands here via
+   handleNativeCallAction), the stream is already warm and .answer() can fire
+   immediately with zero additional wait. Falls back to acquiring fresh if pre-warm
+   failed, was for the wrong mode (voice vs video), or never got a chance to run. */
+var preWarmStream=null,preWarmPromise=null,preWarmVoiceOnly=false,preWarmFacing='user';
+function stopPreWarmStream(){
+  preWarmPromise=null;
+  if(preWarmStream){
+    try{preWarmStream.getTracks().forEach(function(t){try{t.stop();}catch(e){}});}catch(e){}
+    preWarmStream=null;
+  }
+}
+function beginPreWarm(voiceOnly){
+  try{
+    stopPreWarmStream();
+    preWarmVoiceOnly=!!voiceOnly;
+    preWarmFacing=settings.backcam?'environment':'user';
+    diagLog('🔥 beginPreWarm: acquiring '+(preWarmVoiceOnly?'audio-only':'camera+mic')+' stream in the background while ringing…');
+    preWarmPromise=(preWarmVoiceOnly?getAudioOnlyStream():getStream(preWarmFacing)).then(function(stream){
+      preWarmStream=stream;
+      diagLog('✅ beginPreWarm: stream ready — accept will connect instantly');
+      return stream;
+    }).catch(function(e){
+      diagLog('⚠️ beginPreWarm: failed to pre-acquire stream — '+(e&&e.message?e.message:e)+' (acceptCall will fall back to acquiring fresh)');
+      preWarmStream=null;preWarmPromise=null;
+      throw e;
+    });
+  }catch(e){diagLog('⚠️ beginPreWarm: exception — '+(e&&e.message?e.message:e));preWarmPromise=null;}
+}
+/* Consumes the pre-warmed stream if it matches the call we're actually accepting;
+   otherwise falls back to acquiring one fresh exactly like before. Always clears
+   pre-warm state either way so a stale stream never leaks into the next call. */
+async function takePreWarmedStream(voiceOnly,facing){
+  var promise=preWarmPromise,matches=(preWarmVoiceOnly===!!voiceOnly);
+  preWarmPromise=null;
+  if(promise&&matches){
+    try{
+      var s=await promise;
+      preWarmStream=null;
+      return s;
+    }catch(e){ /* fall through to fresh acquisition below */ }
+  }else{
+    stopPreWarmStream();
+  }
+  return voiceOnly?await getAudioOnlyStream():await getStream(facing);
+}
 var _missedCallDismiss=false; /* true while dismissing a missed call — skip sending call-cancel */
 var _remoteEndedCall=false; /* true when call-end received from remote side — skip sending call-end back */
 var replyingTo=null,ctxMsg=null;
@@ -2000,6 +2053,7 @@ function handleData(from,data,conn){
     case 'call-cancel':
       if(incomingCall&&(incomingCall.peer===from||incomingCall.peerId===from)){
         stopRing();hideHUN();document.getElementById('incoming-overlay').classList.remove('show');
+        stopPreWarmStream(); // FIX (fast-accept): caller cancelled before we answered — drop the pre-warmed stream
         incomingCall=null;logCall(from,'missed','in');showScreen('screen-chats','back');
         toast(from+' cancelled the call');
         /* FIX: tell native Android the call was cancelled too. Without this, if the
@@ -3566,6 +3620,15 @@ function showIncoming(pid,kind){
   document.getElementById('ring-toggle-btn').textContent='🔊 Sound';
   document.getElementById('incoming-overlay').classList.add('show');
   startRing();
+  // FIX (fast-accept): start warming up the local camera/mic stream the instant the
+  // screen/ring appears — NOT when the user taps Accept. See the beginPreWarm() /
+  // takePreWarmedStream() comments above for why this is the fix for "connecting"
+  // feeling slow: by the time Accept is actually tapped, getUserMedia() has already
+  // finished (or is nearly done) in the background, so acceptCall() can call
+  // incomingCall.answer(stream) essentially immediately instead of waiting on
+  // hardware/permission latency after the tap. Conference invites answer with
+  // confStream (a different flow) so we only pre-warm for real 1:1 calls here.
+  if(kind!=='conf')beginPreWarm(kind==='voice');
   // FIX: previously also called showHUN('call', ...) here, which layered a small
   // top-of-screen banner (with its own hardcoded 30s auto-dismiss) on top of the
   // real full-screen incoming-overlay above. The banner disappearing after 30s made
@@ -3631,9 +3694,15 @@ async function acceptCall(){
        a previous call, and not an empty string that fails endCall()'s truthiness check. */
     callPeerId=incomingCall.peer;
     var incMeta=incomingCall.metadata||{};callIsVoiceOnly=!!incMeta.voiceOnly;
-    diagLog('🎤 acceptCall: requesting local '+(callIsVoiceOnly?'audio-only':'camera+mic')+' stream…');
     facingMode=settings.backcam?'environment':'user';
-    var stream=callIsVoiceOnly?await getAudioOnlyStream():await getStream(facingMode);localStream=stream;
+    // FIX (fast-accept): use the stream beginPreWarm() already started fetching back
+    // when the ring first appeared, instead of only starting getUserMedia() now. In
+    // the common case this resolves (near-)instantly because it's had the whole
+    // ringing period to finish; takePreWarmedStream() transparently falls back to a
+    // fresh getUserMedia() call if pre-warm never ran, failed, or was for the wrong
+    // mode (e.g. voice-only vs video mismatch), so behavior is never worse than before.
+    diagLog('🎤 acceptCall: taking pre-warmed '+(callIsVoiceOnly?'audio-only':'camera+mic')+' stream (or acquiring fresh if not ready)…');
+    var stream=await takePreWarmedStream(callIsVoiceOnly,facingMode);localStream=stream;
     diagLog('✅ acceptCall: got local stream — answering the WebRTC call now');
     var lv=document.getElementById('video-local');lv.srcObject=localStream;applyMirror(lv,facingMode);
     incomingCall.answer(localStream);currentCall=incomingCall;
@@ -3650,6 +3719,7 @@ async function acceptCall(){
 function declineCall(){
   document.getElementById('incoming-overlay').classList.remove('show');
   hideHUN();stopRing();
+  stopPreWarmStream(); // FIX (fast-accept): never left running unused after a decline/missed call
   if(incomingCall&&!incomingCall.isConf){
     logCall(incomingCall.peer,'declined','in');
     // FIX: previously this only sent call-cancel if chatConn was ALREADY open at the
