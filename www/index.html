@@ -1857,6 +1857,21 @@ function connBanner(everConnectedMsg){
   showBanner(msg);
 }
 function startPeer(){
+  // FIX (disconnect/reconnect churn loop): peerStarting used to only be true
+  // for the brief handoff inside startPeerRobust() — the moment startPeer()
+  // itself took over (including its whole internal 'unavailable-id' retry
+  // cycle), peerStarting was already back to false. If anything called
+  // ensurePeerConnected() during that window (e.g. accepting an incoming
+  // call, which does exactly this), it saw "nothing marked as starting" and
+  // called startPeerRobust() — which destroys the in-flight peer and
+  // restarts the whole connection from zero, right in the middle of an
+  // already-progressing attempt. Repeat that every time a call action fires
+  // during a retry and you get exactly the observed loop: connect →
+  // interrupted → connect → interrupted, never reaching 'open'. Keeping
+  // peerStarting true for this function's ENTIRE attempt (not just the
+  // handoff into it) makes ensurePeerConnected() a safe no-op while a
+  // connection attempt is already in progress, however long it takes.
+  peerStarting=true;
   if(!window.Peer){showBanner('Connecting…');setTimeout(startPeer,200);return;}
   if(peer&&!peer.destroyed){try{peer.destroy();}catch(e){}peer=null;}
   peerReady=false;showBanner('Connecting…');setOnlineDot('yellow');
@@ -1882,7 +1897,7 @@ function startPeer(){
     catch(e){setTimeout(function(){peerReady=false;connBanner('Reconnecting…');scheduleReconnect();},1000);return;}
     peer.on('open',function(id){
       if(!isCurrent())return;
-      peerReady=true;peerEverConnectedThisSession=true;reconnectAttempt=0;hideBanner();setOnlineDot('green');toast('Online as '+id+' 🟢');
+      peerReady=true;peerEverConnectedThisSession=true;reconnectAttempt=0;peerStarting=false;hideBanner();setOnlineDot('green');toast('Online as '+id+' 🟢');
       diagLog('✅ Peer connected to broker as '+id);
       if(reconnTimer){clearTimeout(reconnTimer);reconnTimer=null;}
       subscribePush();
@@ -1930,7 +1945,16 @@ function startPeer(){
       diagLog('⚠️ Broker connection dropped — reconnecting');
       try{if(peer&&!peer.destroyed){peer.reconnect();}else{scheduleReconnect();}}catch(ex){scheduleReconnect();}
     });
-    peer.on('close',function(){if(!isCurrent())return;peerReady=false;setOnlineDot('red');});
+    peer.on('close',function(){
+      if(!isCurrent())return;
+      peerReady=false;setOnlineDot('red');
+      // This peer object's lifecycle is definitively over and nothing above
+      // guarantees a further reconnect attempt gets scheduled from here —
+      // clear peerStarting so a later ensurePeerConnected() call is able to
+      // kick off a fresh attempt instead of seeing a stale "already starting"
+      // flag and doing nothing.
+      peerStarting=false;
+    });
   }
   attemptConnect();
 }
