@@ -1386,21 +1386,6 @@ var SK={MYID:'uf_myid_v3',CONTACTS:'uf_contacts_v3',DM:'uf_dm_v3',GRPH:'uf_grp_h
   CALLS:'uf_calls_v3',SETTINGS:'uf_settings_v3',BLOCKED:'uf_blocked_v3',PINNED:'uf_pinned_v3',ONBOARDED:'uf_onboarded_v1',RINGTONE:'uf_ringtone_v1',TOKEN:'uf_token_v1',
   PERMSETUP_SEEN:'uf_permsetup_seen_v1',STARRED:'uf_starred_v1',APPLOCK:'uf_applock_v1',RECOVERY:'uf_recovery_v1'};
 var myId='',peer=null,peerReady=false,reconnTimer=null;
-/* FIX (redundant native ring when both phones are already online): every place that
-   used to write `peerReady=...` directly now goes through this instead, so native
-   (AppState.java, via VahinPermissionsPlugin.setPeerConnected) always has an accurate,
-   live picture of whether the PeerJS broker socket is actually open. VahinMessagingService
-   reads that alongside app-foreground state to decide whether an incoming FCM call push
-   can safely skip the native full-screen popup because the in-app ring here will handle
-   it instead. No-ops harmlessly on web/non-native builds. */
-function setPeerReady(v){
-  peerReady=!!v;
-  try{
-    if(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions){
-      Capacitor.Plugins.VahinPermissions.setPeerConnected({connected:peerReady}).catch(function(){});
-    }
-  }catch(e){}
-}
 var localStream=null,currentCall=null,callPeerId='';
 var callConn=null,callTimer=null,callSecs=0,weAreCaller=false;
 var mutedAudio=false,mutedVideo=false,speakerOn=true,facingMode='user';
@@ -1837,17 +1822,6 @@ function startPeerRobust(){
    we're connecting, however that needs to happen" from anywhere in the app. */
 function ensurePeerConnected(){
   if(peer&&peerReady&&!peer.destroyed)return; // already connected, nothing to do
-  /* FIX (root cause of the never-resolving reconnect loop): this function gets called
-     from multiple places completely independently of startPeer()'s own retry logic —
-     the keep-alive timer every 3s, and directly when the user taps Answer on a
-     cold-started call. If the unavailable-id fast-retry loop inside startPeer() is
-     already running, peer can legitimately be null/destroyed for a few hundred ms at a
-     time between its own internal attempts — and calling startPeerRobust() from here
-     during that exact window spins up a SECOND, completely independent connection
-     attempt for the same ID, which is what actually caused the broker to see two of our
-     own sockets racing to claim it and never resolve. The retry loop already owns
-     reconnecting; just let it work. */
-  if(idClearingRetryActive)return;
   try{
     if(peer&&!peer.destroyed&&peer.disconnected){peer.reconnect();return;}
   }catch(e){}
@@ -1877,25 +1851,6 @@ var peerEverConnectedThisSession=false;
    state — the exact complaint that prompted this. Reset to 0 the moment the peer
    connection actually opens. */
 var reconnectAttempt=0;
-/* FIX (reconnect loop that never resolves — root cause found from a real debug log):
-   the 'unavailable-id' branch below already owns a complete, self-contained retry loop
-   (destroy peer -> wait -> attemptConnect() again, with its own backoff). The PROBLEM was
-   that PeerJS also fires its own 'disconnected' event around the same moment an
-   unavailable-id error lands, and that separate peer.on('disconnected') handler used to
-   ALSO independently call peer.reconnect() (or scheduleReconnect(), a second timer-based
-   retry loop) on its own. That meant TWO uncoordinated reconnect attempts were racing to
-   claim the exact same ID at the same time — and each one's brand-new connection attempt
-   is exactly what makes the OTHER one's attempt look like "ID busy" to the broker. The
-   result is a livelock: every attempt collides with a sibling attempt this same client
-   just started, so it can genuinely retry forever no matter how long you wait — this
-   matches a real captured debug log showing "ID is still clearing" paired with "connection
-   dropped — reconnecting" firing together, sometimes twice within the same second.
-   Fix: while the unavailable-id branch's own retry loop is actively running, every other
-   reconnect trigger (peer.on('disconnected'), scheduleReconnect(), the other peer.on('error')
-   branches) backs off and lets it be the ONLY thing driving reconnection. Cleared the
-   moment 'open' actually fires (real success) so normal reconnect handling resumes for any
-   later, unrelated drop. */
-var idClearingRetryActive=false;
 function connBanner(everConnectedMsg){
   var msg=peerEverConnectedThisSession?everConnectedMsg:'Connecting…';
   if(msg==='Reconnecting…'&&reconnectAttempt>0)msg='Reconnecting… (attempt '+reconnectAttempt+')';
@@ -1904,18 +1859,36 @@ function connBanner(everConnectedMsg){
 function startPeer(){
   if(!window.Peer){showBanner('Connecting…');setTimeout(startPeer,200);return;}
   if(peer&&!peer.destroyed){try{peer.destroy();}catch(e){}peer=null;}
-  setPeerReady(false);showBanner('Connecting…');setOnlineDot('yellow');
+  peerReady=false;showBanner('Connecting…');setOnlineDot('yellow');
   var retryDelay=250;
   function attemptConnect(){
-    try{peer=new Peer(myId,PEER_CONFIG);}
-    catch(e){setTimeout(function(){setPeerReady(false);idClearingRetryActive=false;connBanner('Reconnecting…');scheduleReconnect();},1000);return;}
+    var thisPeer; // captured below, right after construction
+    // FIX (top status dot lagging/flickering behind the "Online as X" toast):
+    // every retry here creates a brand-new Peer object and reassigns the
+    // global `peer`, but a prior attempt's object can still emit 'close' /
+    // 'error' / 'disconnected' asynchronously (e.g. its own WebSocket
+    // teardown completing on a later tick) even after it's been destroy()'d
+    // and superseded. None of the handlers below checked whether the event
+    // was actually coming from the CURRENT peer instance before mutating
+    // shared UI state — so a straggling event from an old, already-replaced
+    // attempt could fire right after the new attempt's 'open' already set
+    // the dot green, and flip it back to red/yellow. The toast only fires
+    // once (on 'open') so it looked correct while the dot kept lagging.
+    // isCurrent() gates every handler below on "is thisPeer still what the
+    // global `peer` variable points to right now" — a stale instance's
+    // events become no-ops instead of clobbering the live state.
+    function isCurrent(){return peer===thisPeer;}
+    try{peer=new Peer(myId,PEER_CONFIG);thisPeer=peer;}
+    catch(e){setTimeout(function(){peerReady=false;connBanner('Reconnecting…');scheduleReconnect();},1000);return;}
     peer.on('open',function(id){
-      setPeerReady(true);peerEverConnectedThisSession=true;reconnectAttempt=0;idClearingRetryActive=false;hideBanner();setOnlineDot('green');toast('Online as '+id+' 🟢');
+      if(!isCurrent())return;
+      peerReady=true;peerEverConnectedThisSession=true;reconnectAttempt=0;hideBanner();setOnlineDot('green');toast('Online as '+id+' 🟢');
       diagLog('✅ Peer connected to broker as '+id);
       if(reconnTimer){clearTimeout(reconnTimer);reconnTimer=null;}
       subscribePush();
     });
     peer.on('call',function(mc){
+      if(!isCurrent())return;
       var meta=mc.metadata||{};
       if(meta.type==='conf'){
         if(confStream){
@@ -1930,47 +1903,34 @@ function startPeer(){
       }
       addRecentSilent(mc.peer);
     });
-    peer.on('connection',function(conn){setupConn(conn);});
+    peer.on('connection',function(conn){if(!isCurrent())return;setupConn(conn);});
     peer.on('error',function(e){
       if(e.type==='peer-unavailable'){
         var msg=(e.message||'')+'';
         if(currentCall&&callPeerId&&msg.indexOf(callPeerId)>-1){handlePeerUnavailable();}
         return;
       }
-      setPeerReady(false);setOnlineDot('red');
+      if(!isCurrent())return;
+      peerReady=false;setOnlineDot('red');
       if(e.type==='unavailable-id'){
-        idClearingRetryActive=true;
         hideBanner();connBanner('Connecting…');
         diagLog('⚠️ Broker says our ID is still clearing — fast-retrying in '+retryDelay+'ms');
         setTimeout(function(){
+          if(!isCurrent())return;
           if(peer&&!peer.destroyed){try{peer.destroy();}catch(ex){}peer=null;}
           setTimeout(attemptConnect,retryDelay);retryDelay=Math.min(retryDelay*1.3,2000);
         },150);
-      }else if(idClearingRetryActive){
-        /* FIX: don't let a stray error from a socket that's about to be torn down by the
-           unavailable-id branch above kick off a second, competing retry loop. */
-        diagLog('⚠️ Broker error ('+e.type+') during ID-clearing retry — ignoring, the retry loop already running owns this');
       }else if(['network','server-error','socket-error','socket-closed'].includes(e.type)){
         connBanner('Reconnecting…');diagLog('⚠️ Broker connection error ('+e.type+') — reconnecting');scheduleReconnect();
       }else{showBanner('Connecting…');diagLog('⚠️ Broker error: '+e.type+' — '+(e.message||''));scheduleReconnect();}
     });
     peer.on('disconnected',function(){
-      setPeerReady(false);setOnlineDot('yellow');
-      if(idClearingRetryActive){
-        /* FIX (root cause of the never-resolving reconnect loop): this event fires
-           alongside the unavailable-id error above almost every time — calling
-           peer.reconnect()/scheduleReconnect() here too was the second, competing
-           reconnect path that made the loop self-sustaining forever. The unavailable-id
-           branch already owns retrying right now; just reflect it in the banner. */
-        connBanner('Connecting…');
-        diagLog('⚠️ Broker connection dropped (ID-clearing retry already in progress — not starting a second one)');
-        return;
-      }
-      connBanner('Reconnecting…');
+      if(!isCurrent())return;
+      peerReady=false;setOnlineDot('yellow');connBanner('Reconnecting…');
       diagLog('⚠️ Broker connection dropped — reconnecting');
       try{if(peer&&!peer.destroyed){peer.reconnect();}else{scheduleReconnect();}}catch(ex){scheduleReconnect();}
     });
-    peer.on('close',function(){setPeerReady(false);setOnlineDot('red');});
+    peer.on('close',function(){if(!isCurrent())return;peerReady=false;setOnlineDot('red');});
   }
   attemptConnect();
 }
@@ -1980,7 +1940,6 @@ function setOnlineDot(c){
 }
 function scheduleReconnect(immediate){
   if(reconnTimer)return;
-  if(idClearingRetryActive)return; /* FIX: the unavailable-id retry loop already owns reconnecting right now — see its comment above */
   var delay=immediate?300:1200;
   reconnTimer=setTimeout(function(){
     reconnTimer=null;
@@ -5449,7 +5408,7 @@ function bindEvents(){
       var tn=document.getElementById('tab-nav');if(tn)tn.classList.remove('visible');
       myId='';chatMode='';
       if(peer&&!peer.destroyed){try{peer.destroy();}catch(e){}peer=null;}
-      setPeerReady(false);showScreen('screen-id');
+      peerReady=false;showScreen('screen-id');
       var idI=document.getElementById('my-id-input'),pwI=document.getElementById('my-pw-input');
       if(idI)idI.value='';if(pwI)pwI.value='';
       if(authMode!=='login')toggleAuthMode();
