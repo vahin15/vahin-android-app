@@ -9,7 +9,7 @@
            img-src 'self' blob: data: https:;
            media-src 'self' blob: mediastream: data:;
            style-src 'self' 'unsafe-inline';">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover"/>
 <meta name="theme-color" content="#1E3A5F"/>
 <meta name="color-scheme" content="light dark"/>
 <title>Unifest</title>
@@ -659,6 +659,27 @@ button,input,textarea{font-family:inherit;}
 .recovery-chip{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;}
 .recovery-chip-num{font-size:10px;color:var(--text3);font-weight:600;min-width:14px;}
 .recovery-code-box{background:var(--surface2);border:1.5px dashed var(--accent);border-radius:var(--radius-sm);padding:14px;font-family:monospace;font-size:14px;font-weight:700;color:var(--accent);text-align:center;letter-spacing:1px;margin:10px 0;word-break:break-all;user-select:all;-webkit-user-select:all;}
+
+/* ── Message Reactions ── */
+.msg-reactions{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}
+.msg-row.me .msg-reactions{justify-content:flex-end;}
+.msg-reaction-pill{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:2px 8px;font-size:12.5px;cursor:pointer;user-select:none;-webkit-user-select:none;transition:transform .12s,background .12s;line-height:1.2;}
+.msg-reaction-pill:active{transform:scale(0.92);}
+.msg-reaction-pill.reacted{background:var(--accent-light);border-color:var(--accent);color:var(--accent);font-weight:700;}
+.msg-reaction-count{font-size:11px;color:var(--text2);font-weight:600;}
+.msg-reaction-pill.reacted .msg-reaction-count{color:var(--accent);}
+.ctx-reaction-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 8px;margin-bottom:10px;background:var(--surface2);border-radius:18px;gap:4px;overflow-x:auto;}
+.ctx-reaction-btn{border:none;background:transparent;font-size:22px;padding:6px;border-radius:50%;cursor:pointer;transition:transform .15s,background .15s;line-height:1;display:flex;align-items:center;justify-content:center;touch-action:manipulation;}
+.ctx-reaction-btn:active{transform:scale(1.3);background:rgba(0,0,0,0.06);}
+
+/* ── QR Code & Group Link Styling ── */
+.qr-card{display:flex;flex-direction:column;align-items:center;padding:16px;background:var(--surface);border-radius:20px;border:1px solid var(--border2);box-shadow:var(--elev1);margin:10px 0;}
+.qr-svg-wrap{padding:14px;background:#ffffff;border-radius:16px;box-shadow:0 4px 16px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;position:relative;margin:8px 0;}
+.qr-link-box{background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:10px 14px;font-size:13px;color:var(--accent);word-break:break-all;font-family:monospace;margin:10px 0;width:100%;text-align:center;}
+.group-link-card{background:linear-gradient(135deg,var(--accent-light),rgba(26,115,232,.08));border:1px solid rgba(124,58,237,.2);border-radius:16px;padding:14px;margin-top:14px;}
+
+/* ── Draft Indicator ── */
+.draft-tag{color:var(--red);font-weight:700;}
 </style>
 </head>
 <body>
@@ -852,7 +873,7 @@ button,input,textarea{font-family:inherit;}
     <div class="settings-section" id="reliability-section" style="display:none;">
       <div class="settings-section-title">Reliability</div>
       <div class="settings-group">
-        <div class="settings-row" id="notif-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">🔔</div><div><div class="s-label">Notifications</div><div class="s-sub" id="notif-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="notif-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">������</div><div><div class="s-label">Notifications</div><div class="s-sub" id="notif-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="fsi-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">📞</div><div><div class="s-label">Full-screen calls</div><div class="s-sub" id="fsi-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="battery-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">🔋</div><div><div class="s-label">Allow background running</div><div class="s-sub" id="battery-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="debug-log-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(107,114,128,.1);">🧪</div><div><div class="s-label">Debug log</div><div class="s-sub">View/copy call diagnostics for support</div></div></div><div class="chevron">›</div></div>
@@ -2161,22 +2182,53 @@ function addRecentSilent(pid){
   recentPeers.unshift(pid);if(recentPeers.length>30)recentPeers=recentPeers.slice(0,30);
   ls_set(SK.CONTACTS,recentPeers);
 }
+var chatListObserver=null;
 function renderChats(filter){
   var body=document.getElementById('chats-body');
+  if(!body)return;
+  if(chatListObserver){try{chatListObserver.disconnect();}catch(e){}chatListObserver=null;}
   var peers=recentPeers;
   if(filter){var q=filter.toLowerCase();peers=peers.filter(function(p){return p.toLowerCase().includes(q);});}
   if(!peers.length){
     body.innerHTML='<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">No chats yet</div><div class="empty-sub">Tap ✏️ to start a new conversation</div></div>';
-    document.getElementById('tab-badge-chats').style.display='none';return;
+    var b=document.getElementById('tab-badge-chats');if(b)b.style.display='none';return;
   }
   body.innerHTML='';var total=0;
+  var hasIO=('IntersectionObserver' in window);
+  if(hasIO){
+    chatListObserver=new IntersectionObserver(function(entries,observer){
+      entries.forEach(function(entry){
+        if(entry.isIntersecting||entry.intersectionRatio>0){
+          var el=entry.target;
+          var p=el.dataset.peer;
+          if(p){
+            var avEl=el.querySelector('.cli-av');
+            var avLetEl=el.querySelector('.cli-av-letter');
+            if(avEl&&avLetEl)applyAvatarWithPres(avEl,avLetEl,p);
+            var prEl=el.querySelector('.cli-prev');
+            if(prEl&&!el.dataset.prevLoaded){
+              var dText=(typeof drafts!=='undefined'&&drafts[p])?drafts[p]:'';
+              if(dText){
+                prEl.innerHTML='<span class="draft-tag">Draft: </span>'+esc(dText.substring(0,50));
+              }else{
+                var h=dmHistory[p]||[];
+                var l=h.length?h[h.length-1]:null;
+                var pv=l?(l.me?'You: '+(l.file?'📎 '+l.file.name:l.text||''):(l.file?'📎 '+l.file.name:l.text||'')):'Tap to chat';
+                prEl.textContent=String(pv).substring(0,60);
+              }
+              el.dataset.prevLoaded='1';
+            }
+          }
+          observer.unobserve(el);
+        }
+      });
+    },{root:null,rootMargin:'120px 0px',threshold:0.01});
+  }
+
   peers.forEach(function(pid){
     var u=unreadDM[pid]||0;total+=u;
     var isOnline=!!onlinePeers[pid],blocked=isBlocked(pid),pinned=pinnedChats.includes(pid);
-    var hist=dmHistory[pid]||[];
-    var last=hist.length?hist[hist.length-1]:null;
-    var prev=last?(last.me?'You: '+(last.file?'📎 '+last.file.name:last.text||''):(last.file?'📎 '+last.file.name:last.text||'')):'Tap to chat';
-    var item=document.createElement('div');item.className='chat-list-item';
+    var item=document.createElement('div');item.className='chat-list-item';item.dataset.peer=pid;
     item.onclick=function(p){return function(){openDMChat(p);};}(pid);
     var av=document.createElement('div');av.className='cli-av';
     av.style.cursor='pointer';
@@ -2185,24 +2237,44 @@ function renderChats(filter){
     av.appendChild(avLetter);
     var pres=document.createElement('span');pres.className='cli-pres'+(isOnline?' online':'');pres.dataset.pres=pid;
     av.appendChild(pres);
-    applyAvatarWithPres(av,avLetter,pid);
+    
     var info=document.createElement('div');info.className='cli-info';
     var nm=document.createElement('div');nm.className='cli-name';nm.textContent=pid+(blocked?' 🚫':'')+(pinned?' 📌':'');
-    var pr=document.createElement('div');pr.className='cli-prev';pr.textContent=String(prev).substring(0,60);
+    var pr=document.createElement('div');pr.className='cli-prev';
     info.appendChild(nm);info.appendChild(pr);
+    
     var meta=document.createElement('div');meta.className='cli-meta';
+    var hist=dmHistory[pid]||[];
+    var last=hist.length?hist[hist.length-1]:null;
     if(last&&last.time){var td=document.createElement('div');td.className='cli-time';td.textContent=last.time;meta.appendChild(td);}
     if(u){var badge=document.createElement('div');badge.className='cli-badge';badge.textContent=u>99?'99+':u;meta.appendChild(badge);}
+    
     var cb=document.createElement('button');cb.className='cli-call-btn';cb.title='Voice call';cb.innerHTML=SVG_ICONS.voice;
     cb.onclick=function(p){return function(e){e.stopPropagation();startCall(p,true);};}(pid);
     var vb=document.createElement('button');vb.className='cli-call-btn';vb.title='Video call';vb.innerHTML=SVG_ICONS.cam;
     vb.style.marginLeft='4px';
     vb.onclick=function(p){return function(e){e.stopPropagation();startCall(p,false);};}(pid);
+    
     item.appendChild(av);item.appendChild(info);item.appendChild(meta);item.appendChild(cb);item.appendChild(vb);
     body.appendChild(item);
+
+    if(hasIO&&chatListObserver){
+      chatListObserver.observe(item);
+    }else{
+      applyAvatarWithPres(av,avLetter,pid);
+      var dText=(typeof drafts!=='undefined'&&drafts[pid])?drafts[pid]:'';
+      if(dText){
+        pr.innerHTML='<span class="draft-tag">Draft: </span>'+esc(dText.substring(0,50));
+      }else{
+        var prev=last?(last.me?'You: '+(last.file?'📎 '+last.file.name:last.text||''):(last.file?'📎 '+last.file.name:last.text||'')):'Tap to chat';
+        pr.textContent=String(prev).substring(0,60);
+      }
+    }
   });
   var badge=document.getElementById('tab-badge-chats');
-  if(total>0){badge.textContent=total>99?'99+':total;badge.style.display='flex';}else{badge.style.display='none';}
+  if(badge){
+    if(total>0){badge.textContent=total>99?'99+':total;badge.style.display='flex';}else{badge.style.display='none';}
+  }
 }
 function openDMChat(pid){
   if(!pid)return;
