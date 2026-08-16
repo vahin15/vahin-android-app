@@ -1837,6 +1837,17 @@ function startPeerRobust(){
    we're connecting, however that needs to happen" from anywhere in the app. */
 function ensurePeerConnected(){
   if(peer&&peerReady&&!peer.destroyed)return; // already connected, nothing to do
+  /* FIX (root cause of the never-resolving reconnect loop): this function gets called
+     from multiple places completely independently of startPeer()'s own retry logic —
+     the keep-alive timer every 3s, and directly when the user taps Answer on a
+     cold-started call. If the unavailable-id fast-retry loop inside startPeer() is
+     already running, peer can legitimately be null/destroyed for a few hundred ms at a
+     time between its own internal attempts — and calling startPeerRobust() from here
+     during that exact window spins up a SECOND, completely independent connection
+     attempt for the same ID, which is what actually caused the broker to see two of our
+     own sockets racing to claim it and never resolve. The retry loop already owns
+     reconnecting; just let it work. */
+  if(idClearingRetryActive)return;
   try{
     if(peer&&!peer.destroyed&&peer.disconnected){peer.reconnect();return;}
   }catch(e){}
@@ -1866,6 +1877,25 @@ var peerEverConnectedThisSession=false;
    state — the exact complaint that prompted this. Reset to 0 the moment the peer
    connection actually opens. */
 var reconnectAttempt=0;
+/* FIX (reconnect loop that never resolves — root cause found from a real debug log):
+   the 'unavailable-id' branch below already owns a complete, self-contained retry loop
+   (destroy peer -> wait -> attemptConnect() again, with its own backoff). The PROBLEM was
+   that PeerJS also fires its own 'disconnected' event around the same moment an
+   unavailable-id error lands, and that separate peer.on('disconnected') handler used to
+   ALSO independently call peer.reconnect() (or scheduleReconnect(), a second timer-based
+   retry loop) on its own. That meant TWO uncoordinated reconnect attempts were racing to
+   claim the exact same ID at the same time — and each one's brand-new connection attempt
+   is exactly what makes the OTHER one's attempt look like "ID busy" to the broker. The
+   result is a livelock: every attempt collides with a sibling attempt this same client
+   just started, so it can genuinely retry forever no matter how long you wait — this
+   matches a real captured debug log showing "ID is still clearing" paired with "connection
+   dropped — reconnecting" firing together, sometimes twice within the same second.
+   Fix: while the unavailable-id branch's own retry loop is actively running, every other
+   reconnect trigger (peer.on('disconnected'), scheduleReconnect(), the other peer.on('error')
+   branches) backs off and lets it be the ONLY thing driving reconnection. Cleared the
+   moment 'open' actually fires (real success) so normal reconnect handling resumes for any
+   later, unrelated drop. */
+var idClearingRetryActive=false;
 function connBanner(everConnectedMsg){
   var msg=peerEverConnectedThisSession?everConnectedMsg:'Connecting…';
   if(msg==='Reconnecting…'&&reconnectAttempt>0)msg='Reconnecting… (attempt '+reconnectAttempt+')';
@@ -1878,9 +1908,9 @@ function startPeer(){
   var retryDelay=250;
   function attemptConnect(){
     try{peer=new Peer(myId,PEER_CONFIG);}
-    catch(e){setTimeout(function(){setPeerReady(false);connBanner('Reconnecting…');scheduleReconnect();},1000);return;}
+    catch(e){setTimeout(function(){setPeerReady(false);idClearingRetryActive=false;connBanner('Reconnecting…');scheduleReconnect();},1000);return;}
     peer.on('open',function(id){
-      setPeerReady(true);peerEverConnectedThisSession=true;reconnectAttempt=0;hideBanner();setOnlineDot('green');toast('Online as '+id+' 🟢');
+      setPeerReady(true);peerEverConnectedThisSession=true;reconnectAttempt=0;idClearingRetryActive=false;hideBanner();setOnlineDot('green');toast('Online as '+id+' 🟢');
       diagLog('✅ Peer connected to broker as '+id);
       if(reconnTimer){clearTimeout(reconnTimer);reconnTimer=null;}
       subscribePush();
@@ -1909,18 +1939,34 @@ function startPeer(){
       }
       setPeerReady(false);setOnlineDot('red');
       if(e.type==='unavailable-id'){
+        idClearingRetryActive=true;
         hideBanner();connBanner('Connecting…');
         diagLog('⚠️ Broker says our ID is still clearing — fast-retrying in '+retryDelay+'ms');
         setTimeout(function(){
           if(peer&&!peer.destroyed){try{peer.destroy();}catch(ex){}peer=null;}
           setTimeout(attemptConnect,retryDelay);retryDelay=Math.min(retryDelay*1.3,2000);
         },150);
+      }else if(idClearingRetryActive){
+        /* FIX: don't let a stray error from a socket that's about to be torn down by the
+           unavailable-id branch above kick off a second, competing retry loop. */
+        diagLog('⚠️ Broker error ('+e.type+') during ID-clearing retry — ignoring, the retry loop already running owns this');
       }else if(['network','server-error','socket-error','socket-closed'].includes(e.type)){
         connBanner('Reconnecting…');diagLog('⚠️ Broker connection error ('+e.type+') — reconnecting');scheduleReconnect();
       }else{showBanner('Connecting…');diagLog('⚠️ Broker error: '+e.type+' — '+(e.message||''));scheduleReconnect();}
     });
     peer.on('disconnected',function(){
-      setPeerReady(false);setOnlineDot('yellow');connBanner('Reconnecting…');
+      setPeerReady(false);setOnlineDot('yellow');
+      if(idClearingRetryActive){
+        /* FIX (root cause of the never-resolving reconnect loop): this event fires
+           alongside the unavailable-id error above almost every time — calling
+           peer.reconnect()/scheduleReconnect() here too was the second, competing
+           reconnect path that made the loop self-sustaining forever. The unavailable-id
+           branch already owns retrying right now; just reflect it in the banner. */
+        connBanner('Connecting…');
+        diagLog('⚠️ Broker connection dropped (ID-clearing retry already in progress — not starting a second one)');
+        return;
+      }
+      connBanner('Reconnecting…');
       diagLog('⚠️ Broker connection dropped — reconnecting');
       try{if(peer&&!peer.destroyed){peer.reconnect();}else{scheduleReconnect();}}catch(ex){scheduleReconnect();}
     });
@@ -1934,6 +1980,7 @@ function setOnlineDot(c){
 }
 function scheduleReconnect(immediate){
   if(reconnTimer)return;
+  if(idClearingRetryActive)return; /* FIX: the unavailable-id retry loop already owns reconnecting right now — see its comment above */
   var delay=immediate?300:1200;
   reconnTimer=setTimeout(function(){
     reconnTimer=null;
