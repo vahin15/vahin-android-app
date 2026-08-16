@@ -106,7 +106,7 @@ button,input,textarea{font-family:inherit;}
 .tab-btn.active .ti{background:var(--sheen),var(--hero-grad);box-shadow:0 4px 14px rgba(34,211,238,.35);}
 .tab-btn.active .ti svg{color:#fff;}
 .tab-btn:active{transform:scale(.92);}
-.tab-btn .ti{display:flex;align-items:center;justify-content:center;width:30px;height:30px;line-height:1;border-radius:10px;transition:background .2s var(--ease-spring),box-shadow .2s;}
+.tab-btn .ti{display:flex;align-items:center;justify-content:center;width:30px;height:30px;line-height:1;border-radius:10px;transition:background .2s var(--ease-spring),box-shadow .2s;position:relative;}
 .tab-btn .ti svg{width:19px;height:19px;display:block;transition:color .2s;}
 .tab-btn .tl{font-size:9.5px;font-weight:700;}
 .tab-badge{position:absolute;top:2px;right:calc(50% - 22px);background:var(--red);color:#fff;font-size:9px;font-weight:800;
@@ -138,6 +138,9 @@ button,input,textarea{font-family:inherit;}
   font-size:16px;font-weight:700;color:#fff;cursor:pointer;width:100%;min-height:54px;touch-action:manipulation;
   box-shadow:var(--glow-shadow);transition:transform .18s var(--ease-spring),box-shadow .18s,background-position .5s;}
 .btn-primary:active{transform:scale(.97);box-shadow:0 4px 14px rgba(34,211,238,.3);background-position:60% 40%;}
+.btn-secondary{background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--radius-sm);padding:17px;
+  font-size:16px;font-weight:700;color:var(--text);cursor:pointer;width:100%;min-height:54px;touch-action:manipulation;}
+.btn-secondary:active{transform:scale(.97);}
 .feature-pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
 .pill{background:var(--glass-bg);-webkit-backdrop-filter:blur(var(--glass-blur));backdrop-filter:blur(var(--glass-blur));border:1px solid var(--glass-border);border-radius:20px;padding:7px 14px;font-size:11.5px;color:var(--text2);
   display:flex;align-items:center;gap:6px;font-weight:600;box-shadow:var(--elev1);}
@@ -350,6 +353,16 @@ button,input,textarea{font-family:inherit;}
   align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:#fff;touch-action:manipulation;font-size:18px;
   box-shadow:var(--glow-shadow);transition:transform .15s var(--ease-spring),box-shadow .15s;}
 .send-btn:active{transform:scale(.85);box-shadow:0 2px 8px rgba(34,211,238,.3);}
+#emoji-btn.active{background:var(--sheen),var(--hero-grad);color:#fff;border-color:transparent;}
+.emoji-panel{display:none;background:var(--glass-bg-strong);-webkit-backdrop-filter:blur(var(--glass-blur));backdrop-filter:blur(var(--glass-blur));
+  border-top:1px solid var(--glass-border);max-height:230px;overflow-y:auto;padding:8px 6px;}
+.emoji-panel.show{display:block;}
+.emoji-panel-tabs{display:flex;gap:4px;padding:2px 6px 8px;overflow-x:auto;}
+.emoji-panel-tab{flex-shrink:0;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:4px 10px;font-size:13px;cursor:pointer;color:var(--text2);}
+.emoji-panel-tab.active{background:var(--sheen),var(--hero-grad);color:#fff;border-color:transparent;}
+.emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;padding:0 4px;}
+.emoji-grid span{font-size:24px;line-height:1;text-align:center;padding:6px 0;border-radius:8px;cursor:pointer;user-select:none;}
+.emoji-grid span:active{background:var(--surface2);}
 #blocked-bar{display:none;flex-direction:column;align-items:center;gap:12px;padding:20px 24px;
   background:linear-gradient(135deg,rgba(179,38,30,.06),rgba(234,88,12,.04));border-top:2px solid rgba(179,38,30,.2);flex-shrink:0;}
 .blocked-icon{font-size:32px;}
@@ -597,6 +610,41 @@ button,input,textarea{font-family:inherit;}
 .preview-cap-inp:focus{border-color:var(--accent);}
 
 /* ── Full-size DP Viewer ── */
+.tab-dot{position:absolute;top:2px;right:2px;width:9px;height:9px;border-radius:50%;background:var(--red);border:2px solid var(--surface);}
+.status-ring{position:absolute;inset:-3px;border-radius:50%;pointer-events:none;}
+.status-ring.has-status{border:2.5px solid #7c3aed;}
+.status-ring.has-status.viewed{border-color:var(--border2);}
+.status-my-row{display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;}
+.status-my-plus{position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:var(--sheen),var(--hero-grad);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:800;border:2px solid var(--surface);}
+.status-my-name{font-weight:700;font-size:15px;color:var(--text);}
+.status-my-sub{font-size:12.5px;color:var(--text3);margin-top:2px;}
+.status-section-lbl{font-size:12px;color:var(--text3);font-weight:700;padding:16px 16px 6px;}
+#sv-overlay{position:fixed;inset:0;background:#000;z-index:9999;display:none;flex-direction:column;}
+#sv-overlay.show{display:flex;}
+#sv-bars{display:flex;gap:4px;padding:calc(10px + var(--safe-top)) 12px 8px;}
+.sv-bar{flex:1;height:3px;background:rgba(255,255,255,.3);border-radius:2px;overflow:hidden;}
+.sv-bar-fill{height:100%;width:0;background:#fff;}
+.sv-bar-fill.full{width:100%!important;transition:none!important;}
+#sv-top{display:flex;align-items:center;gap:10px;padding:0 14px 10px;color:#fff;}
+#sv-top .sv-meta{flex:1;min-width:0;}
+#sv-name{font-weight:700;font-size:14px;}
+#sv-time{font-size:12px;opacity:.75;}
+.sv-icon-btn{background:rgba(255,255,255,.12);border:none;color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+#sv-media{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.sv-text{color:#fff;font-size:26px;font-weight:700;text-align:center;padding:30px;line-height:1.4;word-break:break-word;}
+.sv-img{max-width:100%;max-height:100%;object-fit:contain;}
+.sv-caption{position:absolute;bottom:20px;left:16px;right:16px;color:#fff;font-size:14px;text-align:center;background:rgba(0,0,0,.4);padding:8px 12px;border-radius:10px;}
+#sv-nav-prev,#sv-nav-next{position:absolute;top:0;bottom:0;width:35%;z-index:2;}
+#sv-nav-prev{left:0;}#sv-nav-next{right:0;}
+#status-composer-overlay{position:fixed;inset:0;background:var(--bg);z-index:9999;display:none;flex-direction:column;padding:calc(16px + var(--safe-top)) 16px calc(20px + var(--safe-bottom));}
+#status-composer-overlay.show{display:flex;}
+#sc-text-inp{flex:1;border:none;border-radius:16px;color:#fff;font-size:22px;font-weight:600;padding:24px;resize:none;outline:none;text-align:center;}
+#sc-preview-img{flex:1;width:100%;object-fit:contain;border-radius:16px;display:none;background:#000;}
+#sc-bg-picker{display:flex;gap:10px;justify-content:center;padding:16px 0;}
+.sc-bg-swatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;}
+.sc-bg-swatch.active{border-color:#fff;transform:scale(1.15);}
+.sc-mode-row{display:flex;gap:10px;padding-top:10px;}
 #dp-viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);z-index:9999;display:none;flex-direction:column;justify-content:space-between;padding:calc(16px + var(--safe-top)) 16px calc(24px + var(--safe-bottom));animation:popIn .25s var(--ease-spring);}
 #dp-viewer-overlay.show{display:flex;}
 .dpv-header{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:540px;margin:0 auto;color:#fff;z-index:2;}
@@ -788,6 +836,53 @@ button,input,textarea{font-family:inherit;}
   <div id="chats-body" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
   <button class="fab" id="new-chat-fab" title="New chat"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
 </div>
+<div id="screen-status" class="screen tabbed">
+  <div class="top-header"><div class="header-title">Status</div></div>
+  <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+    <div class="status-my-row" id="my-status-row">
+      <div class="cli-av" style="cursor:pointer;">
+        <span class="status-ring" id="my-status-ring"></span>
+        <span class="cli-av-letter" id="my-status-letter">?</span>
+        <span class="status-my-plus">+</span>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div class="status-my-name">My Status</div>
+        <div class="status-my-sub">Tap to add a status update</div>
+      </div>
+    </div>
+    <div class="status-section-lbl">RECENT UPDATES</div>
+    <div id="status-updates-list"></div>
+  </div>
+  <button class="fab" id="new-status-fab" title="Add status"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+</div>
+<div id="sv-overlay">
+  <div id="sv-bars"></div>
+  <div id="sv-top">
+    <div class="cli-av" style="width:36px;height:36px;"><span class="cli-av-letter" style="font-size:14px;" id="sv-avatar-letter">?</span></div>
+    <div class="sv-meta"><div id="sv-name">—</div><div id="sv-time">—</div></div>
+    <button class="sv-icon-btn" id="sv-delete-btn" title="Delete" style="display:none;">🗑️</button>
+    <button class="sv-icon-btn" id="sv-close-btn" title="Close">✕</button>
+  </div>
+  <div id="sv-media">
+    <div id="sv-nav-prev"></div>
+    <div id="sv-nav-next"></div>
+  </div>
+</div>
+<div id="status-composer-overlay">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <button class="sv-icon-btn" id="sc-close-btn">✕</button>
+    <div style="color:var(--text2);font-weight:700;">New Status</div>
+    <div style="width:34px;"></div>
+  </div>
+  <textarea id="sc-text-inp" placeholder="Type a status…" maxlength="700"></textarea>
+  <img id="sc-preview-img"/>
+  <div id="sc-bg-picker"></div>
+  <div class="sc-mode-row">
+    <input type="file" id="sc-image-input" accept="image/*" style="display:none;"/>
+    <button class="btn-secondary" id="sc-pick-image-btn" style="flex:1;">🖼️ Photo</button>
+    <button class="btn-primary" id="sc-post-btn" style="flex:1;">Post</button>
+  </div>
+</div>
 <div id="screen-calls" class="screen tabbed">
   <div class="top-header"><div class="header-title">Calls</div><div class="header-actions"><button class="hdr-btn" id="new-call-btn" title="New call"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg></button></div></div>
   <div id="calls-body" style="flex:1;overflow-y:auto;"></div>
@@ -910,6 +1005,7 @@ button,input,textarea{font-family:inherit;}
 </div>
 <nav id="tab-nav">
   <button class="tab-btn active" data-tab="chats"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.35 0-2.62-.32-3.75-.9L4 20l1.05-4.2A8.46 8.46 0 0 1 3.5 11.5 8.5 8.5 0 0 1 12 3a8.5 8.5 0 0 1 9 8.5Z"/></svg></span><span class="tl">Chats</span><span class="tab-badge" id="tab-badge-chats" style="display:none;"></span></button>
+  <button class="tab-btn" data-tab="status"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.2"/></svg><span class="tab-dot" id="tab-dot-status" style="display:none;"></span></span><span class="tl">Status</span></button>
   <button class="tab-btn" data-tab="calls"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.8c1.3 2.6 3.4 4.7 6 6l2-2c.3-.3.7-.4 1.1-.3 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h4c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1l-2 2Z"/></svg></span><span class="tl">Calls</span></button>
   <button class="tab-btn" data-tab="groups"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 19.5c0-3.3 2.9-5.8 6.5-5.8s6.5 2.5 6.5 5.8"/><path d="M16.5 8.2a3 3 0 1 1 2.7 4.4"/><path d="M21.5 19.2c0-2.6-1.9-4.8-4.7-5.5"/></svg></span><span class="tl">Groups</span></button>
   <button class="tab-btn" data-tab="settings"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.4.6a7.6 7.6 0 0 0-1.7-1L14.8 3h-4l-.5 2.7a7.6 7.6 0 0 0-1.7 1l-2.4-.6-2 3.4L6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.4-.6c.5.4 1.1.8 1.7 1l.5 2.7h4l.5-2.7c.6-.2 1.2-.6 1.7-1l2.4.6 2-3.4-2-1.5Z"/></svg></span><span class="tl">Settings</span></button>
@@ -938,9 +1034,14 @@ button,input,textarea{font-family:inherit;}
       <div class="attach-btn-group">
         <button class="attach-btn file-attach" id="attach-btn" title="Attach file, photo or video"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
         <button class="attach-btn voice-rec" id="voice-btn" title="Voice note"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
+        <button class="attach-btn" id="emoji-btn" title="Emoji"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></button>
       </div>
       <div class="chat-inp-wrapper"><textarea class="chat-inp" id="chat-input" placeholder="Message…" autocomplete="off" autocorrect="off" autocapitalize="sentences" rows="1"></textarea></div>
       <button class="send-btn" id="send-btn" title="Send"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+    </div>
+    <div class="emoji-panel" id="emoji-panel">
+      <div class="emoji-panel-tabs" id="emoji-panel-tabs"></div>
+      <div class="emoji-grid" id="emoji-grid"></div>
     </div>
   </div>
 </div>
@@ -1384,7 +1485,8 @@ var PEER_CONFIG={debug:0,host:'vahin-backend.onrender.com',secure:true,port:443,
 ],iceCandidatePoolSize:10}};
 var SK={MYID:'uf_myid_v3',CONTACTS:'uf_contacts_v3',DM:'uf_dm_v3',GRPH:'uf_grp_hist_v3',GRPM:'uf_grp_members_v3',GROUPS:'uf_groups_v1',
   CALLS:'uf_calls_v3',SETTINGS:'uf_settings_v3',BLOCKED:'uf_blocked_v3',PINNED:'uf_pinned_v3',ONBOARDED:'uf_onboarded_v1',RINGTONE:'uf_ringtone_v1',TOKEN:'uf_token_v1',
-  PERMSETUP_SEEN:'uf_permsetup_seen_v1',STARRED:'uf_starred_v1',APPLOCK:'uf_applock_v1',RECOVERY:'uf_recovery_v1'};
+  PERMSETUP_SEEN:'uf_permsetup_seen_v1',STARRED:'uf_starred_v1',APPLOCK:'uf_applock_v1',RECOVERY:'uf_recovery_v1',
+  MYSTATUS:'uf_mystatus_v1',PEERSTATUS:'uf_peerstatus_v1'};
 var myId='',peer=null,peerReady=false,reconnTimer=null;
 var localStream=null,currentCall=null,callPeerId='';
 var callConn=null,callTimer=null,callSecs=0,weAreCaller=false;
@@ -1730,8 +1832,9 @@ function enterApp(){
   var sav=document.getElementById('settings-av');
   if(sav){applyAvatarPlain(sav,myId);sav.style.cursor='pointer';sav.onclick=function(){openDpViewer(myId,myId);};}
   applySettingsToUI();
-  renderChats();renderPinnedChats();renderCallHistory();renderGroupsList();
+  renderChats();renderPinnedChats();renderCallHistory();renderGroupsList();renderStatusScreen();
   updateBlockedCountUI();
+  var myLet=document.getElementById('my-status-letter');if(myLet)myLet.textContent=myId[0].toUpperCase();
   document.getElementById('tab-nav').classList.add('visible');
   switchTab('chats');showScreen('screen-chats');
   // Shows on every normal app open until the user grants everything (matches the
@@ -1943,7 +2046,23 @@ function startPeer(){
       if(!isCurrent())return;
       peerReady=false;setOnlineDot('yellow');connBanner('Reconnecting…');
       diagLog('⚠️ Broker connection dropped — reconnecting');
-      try{if(peer&&!peer.destroyed){peer.reconnect();}else{scheduleReconnect();}}catch(ex){scheduleReconnect();}
+      /* FIX (1-in-3 stuck-reconnecting loop): this used to call peer.reconnect()
+         directly, right here, with no guard. If 'disconnected' fired more than
+         once in a burst (which PeerJS does — e.g. once from the WebSocket close
+         and again from a queued internal retry), each firing called
+         peer.reconnect() again on the SAME peer object before the previous
+         reconnect() had resolved. Two overlapping reconnect() calls on one
+         Peer race each other for the same underlying socket/ID and can each
+         make the other look like a stale attempt — the exact self-sustaining
+         livelock already diagnosed and fixed for the disconnected+unavailable-id
+         combo above, just re-introduced here via a second, ungated call site.
+         scheduleReconnect() already has a single-flight guard (reconnTimer) that
+         no-ops if a reconnect is already pending, so routing every path through
+         it — instead of some paths calling peer.reconnect() directly and others
+         going through the scheduler — makes "am I already trying to reconnect"
+         a single source of truth instead of two independent ones that can
+         disagree. */
+      scheduleReconnect(true);
     });
     peer.on('close',function(){
       if(!isCurrent())return;
@@ -2021,6 +2140,7 @@ function setupConn(conn){
   if(type==='presence'){conn.on('open',function(){setTimeout(function(){try{conn.close();}catch(e){}},300);});return;}
   conn.on('open',function(){
     var pid=conn.peer;addRecentSilent(pid);
+    syncStatusOnConnOpen(conn);
     if(type==='group'){
       var gid=conn.metadata.groupId;
       if(gid){
@@ -2138,7 +2258,10 @@ function handleData(from,data,conn){
       break;
     case 'file-meta':handleFileMeta(from,data);break;
     case 'file-chunk':handleFileChunk(data);break;
-    case 'file-end':handleFileEnd(data.transferId);break;
+    case 'file-end':handleFileEnd(data.transferId,conn);break;
+    case 'file-resend-request':handleFileResendRequest(data.transferId,data.missing||[],conn);break;
+    case 'status-new':receiveStatus(from,data.status);break;
+    case 'status-sync':(data.statuses||[]).forEach(function(s){receiveStatus(from,s);});break;
     case 'delete-msg':
       var dMid=data.msgId;if(!dMid)break;
       if(data.groupId&&groups[data.groupId]){
@@ -2954,6 +3077,64 @@ async function confirmFilePreview(){
   }
   sendFile(f,cap);
 }
+var EMOJI_SETS={
+  'Smileys':['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🫡','🤐','🤨','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','🥱','😴','😌','😛','😷','🤒','🤕','🤢','🤮','🥵','🥶','😵','🤯','🥳','😎','🤓','🧐','😕','😟','🙁','😮\u200d💨','😯','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥺','😤','😡','😠','🤬','😈','👿'],
+  'Gestures':['👍','👎','👌','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👏','🙌','👐','🤲','🤝','🙏','✍️','💪','🦾','🖐️','✋','🖖','👋','🤚','👊','✊'],
+  'Hearts':['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️\u200d🔥','💕','💞','💓','💗','💖','💘','💝','💟','😻','😍'],
+  'Objects':['🔥','✨','🎉','🎊','💯','⚡','💥','🌟','⭐','🌈','☀️','🌙','☁️','⛄','🎁','🎈','🎵','🎶','📱','💻','📸','🎮','⚽','🏀','🍕','🍔','🍟','🍩','🍦','☕','🍺','🥂','🚗','✈️','🏠','💰','⏰','📌','✅','❌']
+};
+function buildEmojiPanel(){
+  var tabs=document.getElementById('emoji-panel-tabs');if(!tabs||tabs.childElementCount)return;
+  Object.keys(EMOJI_SETS).forEach(function(cat,idx){
+    var b=document.createElement('button');b.className='emoji-panel-tab'+(idx===0?' active':'');b.textContent=cat;
+    b.onclick=function(){
+      Array.prototype.forEach.call(tabs.children,function(x){x.classList.remove('active');});
+      b.classList.add('active');renderEmojiGrid(cat);
+    };
+    tabs.appendChild(b);
+  });
+  renderEmojiGrid(Object.keys(EMOJI_SETS)[0]);
+}
+function renderEmojiGrid(cat){
+  var grid=document.getElementById('emoji-grid');if(!grid)return;
+  grid.innerHTML='';
+  EMOJI_SETS[cat].forEach(function(em){
+    var s=document.createElement('span');s.textContent=em;
+    s.onclick=function(){insertEmoji(em);};
+    grid.appendChild(s);
+  });
+}
+function insertEmoji(em){
+  var inp=document.getElementById('chat-input');if(!inp)return;
+  var start=inp.selectionStart||inp.value.length,end=inp.selectionEnd||inp.value.length;
+  inp.value=inp.value.slice(0,start)+em+inp.value.slice(end);
+  var pos=start+em.length;inp.setSelectionRange(pos,pos);
+  inp.focus();autoResizeTA();onChatTyping();
+}
+function toggleEmojiPanel(){
+  var panel=document.getElementById('emoji-panel'),btn=document.getElementById('emoji-btn');
+  if(!panel)return;
+  buildEmojiPanel();
+  var showing=panel.classList.toggle('show');
+  if(btn)btn.classList.toggle('active',showing);
+  if(showing){try{document.getElementById('chat-input').blur();}catch(e){}}
+  var msgs=document.getElementById('chat-msgs');if(msgs)msgs.scrollTop=msgs.scrollHeight;
+}
+function hideEmojiPanel(){
+  var panel=document.getElementById('emoji-panel'),btn=document.getElementById('emoji-btn');
+  if(panel)panel.classList.remove('show');
+  if(btn)btn.classList.remove('active');
+}
+var outgoingFileBufs={}; /* transferId -> {buf,conn} kept briefly so missing chunks can be resent */
+/* Status feature: text/photo updates that live for 24h. Deliberately zero-server —
+   nothing is uploaded anywhere. A posted status is pushed directly (P2P, over the
+   same WebRTC data channel used for chat) to whichever contacts we're already
+   connected to right now, and piggybacks on top of any OTHER connection that opens
+   later (opening a chat, sending a file, etc.) to reach the rest — so it costs the
+   backend exactly nothing beyond what the app already does. */
+var STATUS_TTL_MS=24*60*60*1000;
+var myStatuses=ls_get(SK.MYSTATUS,[]); // [{id,type:'text'|'image',text,bg,dataUrl,time,expiresAt}]
+var peerStatuses=ls_get(SK.PEERSTATUS,{}); // pid -> [status,...] (same shape + viewed:bool)
 var FILE_BUFFER_HIGH=1*1024*1024; /* pause sending once >1MB is still queued in the data channel */
 async function waitForBufferDrain(conn){
   var dc=conn&&conn.dataChannel;
@@ -3006,6 +3187,16 @@ async function sendFile(file,caption){
         conn2.send({type:'file-chunk',transferId:tfId,index:j,total:total,data:buf.slice(j*FILE_CHUNK,(j+1)*FILE_CHUNK)});
       }
       conn2.send({type:'file-end',transferId:tfId});
+      /* FIX (files "don't get shared properly"): sending every chunk once and
+         hoping was the whole protocol — if even one chunk got dropped (a brief
+         WebRTC hiccup, the receiver backgrounding mid-transfer, etc.) the
+         receiver's only recourse was a toast telling the human to manually
+         resend the ENTIRE file. Cache the raw buffer here, keyed by transferId,
+         so a resend-request for just the missing pieces (handled below in
+         handleData/'file-resend-request') can be served cheaply. Auto-expires
+         after 3 minutes so this doesn't grow unbounded for a chatty session. */
+      outgoingFileBufs[tfId]={buf:buf,conn:conn2};
+      setTimeout(function(){delete outgoingFileBufs[tfId];},180000);
     }catch(e){toast('File send failed: '+e.message);}
   }
   if(caption){
@@ -3041,13 +3232,27 @@ function handleFileChunk(chunk){
   var pct=Math.round((t.received/chunk.total)*100);
   updateFileProg(chunk.transferId,pct);
 }
-function handleFileEnd(tfId){
+function handleFileEnd(tfId,conn){
   var t=incomingFiles[tfId];if(!t)return;
   var expected=t.total||t.received;
   var missing=[];
   for(var i=0;i<expected;i++)if(t.chunks[i]===undefined)missing.push(i);
   if(missing.length){
-    toast('⚠️ File transfer incomplete — '+missing.length+' of '+expected+' pieces never arrived. Ask them to resend.');
+    /* FIX (files "don't get shared properly"): instead of giving up on the
+       whole transfer and telling the human to redo it by hand, ask the sender
+       to resend just the specific missing chunk indices — the sender kept a
+       short-lived cache of the raw file buffer for exactly this. Capped at 4
+       attempts so a genuinely dead connection still fails visibly instead of
+       retrying forever. */
+    t.resendAttempts=(t.resendAttempts||0)+1;
+    var c=conn||t.conn;
+    if(c&&c.open&&t.resendAttempts<=4){
+      t.conn=c;
+      diagLog('🔁 File '+tfId+': '+missing.length+' chunk(s) missing, requesting resend (attempt '+t.resendAttempts+')');
+      try{c.send({type:'file-resend-request',transferId:tfId,missing:missing});}catch(e){}
+      return; // wait for the resent chunks; handleFileEnd fires again after resend
+    }
+    toast('⚠️ File transfer incomplete — '+missing.length+' of '+expected+' pieces never arrived after retrying. Ask them to resend.');
     delete incomingFiles[tfId];
     return;
   }
@@ -3057,6 +3262,251 @@ function handleFileEnd(tfId){
     updateFileProg(tfId,100,url);
   }catch(e){toast('File transfer failed');}
   delete incomingFiles[tfId];
+}
+function handleFileResendRequest(transferId,missing,conn){
+  var o=outgoingFileBufs[transferId];
+  var c=conn||(o&&o.conn);
+  if(!o||!c||!c.open){diagLog('⚠️ Resend request for '+transferId+' but source buffer/connection is gone');return;}
+  var total=Math.ceil(o.buf.byteLength/FILE_CHUNK);
+  (async function(){
+    for(var k=0;k<missing.length;k++){
+      var j=missing[k];
+      await waitForBufferDrain(c);
+      try{c.send({type:'file-chunk',transferId:transferId,index:j,total:total,data:o.buf.slice(j*FILE_CHUNK,(j+1)*FILE_CHUNK)});}catch(e){}
+    }
+    try{c.send({type:'file-end',transferId:transferId});}catch(e){}
+  })();
+}
+/* ===== Status (24h updates, P2P-only — see var declaration above) ===== */
+function genStatusId(){return 'st'+Date.now()+'_'+Math.random().toString(36).slice(2,8);}
+function purgeExpiredStatuses(){
+  var now=Date.now(),changed=false;
+  var b1=myStatuses.length;myStatuses=myStatuses.filter(function(s){return s.expiresAt>now;});
+  if(myStatuses.length!==b1)changed=true;
+  Object.keys(peerStatuses).forEach(function(pid){
+    var b2=peerStatuses[pid].length;
+    peerStatuses[pid]=peerStatuses[pid].filter(function(s){return s.expiresAt>now;});
+    if(!peerStatuses[pid].length)delete peerStatuses[pid];
+    else if(peerStatuses[pid].length!==b2)changed=true;
+  });
+  if(changed){ls_set(SK.MYSTATUS,myStatuses);ls_set(SK.PEERSTATUS,peerStatuses);}
+  return changed;
+}
+function activeMyStatusesForSync(){
+  purgeExpiredStatuses();
+  return myStatuses.map(function(s){return {id:s.id,type:s.type,text:s.text||null,bg:s.bg||null,dataUrl:s.dataUrl||null,time:s.time,expiresAt:s.expiresAt};});
+}
+function compressStatusImage(file,maxDim,quality){
+  return new Promise(function(resolve,reject){
+    if(!file||!file.type||!file.type.startsWith('image/')){reject(new Error('not an image'));return;}
+    var reader=new FileReader();
+    reader.onload=function(){
+      var img=new Image();
+      img.onload=function(){
+        var scale=Math.min(maxDim/img.width,maxDim/img.height,1);
+        var nw=Math.max(1,Math.round(img.width*scale)),nh=Math.max(1,Math.round(img.height*scale));
+        var canvas=document.createElement('canvas');canvas.width=nw;canvas.height=nh;
+        canvas.getContext('2d').drawImage(img,0,0,nw,nh);
+        try{resolve(canvas.toDataURL('image/jpeg',quality));}catch(e){reject(e);}
+      };
+      img.onerror=function(){reject(new Error('bad image'));};
+      img.src=reader.result;
+    };
+    reader.onerror=function(){reject(new Error('read failed'));};
+    reader.readAsDataURL(file);
+  });
+}
+function findOpenConnTo(pid){
+  if(chatConn&&chatConn.peer===pid&&chatConn.open)return chatConn;
+  var found=null;
+  Object.keys(groupConnsByGid).forEach(function(gid){
+    var gc=groupConnsByGid[gid];
+    if(!found&&gc&&gc[pid]&&gc[pid].open)found=gc[pid];
+  });
+  return found;
+}
+function broadcastStatus(s){
+  var sent=0;
+  recentPeers.forEach(function(pid){
+    var conn=findOpenConnTo(pid);
+    if(conn&&conn.open){try{conn.send({type:'status-new',status:s});sent++;}catch(e){}}
+  });
+  diagLog('📤 Status pushed live to '+sent+' currently-connected contact(s) — everyone else picks it up P2P the next time a connection opens between us, no server involved');
+}
+async function postTextStatus(text,bg){
+  text=(text||'').trim();if(!text){toast('Type something first');return;}
+  var s={id:genStatusId(),type:'text',text:text.substring(0,700),bg:bg||'#7c3aed',time:Date.now(),expiresAt:Date.now()+STATUS_TTL_MS};
+  myStatuses.unshift(s);ls_set(SK.MYSTATUS,myStatuses);
+  broadcastStatus(s);renderStatusScreen();toast('Status posted ✓ · disappears in 24h');
+}
+async function postImageStatus(file,caption){
+  if(!file)return;
+  var dataUrl;
+  try{dataUrl=await compressStatusImage(file,1000,0.72);}
+  catch(e){toast('Could not process that image');return;}
+  var s={id:genStatusId(),type:'image',dataUrl:dataUrl,text:(caption||'').substring(0,300),time:Date.now(),expiresAt:Date.now()+STATUS_TTL_MS};
+  myStatuses.unshift(s);ls_set(SK.MYSTATUS,myStatuses);
+  broadcastStatus(s);renderStatusScreen();toast('Status posted ✓ · disappears in 24h');
+}
+function deleteMyStatus(id){
+  myStatuses=myStatuses.filter(function(s){return s.id!==id;});
+  ls_set(SK.MYSTATUS,myStatuses);renderStatusScreen();closeStatusViewer();toast('Status deleted');
+}
+function receiveStatus(from,s){
+  if(!s||!s.id||isBlocked(from))return;
+  if(s.expiresAt&&s.expiresAt<=Date.now())return; // stale by the time it arrived
+  if(!peerStatuses[from])peerStatuses[from]=[];
+  if(peerStatuses[from].some(function(x){return x.id===s.id;}))return; // already have it
+  s.viewed=false;
+  peerStatuses[from].unshift(s);
+  ls_set(SK.PEERSTATUS,peerStatuses);
+  if(currentTab==='status')renderStatusScreen();
+  updateStatusTabDot();
+  toast('🟣 New status from '+from);
+}
+function syncStatusOnConnOpen(conn){
+  if(!conn||conn.metadata&&conn.metadata.type==='presence')return;
+  try{conn.send({type:'status-sync',statuses:activeMyStatusesForSync()});}catch(e){}
+}
+function hasUnviewedStatuses(){
+  return Object.keys(peerStatuses).some(function(pid){return (peerStatuses[pid]||[]).some(function(s){return !s.viewed;});});
+}
+function updateStatusTabDot(){
+  var d=document.getElementById('tab-dot-status');if(!d)return;
+  d.style.display=hasUnviewedStatuses()?'block':'none';
+}
+function renderStatusScreen(){
+  purgeExpiredStatuses();
+  updateStatusTabDot();
+  var myRow=document.getElementById('my-status-row');
+  if(myRow){
+    var sub=myRow.querySelector('.status-my-sub');
+    sub.textContent=myStatuses.length?myStatuses.length+' update'+(myStatuses.length>1?'s':'')+' · tap to view':'Tap to add a status update';
+    var ring=myRow.querySelector('.status-ring');
+    ring.classList.toggle('has-status',myStatuses.length>0);
+  }
+  var list=document.getElementById('status-updates-list');
+  if(!list)return;
+  list.innerHTML='';
+  var pids=Object.keys(peerStatuses).filter(function(pid){return (peerStatuses[pid]||[]).length;});
+  if(!pids.length){
+    list.innerHTML='<div class="empty-state" style="padding:30px 20px;"><div class="empty-icon">🟣</div><div class="empty-title">No updates yet</div><div class="empty-sub">Updates from contacts will appear here for 24 hours</div></div>';
+    return;
+  }
+  pids.sort(function(a,b){return peerStatuses[b][0].time-peerStatuses[a][0].time;});
+  pids.forEach(function(pid){
+    var arr=peerStatuses[pid];
+    var allViewed=arr.every(function(s){return s.viewed;});
+    var row=document.createElement('div');row.className='chat-list-item';
+    row.onclick=function(){openStatusViewer(pid);};
+    var av=document.createElement('div');av.className='cli-av';
+    var ring=document.createElement('span');ring.className='status-ring has-status'+(allViewed?' viewed':'');
+    var avLetter=document.createElement('span');avLetter.className='cli-av-letter';avLetter.textContent=pid[0].toUpperCase();
+    av.appendChild(ring);av.appendChild(avLetter);
+    var info=document.createElement('div');info.className='cli-info';
+    var nm=document.createElement('div');nm.className='cli-name';nm.textContent=pid;
+    var pr=document.createElement('div');pr.className='cli-prev';pr.textContent=arr.length+' update'+(arr.length>1?'s':'')+' · '+timeAgo(arr[0].time);
+    info.appendChild(nm);info.appendChild(pr);
+    row.appendChild(av);row.appendChild(info);
+    list.appendChild(row);
+  });
+}
+function timeAgo(ts){
+  var m=Math.max(0,Math.round((Date.now()-ts)/60000));
+  if(m<1)return 'just now';if(m<60)return m+'m ago';
+  var h=Math.round(m/60);if(h<24)return h+'h ago';
+  return Math.round(h/24)+'d ago';
+}
+var statusViewerCtx=null;
+function openStatusViewer(pid){
+  purgeExpiredStatuses();
+  var items=pid==='me'?myStatuses:(peerStatuses[pid]||[]);
+  if(!items.length)return;
+  statusViewerCtx={pid:pid,items:items,idx:0,timer:null};
+  document.getElementById('sv-name').textContent=pid==='me'?'My Status':pid;
+  document.getElementById('sv-avatar-letter').textContent=(pid==='me'?myId:pid)[0].toUpperCase();
+  document.getElementById('sv-overlay').classList.add('show');
+  document.getElementById('sv-delete-btn').style.display=pid==='me'?'flex':'none';
+  showStatusItem(0);
+}
+function showStatusItem(idx){
+  var ctx=statusViewerCtx;if(!ctx)return;
+  if(idx<0){closeStatusViewer();return;}
+  if(idx>=ctx.items.length){closeStatusViewer();return;}
+  ctx.idx=idx;
+  var s=ctx.items[idx];
+  if(ctx.pid!=='me'){s.viewed=true;ls_set(SK.PEERSTATUS,peerStatuses);updateStatusTabDot();}
+  var media=document.getElementById('sv-media');
+  media.innerHTML='';
+  if(s.type==='text'){
+    media.style.background=s.bg||'#7c3aed';
+    var t=document.createElement('div');t.className='sv-text';t.textContent=s.text;
+    media.appendChild(t);
+  }else{
+    media.style.background='#000';
+    var img=document.createElement('img');img.src=s.dataUrl;img.className='sv-img';
+    media.appendChild(img);
+    if(s.text){var cap=document.createElement('div');cap.className='sv-caption';cap.textContent=s.text;media.appendChild(cap);}
+  }
+  var bars=document.getElementById('sv-bars');
+  bars.innerHTML='';
+  ctx.items.forEach(function(_,i){
+    var bar=document.createElement('div');bar.className='sv-bar';
+    var fill=document.createElement('div');fill.className='sv-bar-fill'+(i<idx?' full':'');
+    bar.appendChild(fill);bars.appendChild(bar);
+  });
+  document.getElementById('sv-time').textContent=timeAgo(s.time);
+  clearTimeout(ctx.timer);
+  var fillEl=bars.children[idx].firstChild;
+  requestAnimationFrame(function(){fillEl.style.transition='width 5s linear';fillEl.style.width='100%';});
+  ctx.timer=setTimeout(function(){showStatusItem(idx+1);},5000);
+}
+function statusViewerNav(dir){
+  var ctx=statusViewerCtx;if(!ctx)return;
+  clearTimeout(ctx.timer);
+  showStatusItem(ctx.idx+dir);
+}
+function closeStatusViewer(){
+  if(statusViewerCtx)clearTimeout(statusViewerCtx.timer);
+  statusViewerCtx=null;
+  document.getElementById('sv-overlay').classList.remove('show');
+  renderStatusScreen();
+}
+var pendingStatusMode=null;
+function openStatusComposer(){
+  document.getElementById('status-composer-overlay').classList.add('show');
+  document.getElementById('sc-text-inp').value='';
+  document.getElementById('sc-text-inp').style.display='block';
+  document.getElementById('sc-preview-img').style.display='none';
+  document.getElementById('sc-bg-picker').style.display='flex';
+  pendingStatusMode='text';pendingStatusFile=null;
+  document.getElementById('sc-text-inp').style.background=STATUS_BG_COLORS[0];
+  scSelectedBg=STATUS_BG_COLORS[0];
+}
+function closeStatusComposer(){document.getElementById('status-composer-overlay').classList.remove('show');pendingStatusFile=null;}
+var STATUS_BG_COLORS=['#7c3aed','#1a73e8','#0d9488','#ea580c','#B3261E','#4b5563'];
+var scSelectedBg=STATUS_BG_COLORS[0];
+var pendingStatusFile=null;
+function pickStatusBg(c){
+  scSelectedBg=c;document.getElementById('sc-text-inp').style.background=c;
+  document.querySelectorAll('.sc-bg-swatch').forEach(function(el){el.classList.toggle('active',el.dataset.c===c);});
+}
+function chooseStatusImage(file){
+  if(!file)return;
+  pendingStatusMode='image';pendingStatusFile=file;
+  var url=URL.createObjectURL(file);
+  var img=document.getElementById('sc-preview-img');img.src=url;img.style.display='block';
+  document.getElementById('sc-text-inp').style.display='none';
+  document.getElementById('sc-bg-picker').style.display='none';
+}
+async function submitStatusComposer(){
+  if(pendingStatusMode==='image'&&pendingStatusFile){
+    await postImageStatus(pendingStatusFile,'');
+  }else{
+    var txt=document.getElementById('sc-text-inp').value;
+    await postTextStatus(txt,scSelectedBg);
+  }
+  closeStatusComposer();
 }
 function updateFileProg(tfId,pct,readyUrl){
   document.querySelectorAll('[data-tfid="'+tfId+'"]').forEach(function(el){
@@ -4386,7 +4836,7 @@ function connectWithWake(pid,connType,onOpen,onFail,maxWaitMs,extraMeta){
     try{c=peer&&peer.connect(pid,{reliable:true,metadata:Object.assign({type:connType},extraMeta||{})});}catch(e){c=null;}
     if(!c){retryOrFail();return;}
     var to=setTimeout(function(){if(settled)return;try{c.close();}catch(e){}retryOrFail();},3500);
-    c.on('open',function(){if(settled)return;settled=true;clearTimeout(to);onOpen(c);});
+    c.on('open',function(){if(settled)return;settled=true;clearTimeout(to);syncStatusOnConnOpen(c);onOpen(c);});
     c.on('error',function(){if(settled)return;clearTimeout(to);retryOrFail();});
   }
   function retryOrFail(){
@@ -4691,10 +5141,11 @@ function switchTab(tab){
   for(var i=0;i<btns.length;i++){btns[i].classList.toggle('active',btns[i].dataset.tab===tab);}
   if(tab==='calls'&&callHistoryDirty)requestAnimationFrame(renderCallHistory);
   if(tab==='settings')syncSettingsUI();
+  if(tab==='status')renderStatusScreen();
   if(!target)return;
   var prevEl=prevTab?(document.getElementById('screen-'+prevTab+'s')||document.getElementById('screen-'+prevTab)):null;
   if(!prevEl||prevEl===target||!prevEl.classList.contains('active')){
-    ['chats','calls','groups','settings'].forEach(function(t){
+    ['chats','status','calls','groups','settings'].forEach(function(t){
       var s=document.getElementById('screen-'+t+'s')||document.getElementById('screen-'+t);
       if(s&&s!==target){s.classList.remove('active');s.style.transform='';s.style.transition='';s.style.zIndex='';}
     });
@@ -4727,7 +5178,7 @@ function switchTab(tab){
     tabAnimTimer=null;tabAnimEl=null;
   },260);
 }
-var TAB_ORDER=['chats','calls','groups','settings'];
+var TAB_ORDER=['chats','status','calls','groups','settings'];
 function getTabScreenEl(tab){return document.getElementById('screen-'+tab+'s')||document.getElementById('screen-'+tab);}
 
 /* Live, finger-tracked tab swipe (replaces the old "measure total distance on
@@ -5543,6 +5994,24 @@ function bindEvents(){
   addClick('invite-friends-row',inviteFriends);
   addClick('dp-viewer-close-btn',closeDpViewer);
   addClick('dp-viewer-overlay',function(e){if(e.target===this)closeDpViewer();});
+  addClick('new-status-fab',openStatusComposer);
+  addClick('my-status-row',function(){if(myStatuses.length)openStatusViewer('me');else openStatusComposer();});
+  addClick('sv-close-btn',closeStatusViewer);
+  addClick('sv-delete-btn',function(){if(statusViewerCtx)deleteMyStatus(statusViewerCtx.items[statusViewerCtx.idx].id);});
+  addClick('sv-nav-prev',function(){statusViewerNav(-1);});
+  addClick('sv-nav-next',function(){statusViewerNav(1);});
+  addClick('sc-close-btn',closeStatusComposer);
+  addClick('sc-post-btn',submitStatusComposer);
+  addClick('sc-pick-image-btn',function(){document.getElementById('sc-image-input').click();});
+  addEvt('sc-image-input','change',function(){if(this.files&&this.files[0])chooseStatusImage(this.files[0]);this.value='';});
+  (function(){
+    var picker=document.getElementById('sc-bg-picker');
+    STATUS_BG_COLORS.forEach(function(c,i){
+      var sw=document.createElement('div');sw.className='sc-bg-swatch'+(i===0?' active':'');sw.dataset.c=c;
+      sw.style.background=c;sw.onclick=function(){pickStatusBg(c);};
+      picker.appendChild(sw);
+    });
+  })();
   addClick('chat-media-back-btn',function(){showScreen('screen-chat','back');});
   addClick('cm-tab-media',function(){switchMediaTab('media');});
   addClick('cm-tab-docs',function(){switchMediaTab('docs');});
@@ -5564,9 +6033,11 @@ function bindEvents(){
   var chatInputEl=document.getElementById('chat-input');
   if(chatInputEl){
     chatInputEl.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
+    chatInputEl.addEventListener('focus',hideEmojiPanel);
   }
   addClick('send-btn',sendMsg);
   addClick('attach-btn',openAttachMenu);
+  addClick('emoji-btn',toggleEmojiPanel);
   addClick('voice-btn',startVoiceRecord);
   addClick('unblock-btn',function(){unblockUser(chatPeerId);});
   addClick('report-btn',async function(){
