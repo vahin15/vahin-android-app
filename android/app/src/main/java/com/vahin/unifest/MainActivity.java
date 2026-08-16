@@ -106,6 +106,25 @@ public class MainActivity extends BridgeActivity {
         maybePromptBatteryExemption();
     }
 
+    // FIX (redundant native ring when both phones are already online): onStart/onStop
+    // bracket "any part of this Activity is visible", which is what AppState.foreground
+    // means to VahinMessagingService — see AppState.java for the full reasoning. Using
+    // onStart/onStop instead of onResume/onPause on purpose: onPause also fires for
+    // transient partial-cover cases (a system permission dialog, a share sheet), which
+    // would incorrectly flip foreground=false while the app is still clearly "open" from
+    // the user's point of view and would wrongly let a redundant native popup back in.
+    @Override
+    public void onStart() {
+        super.onStart();
+        AppState.setForeground(true);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        AppState.setForeground(false);
+    }
+
     // Android 14+ (API 34+) requires the user to explicitly grant USE_FULL_SCREEN_INTENT
     // in Settings — declaring it in the manifest is no longer enough on its own once
     // targetSdkVersion is 34 or higher (this app targets 35). Without this grant, the

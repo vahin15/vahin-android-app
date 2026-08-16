@@ -261,6 +261,20 @@ public class VahinPermissionsPlugin extends Plugin {
         call.resolve();
     }
 
+    // FIX (redundant native ring when both phones are already online): index.html calls
+    // this every time its own peerReady flag flips (see setPeerReady() in the JS), so
+    // AppState.isPeerReady() always reflects whether the PeerJS broker socket is
+    // actually open right now — not just that the app happens to be on screen. Read by
+    // VahinMessagingService.onMessageReceived() to decide whether an incoming call push
+    // can safely skip the native full-screen popup because the in-app ring will handle it.
+    @PluginMethod
+    public void setPeerConnected(PluginCall call) {
+        boolean connected = call.getBoolean("connected", false);
+        AppState.setPeerReady(connected);
+        DebugLog.log("AppState", "setPeerConnected: " + connected);
+        call.resolve();
+    }
+
     private void openAppDetailsSettings() {
         try {
             Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);

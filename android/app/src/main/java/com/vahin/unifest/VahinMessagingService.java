@@ -98,8 +98,30 @@ public class VahinMessagingService extends FirebaseMessagingService {
         try {
             if ("call".equals(type) || "voice-call".equals(type) || "conf".equals(type)) {
                 if (CallNotifier.shouldSkipDuplicateRing(from)) return;
+
+                // FIX ("ringing" appearing even when both phones are already online): a
+                // call push can still be sent by the caller's presence probe even when the
+                // callee is genuinely reachable (e.g. a slow round-trip to the Render
+                // broker makes the caller's 500ms P2P probe time out before the WebSocket
+                // actually answers) — that's a false negative on the SENDER's side, and
+                // trying to make that probe perfectly reliable is a losing battle. Fixing
+                // it here on the RECEIVING side instead is robust regardless of why the
+                // push was sent: if this device is both in the foreground AND its PeerJS
+                // broker socket is actually open right now (AppState.canSkipNativePopup()),
+                // the real WebRTC call signal (peer.on('call') in index.html) is either
+                // already showing the in-app ring or about to land within moments — the
+                // native full-screen popup + Telecom call would just be a redundant second
+                // ring stacked on top of the one already on screen. Skip it and let the
+                // in-app ring alone handle it, exactly as if this had arrived over the
+                // already-open P2P connection instead of FCM.
+                if (AppState.canSkipNativePopup()) {
+                    DebugLog.log(TAG, "onMessageReceived: app foreground + peer connected — "
+                        + "skipping native popup, in-app ring will handle it (from=" + from + ")");
+                    return;
+                }
+
                 boolean isConf = "conf".equals(type);
-                
+
                 // 1. Immediately post the high-priority full-screen notification (bypasses lock screen)
                 CallNotifier.showIncomingCall(this, type, from);
                 
