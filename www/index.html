@@ -1914,7 +1914,7 @@ async function fetchQueuedMailbox(){
         unreadGroup[gid]=(unreadGroup[gid]||0)+1;
         saveAll();
         showHUN('group',gName,from+' added you to "'+gName+'"',function(){openGroupChat(gid);});
-        showLocalNotif('group',gName,from+' added you to "'+gName+'"');
+        showLocalNotif('group',gName,from+' added you to "'+gName+'"',gid);
         return;
       }
 
@@ -1935,7 +1935,7 @@ async function fetchQueuedMailbox(){
           unreadGroup[gid]=(unreadGroup[gid]||0)+1;
           saveAll();
           showHUN('group-msg',groups[gid].name,from+': '+text.substring(0,60),function(){openGroupChat(gid);});
-          showLocalNotif('group-msg',groups[gid].name,from+': '+text);
+          showLocalNotif('group-msg',groups[gid].name,from+': '+text,gid);
         }
         return;
       }
@@ -1946,12 +1946,12 @@ async function fetchQueuedMailbox(){
       var mo={me:false,text:text,time:time,_id:'mbx'+time+Math.random().toString(36).slice(2,6)};
       if(!dmHistory[from])dmHistory[from]=[];
       dmHistory[from].push(mo);ls_set(SK.DM,dmHistory);
-      if(chatMode==='dm'&&chatPeerId===from&&document.visibilityState==='visible'){
+      if(isChatActive(from)){
         removeEmpty('chat-msgs');appendMsg(false,text,time,false,null,mo);
       }else{
         unreadDM[from]=(unreadDM[from]||0)+1;
         showHUN('msg',from,text.substring(0,60),function(){openDMChat(from);});
-        showLocalNotif('message',from,text);
+        showLocalNotif('message',from,text,from);
       }
     });
     renderChats();renderPinnedChats();renderGroupsList();updateGroupsTabBadge();
@@ -2077,7 +2077,7 @@ function startPeer(){
     catch(e){setTimeout(function(){peerReady=false;notifyNativePeerReady(false);connBanner('Reconnecting…');scheduleReconnect();},1000);return;}
     peer.on('open',function(id){
       if(!isCurrent())return;
-      peerReady=true;peerEverConnectedThisSession=true;reconnectAttempt=0;peerStarting=false;hideBanner();setOnlineDot('green');notifyNativePeerReady(true);toast('Online as '+id+' 🟢');
+      peerReady=true;peerEverConnectedThisSession=true;reconnectAttempt=0;peerStarting=false;clearTimeout(reconnWatchdogTimer);hideBanner();setOnlineDot('green');notifyNativePeerReady(true);toast('Online as '+id+' 🟢');
       diagLog('✅ Peer connected to broker as '+id);
       if(reconnTimer){clearTimeout(reconnTimer);reconnTimer=null;}
       subscribePush();
@@ -2218,11 +2218,36 @@ function scheduleReconnect(immediate){
     reconnectAttempt++;
     if(peerEverConnectedThisSession)connBanner('Reconnecting…'); /* refresh the (attempt N) count even if nothing else changes yet */
     diagLog('🔁 Reconnect attempt #'+reconnectAttempt);
-    if(peer&&!peer.destroyed&&peer.disconnected){try{peer.reconnect();}catch(e){startPeer();}}
-    else if(!peer||peer.destroyed){startPeer();}
+    /* FIX (bulletproof reconnect watchdog): peer.reconnect() reuses the SAME underlying
+       Peer object/socket. If that object itself has gotten into a wedged state (broker
+       keeps rejecting it, or the socket layer never truly recovers), calling
+       .reconnect() on it forever just retries the same broken thing — the "stuck
+       Reconnecting…" complaint. After a few soft attempts, stop trusting the old peer
+       object: destroy it outright and let startPeer() build a brand-new one with a
+       fresh socket/ID handshake, same as a cold start. */
+    var WATCHDOG_THRESHOLD=4;
+    if(reconnectAttempt>=WATCHDOG_THRESHOLD){
+      diagLog('⛑️ Watchdog: '+reconnectAttempt+' soft attempts without success — forcing full peer restart');
+      try{if(peer&&!peer.destroyed)peer.destroy();}catch(e){}
+      peer=null;peerStarting=false;
+      startPeer();
+    }else if(peer&&!peer.destroyed&&peer.disconnected){
+      try{peer.reconnect();}catch(e){startPeer();}
+    }else if(!peer||peer.destroyed){
+      startPeer();
+    }
     setOnlineDot('yellow');
+    /* Keep trying: if this attempt doesn't result in 'open' firing (which resets
+       reconnectAttempt to 0 elsewhere), the next disconnected/error event will call
+       scheduleReconnect() again — but also self-arm here in case the peer object
+       never emits another event at all (fully wedged socket, no error surfaced). */
+    clearTimeout(reconnWatchdogTimer);
+    reconnWatchdogTimer=setTimeout(function(){
+      if(!peerReady){diagLog('⏱️ No connection confirmed after retry window — scheduling another attempt');scheduleReconnect(true);}
+    },6000);
   },delay);
 }
+var reconnWatchdogTimer=null;
 function startPresence(){
   if(presenceInterval)clearInterval(presenceInterval);
   checkPresence();presenceInterval=setInterval(checkPresence,25000);
@@ -2378,13 +2403,13 @@ function handleData(from,data,conn){
       if(!dmHistory[from])dmHistory[from]=[];
       dmHistory[from].push(mo);ls_set(SK.DM,dmHistory);
       if(conn&&conn.open){try{conn.send({type:'read-receipt',msgIds:[mid]});}catch(e){}}
-      if(chatMode==='dm'&&chatPeerId===from&&document.visibilityState==='visible'){
+      if(isChatActive(from)){
         removeEmpty('chat-msgs');appendMsg(false,data.text,data.time||now,false,null,mo);
       }else{
         unreadDM[from]=(unreadDM[from]||0)+1;
         renderChats();renderPinnedChats();
         showHUN('msg',from,(data.text||'').substring(0,60),function(){openDMChat(from);});
-        showLocalNotif('message',from,data.text);
+        showLocalNotif('message',from,data.text,from);
       }
       break;
     case 'chat-group':
@@ -2405,7 +2430,7 @@ function handleData(from,data,conn){
           renderGroupsList();
           updateGroupsTabBadge();
           showHUN('group-msg',groups[ggid].name,from+': '+(data.text||'').substring(0,60),function(){openGroupChat(ggid);});
-          showLocalNotif('group-msg',groups[ggid].name,from+': '+(data.text||''));
+          showLocalNotif('group-msg',groups[ggid].name,from+': '+(data.text||''),ggid);
           toast('💬 ['+groups[ggid].name+'] '+from+': '+(data.text||'').substring(0,38));
         }
       }
@@ -2426,7 +2451,7 @@ function handleData(from,data,conn){
       renderGroupsList();
       updateGroupsTabBadge();
       showHUN('group',data.name,from+' added you to "'+data.name+'"',function(){openGroupChat(data.groupId);});
-      showLocalNotif('group',data.name,from+' added you to "'+data.name+'"');
+      showLocalNotif('group',data.name,from+' added you to "'+data.name+'"',data.groupId);
       toast('👥 Added to group: '+data.name);
       break;
     case 'group-update':
@@ -2844,6 +2869,27 @@ function connectGroupMember(gid,pid){
     return conn;
   }catch(e){return null;}
 }
+/* FIX (group invites/messages didn't reliably reach members — "group not shown to
+   anyone", messages seemingly lost): connectGroupMember() above is a single, immediate
+   best-effort peer.connect() — if the target member's PeerJS session isn't ALREADY live
+   in the broker at that exact instant (extremely common: they're backgrounded, or just
+   getting woken up by the parallel /notify FCM ping and haven't finished reconnecting
+   yet), the connect silently fails or its 'open' event just never fires, and the
+   group-invite / chat-group payload is dropped for good — no retry. DMs never had this
+   problem because sendMsg()'s dm branch uses connectWithWake(), which retries the
+   connect every 1.5s for up to 40s specifically to ride out that wake-up race. This
+   gives group traffic the exact same treatment. */
+function connectGroupMemberReliable(gid,pid,onOpen,onFail){
+  if(!groupConnsByGid[gid])groupConnsByGid[gid]={};
+  var existing=groupConnsByGid[gid][pid];
+  if(existing&&existing.open){onOpen(existing);return;}
+  connectWithWake(pid,'group',function(conn){
+    groupConnsByGid[gid][pid]=conn;
+    conn.on('data',function(data){handleData(pid,data,conn);});
+    conn.on('error',function(){});
+    onOpen(conn);
+  },onFail,40000,{groupId:gid});
+}
 // Sends this group's current name+member list to every member (except self) — used
 // on create, rename, add member, remove member, and leave, so every device converges
 // on the same state. No central server holds group membership; this P2P push is it.
@@ -2851,11 +2897,8 @@ function broadcastGroupState(gid){
   var g=groups[gid];if(!g)return;
   g.members.forEach(function(pid){
     if(pid===myId)return;
-    var conn=connectGroupMember(gid,pid);
-    var payload=g.members.includes(pid)?{type:'group-update',groupId:gid,name:g.name,members:g.members}:null;
-    if(!conn||!payload)return;
-    if(conn.open)try{conn.send(payload);}catch(e){}
-    else conn.on('open',function(){try{conn.send(payload);}catch(e){}});
+    var payload={type:'group-update',groupId:gid,name:g.name,members:g.members};
+    connectGroupMemberReliable(gid,pid,function(conn){try{conn.send(payload);}catch(e){}},function(){});
   });
 }
 // First-time invite carries the same shape as group-update but tells a brand new
@@ -2863,12 +2906,10 @@ function broadcastGroupState(gid){
 // for someone with no local copy of the group yet).
 function sendGroupInvite(gid,pid){
   var g=groups[gid];if(!g)return;
-  var conn=connectGroupMember(gid,pid);
   var payload={type:'group-invite',groupId:gid,name:g.name,members:g.members,createdBy:g.createdBy};
-  if(conn){
-    if(conn.open)try{conn.send(payload);}catch(e){}
-    else conn.on('open',function(){try{conn.send(payload);}catch(e){}});
-  }
+  connectGroupMemberReliable(gid,pid,function(conn){try{conn.send(payload);}catch(e){}},function(){
+    diagLog('⚠️ Could not reach '+pid+' P2P for group invite — relying on server wake-up alone');
+  });
   notifyPeerGroupInvite(pid,gid,g.name,g.members,g.createdBy);
 }
 function createGroup(name,members){
@@ -3016,8 +3057,12 @@ function forwardToGroup(gid){
   g.members.forEach(function(pid){
     if(pid===myId)return;
     var c=gc[pid];
-    if(c&&c.open){try{c.send({type:'chat-group',groupId:gid,text:forwardText,time:now});}catch(e){}}
-    else{notifyPeerMsg(pid,'['+g.name+'] '+myId+': '+forwardText);connectGroupMember(gid,pid);}
+    var payload={type:'chat-group',groupId:gid,text:forwardText,time:now};
+    if(c&&c.open){try{c.send(payload);}catch(e){}}
+    else{
+      notifyPeerGroupMsg(pid,gid,g.name,forwardText,null);
+      connectGroupMemberReliable(gid,pid,function(conn){try{conn.send(payload);}catch(e){}},function(){});
+    }
   });
   renderGroupsList();toast('Forwarded to '+g.name);
 }
@@ -3260,10 +3305,9 @@ function sendMsg(){
       if(c&&c.open){
         try{c.send(payload);}catch(e){}
       }else{
-        var conn=connectGroupMember(gid,pid);
-        if(conn){
-          conn.on('open',function(){try{conn.send(payload);}catch(e){}});
-        }
+        connectGroupMemberReliable(gid,pid,function(conn){try{conn.send(payload);}catch(e){}},function(){
+          diagLog('⚠️ Could not reach '+pid+' P2P for group message — relying on server wake-up + mailbox');
+        });
       }
       notifyPeerGroupMsg(pid,gid,g.name,t,gMid);
     });
@@ -4852,6 +4896,14 @@ function handlePeerUnavailable(){
 }
 function showIncoming(pid,kind){
   weAreCaller=false;outCallConnected=false;
+  /* FIX (duplicate ring popup when both already online): a direct P2P peer.on('call')
+     firing here means the callee's app is foregrounded and reachable RIGHT NOW — the
+     in-app ring UI below is already showing. The FCM wake-up ping is still sent in
+     parallel for reliability (see dialWithPresenceCheck's "ALWAYS dispatch" comment),
+     so a redundant native full-screen call notification can land on top of this UI a
+     moment later. Proactively cancel it the instant we know we don't need it — cheap
+     no-op if it hasn't arrived yet or doesn't exist. */
+  try{if(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions){Capacitor.Plugins.VahinPermissions.dismissCallNotification({from:pid});}}catch(e){}
   showScreen('screen-call');setVoiceMode(kind==='voice',pid);
   /* FIX (call-controls black tint): same forced ad-banner teardown as startCall() —
      see that comment for the full reasoning. */
@@ -5164,7 +5216,15 @@ function connectToConfPeer(pid){
   if(pid===myId||confCalls[pid])return;
   try{
     var conn3=peer&&peer.connect(pid,{reliable:true,metadata:{type:'conf',groupId:activeGroupId}});
-    if(conn3){confConns[pid]=conn3;conn3.on('data',function(data){handleData(pid,data,conn3);});addRecentSilent(pid);}
+    /* FIX (group call participants leaking into the Chats tab): this used to call
+       addRecentSilent(pid) here, same as a genuine 1:1 call/DM does — but a group
+       conference mesh-connects to EVERY member automatically (see the FIX comment on
+       startGroupCall() above), including people you've never actually messaged 1:1.
+       That silently added every group-call participant to recentPeers, so they'd show
+       up in the Chats tab with a "Tap to chat" placeholder despite no DM ever having
+       happened — group participation should stay scoped to the Groups tab, not leak
+       into Chats. */
+    if(conn3){confConns[pid]=conn3;conn3.on('data',function(data){handleData(pid,data,conn3);});}
   }catch(e){}
   try{
     var mc2=peer&&peer.call(pid,confStream,{metadata:{type:'conf',groupId:activeGroupId}});
@@ -5251,6 +5311,14 @@ async function confFlipCamera(){
     var le2=document.getElementById('conf-video-local');le2.srcObject=confStream;applyMirror(le2,confFacing);
     toast(nf==='user'?'Front camera':'Back camera');
   }catch(e){toast('Could not switch camera');}
+}
+/* Returns true when the DM chat screen is open and showing messages for 'pid'.
+   Used instead of document.visibilityState==='visible' so that:
+   (a) messages always appear inline even if the page visibility briefly dips, and
+   (b) the heads-up notification is suppressed whenever both users are actively in chat. */
+function isChatActive(pid){
+  var el=document.getElementById('screen-chat');
+  return !!(el&&el.classList.contains('active')&&chatMode==='dm'&&chatPeerId===pid);
 }
 var hunCallbackTap=null,hunCallbackDecline=null;
 function showHUN(type,from,body,onTap,onDecline){
@@ -5512,10 +5580,27 @@ async function refreshReliabilityUI(){
     // rather than claiming a status we don't actually know.
   }
 }
-function showLocalNotif(type,from,text){
+/* FIX (group messages/invites opened a fake personal chat instead of the group):
+   this always fired `openDMChat(from)` on click no matter what `type` was passed in.
+   For group notifications every call site below passes the group's *display name* as
+   `from` (since that's what belongs in the notification title) — clicking would call
+   openDMChat(<group name>), i.e. try to open a DM with a "person" whose ID is literally
+   the group's name. That's the exact bug: group activity routed into a bogus personal
+   chat instead of the real group thread. Now takes the real routing id separately from
+   the display name and branches on type so group notifications open the actual group. */
+function showLocalNotif(type,displayName,text,routeId){
   if(!('Notification' in window)||Notification.permission!=='granted')return;
   if(document.visibilityState==='visible')return;
-  try{var n=new Notification('💬 '+from,{body:text||'New message',icon:'/icons/icon-192.png',tag:'uf-'+from});n.onclick=function(){window.focus();openDMChat(from);n.close();};}catch(e){}
+  var isGroup=(type==='group'||type==='group-msg');
+  try{
+    var n=new Notification((isGroup?'👥 ':'💬 ')+displayName,{body:text||'New message',icon:'/icons/icon-192.png',tag:'uf-'+(routeId||displayName)});
+    n.onclick=function(){
+      window.focus();
+      if(isGroup&&routeId)openGroupChat(routeId);
+      else openDMChat(routeId||displayName);
+      n.close();
+    };
+  }catch(e){}
 }
 /* Text/file sends used to give up after one ~8s peer.connect() attempt, which fails
    whenever the recipient's app is closed (nothing to connect to yet). Calls already
@@ -5689,7 +5774,7 @@ var pendingNativeTimer=null;
    land within a tight timing window. Since both paths can genuinely fire for the same
    tap, guard against processing the exact same action twice in a row. */
 var lastNativeActionKey=null,lastNativeActionAt=0;
-function handleNativeCallAction(action,from){
+function handleNativeCallAction(action,from,groupId){
   var _key=action+'|'+from;
   var _now=Date.now();
   if(_key===lastNativeActionKey&&(_now-lastNativeActionAt)<4000){
@@ -5711,8 +5796,15 @@ function handleNativeCallAction(action,from){
   if(action==='message'){if(from&&myId)openDMChat(from);return;}
   if(action==='group'||action==='group-invite'||action==='group-msg'){
     if(myId){
-      if(from&&groups[from]){
-        openGroupChat(from);
+      /* FIX: this used to check groups[from] — but `from` here is the PERSON who sent
+         the invite/message, never the group's own id, so this could never match and a
+         tap on a group notification always just dumped the user on the Groups list
+         instead of the actual group. Route by the real groupId when the native side
+         supplies one (3rd arg — requires MainActivity.java to pass it through from the
+         FCM payload's groupId field, same data notifyPeerGroupInvite/notifyPeerGroupMsg
+         already send to the server). Falls back to the Groups list only if it's missing. */
+      if(groupId&&groups[groupId]){
+        openGroupChat(groupId);
       }else{
         switchTab('groups');showScreen('screen-groups');renderGroupsList();
       }
