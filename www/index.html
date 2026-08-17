@@ -637,6 +637,7 @@ button,input,textarea{font-family:inherit;}
 .sv-caption{position:absolute;bottom:20px;left:16px;right:16px;color:#fff;font-size:14px;text-align:center;background:rgba(0,0,0,.4);padding:8px 12px;border-radius:10px;}
 #sv-nav-prev,#sv-nav-next{position:absolute;top:0;bottom:0;width:35%;z-index:2;}
 #sv-nav-prev{left:0;}#sv-nav-next{right:0;}
+#sc-close-btn{background:var(--surface2);color:var(--text);border:1.5px solid var(--border2);}
 #status-composer-overlay{position:fixed;inset:0;background:var(--bg);z-index:9999;display:none;flex-direction:column;padding:calc(16px + var(--safe-top)) 16px calc(20px + var(--safe-bottom));}
 #status-composer-overlay.show{display:flex;}
 #sc-text-inp{flex:1;border:none;border-radius:16px;color:#fff;font-size:22px;font-weight:600;padding:24px;resize:none;outline:none;text-align:center;}
@@ -837,7 +838,7 @@ button,input,textarea{font-family:inherit;}
   <button class="fab" id="new-chat-fab" title="New chat"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
 </div>
 <div id="screen-status" class="screen tabbed">
-  <div class="top-header"><div class="header-title">Status</div></div>
+  <div class="top-header"><div class="header-title">Pulse</div></div>
   <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;">
     <div class="status-my-row" id="my-status-row">
       <div class="cli-av" style="cursor:pointer;">
@@ -846,14 +847,14 @@ button,input,textarea{font-family:inherit;}
         <span class="status-my-plus">+</span>
       </div>
       <div style="flex:1;min-width:0;">
-        <div class="status-my-name">My Status</div>
-        <div class="status-my-sub">Tap to add a status update</div>
+        <div class="status-my-name">My Pulse</div>
+        <div class="status-my-sub">Tap to add a Pulse</div>
       </div>
     </div>
     <div class="status-section-lbl">RECENT UPDATES</div>
     <div id="status-updates-list"></div>
   </div>
-  <button class="fab" id="new-status-fab" title="Add status"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+  <button class="fab" id="new-status-fab" title="Add Pulse"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
 </div>
 <div id="sv-overlay">
   <div id="sv-bars"></div>
@@ -871,10 +872,10 @@ button,input,textarea{font-family:inherit;}
 <div id="status-composer-overlay">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
     <button class="sv-icon-btn" id="sc-close-btn">✕</button>
-    <div style="color:var(--text2);font-weight:700;">New Status</div>
+    <div style="color:var(--text2);font-weight:700;">New Pulse</div>
     <div style="width:34px;"></div>
   </div>
-  <textarea id="sc-text-inp" placeholder="Type a status…" maxlength="700"></textarea>
+  <textarea id="sc-text-inp" placeholder="Type a Pulse…" maxlength="700"></textarea>
   <img id="sc-preview-img"/>
   <div id="sc-bg-picker"></div>
   <div class="sc-mode-row">
@@ -1005,7 +1006,7 @@ button,input,textarea{font-family:inherit;}
 </div>
 <nav id="tab-nav">
   <button class="tab-btn active" data-tab="chats"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.35 0-2.62-.32-3.75-.9L4 20l1.05-4.2A8.46 8.46 0 0 1 3.5 11.5 8.5 8.5 0 0 1 12 3a8.5 8.5 0 0 1 9 8.5Z"/></svg></span><span class="tl">Chats</span><span class="tab-badge" id="tab-badge-chats" style="display:none;"></span></button>
-  <button class="tab-btn" data-tab="status"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.2"/></svg><span class="tab-dot" id="tab-dot-status" style="display:none;"></span></span><span class="tl">Status</span></button>
+  <button class="tab-btn" data-tab="status"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.2"/></svg><span class="tab-dot" id="tab-dot-status" style="display:none;"></span></span><span class="tl">Pulse</span></button>
   <button class="tab-btn" data-tab="calls"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.8c1.3 2.6 3.4 4.7 6 6l2-2c.3-.3.7-.4 1.1-.3 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h4c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1l-2 2Z"/></svg></span><span class="tl">Calls</span></button>
   <button class="tab-btn" data-tab="groups"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 19.5c0-3.3 2.9-5.8 6.5-5.8s6.5 2.5 6.5 5.8"/><path d="M16.5 8.2a3 3 0 1 1 2.7 4.4"/><path d="M21.5 19.2c0-2.6-1.9-4.8-4.7-5.5"/></svg></span><span class="tl">Groups</span></button>
   <button class="tab-btn" data-tab="settings"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.4.6a7.6 7.6 0 0 0-1.7-1L14.8 3h-4l-.5 2.7a7.6 7.6 0 0 0-1.7 1l-2.4-.6-2 3.4L6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.4-.6c.5.4 1.1.8 1.7 1l.5 2.7h4l.5-2.7c.6-.2 1.2-.6 1.7-1l2.4.6 2-3.4-2-1.5Z"/></svg></span><span class="tl">Settings</span></button>
@@ -1508,6 +1509,15 @@ var enteredPin='';
 var settings={ringtone:true,vibrate:true,backcam:false,confLimit:6,theme:'auto'};
 var customRingtoneDataUrl='';
 var incomingCall=null;
+/* FIX (rapid accept/decline race): acceptCall() is async and only clears `incomingCall`
+   after its first await resolves (getUserMedia/takePreWarmedStream) — a second tap of
+   Accept (double-tap, or a HUN "Accept" tap racing a native-action replay) landing before
+   that await settles used to re-enter the whole function: double getUserMedia(), a second
+   incomingCall.answer() on the same MediaConnection, and duplicate 'stream' listeners that
+   would double-start the call timer/quality monitor/ping interval. This flag makes both
+   entry points a no-op while one is already in flight, mirroring the dedupe already done
+   for native call actions (see lastNativeActionKey). */
+var callActionInFlight=false;
 /* FIX (fast-accept / pre-warmed RTC): getUserMedia() (camera/mic acquisition) is the
    single biggest source of delay between tapping Accept and actually talking — it
    involves an OS permission check, hardware startup, and on some devices a visible
@@ -2009,13 +2019,43 @@ function startPeer(){
       if(!isCurrent())return;
       var meta=mc.metadata||{};
       if(meta.type==='conf'){
+        /* FIX (blocking didn't cover conference calls): isBlocked() was previously only
+           checked in the plain 1:1 branch below — a blocked user who's still a member of
+           a shared group could ring you directly via this path (startGroupCall's
+           connectToConfPeer() calls peer.call() straight to every member) with no block
+           check at all. Relayed 'conf-invite' data messages are already covered by the
+           global isBlocked(from) guard at the top of handleData(). */
+        if(isBlocked(mc.peer)){try{mc.close();}catch(e){}return;}
         if(confStream){
+          // Already in a conference — this is a mesh-connect from a fellow member of
+          // THIS SAME call (see startGroupCall/acceptCall), not a new invite. Always
+          // auto-answer; the busy-check below only applies when we're not already in one.
           mc.answer(confStream);confCalls[mc.peer]=mc;
           mc.on('stream',function(s){addConfSlot(mc.peer,s);});
           mc.on('close',function(){removeConfSlot(mc.peer);});
-        }else{incomingCall={isConf:true,peerId:mc.peer,mc:mc,groupId:meta.groupId||null};showIncoming(mc.peer,'conf');}
+        }else{
+          /* FIX (conference call was never really a conference — see full comment on
+             startGroupCall()): a direct media call and a separate 'conf-invite' data
+             message can arrive in either order for the same conference invite. Merge
+             into whatever's already there instead of overwriting it, so neither the
+             mc (direct connection to whoever's calling) nor members (the rest of the
+             roster) gets silently dropped depending on which happened to land first. */
+          if(incomingCall&&incomingCall.isConf&&incomingCall.peerId===mc.peer){
+            incomingCall.mc=mc;incomingCall.groupId=incomingCall.groupId||meta.groupId||null;
+          }else if(currentCall||(incomingCall&&!incomingCall.isConf)||(incomingCall&&incomingCall.isConf&&incomingCall.peerId!==mc.peer)){
+            /* FIX (conference invite could hijack an active call): previously nothing
+               here checked whether we were already on a 1:1 call, or already ringing for
+               a different call — a conference invite would silently overwrite
+               incomingCall and call showIncoming('conf'), replacing whatever call UI was
+               already showing. Reject cleanly instead, same as a plain 1:1 call does. */
+            try{mc.close();}catch(e){}return;
+          }else{
+            incomingCall={isConf:true,peerId:mc.peer,mc:mc,members:[],groupId:meta.groupId||null};
+          }
+          showIncoming(mc.peer,'conf');
+        }
       }else{
-        if(currentCall||(incomingCall&&!incomingCall.isConf)){try{mc.close();}catch(e){}return;}
+        if(currentCall||confStream||(incomingCall&&!incomingCall.isConf)){try{mc.close();}catch(e){}return;}
         if(isBlocked(mc.peer)){try{mc.close();}catch(e){}return;}
         incomingCall=mc;showIncoming(mc.peer,(meta&&meta.voiceOnly)?'voice':'call');
       }
@@ -2123,7 +2163,18 @@ function checkPresence(){
       var probe=peer.connect(pid,{reliable:false,metadata:{type:'presence'}});
       var resolved=false;
       var t=setTimeout(function(){if(!resolved){onlinePeers[pid]=false;onlinePeersTs[pid]=Date.now();updateDots(pid);}},4000);
-      probe.on('open',function(){resolved=true;clearTimeout(t);onlinePeers[pid]=true;onlinePeersTs[pid]=Date.now();updateDots(pid);setTimeout(function(){try{probe.close();}catch(e){}},400);});
+      probe.on('open',function(){
+        resolved=true;clearTimeout(t);onlinePeers[pid]=true;onlinePeersTs[pid]=Date.now();updateDots(pid);
+        /* piggyback status delivery on the presence ping every contact already gets
+           every ~25s — see the FIX comments on setupConn's presence branch and
+           broadcastStatus() for the full picture. FIX (block/Pulse gap): skip this for
+           a blocked contact — otherwise every ~25s presence cycle would silently keep
+           handing them your current Pulses regardless of the block. */
+        if(!isBlocked(pid)){
+          try{var st=activeMyStatusesForSync();if(st.length)probe.send({type:'status-sync',statuses:st});}catch(e){}
+        }
+        setTimeout(function(){try{probe.close();}catch(e){}},600);
+      });
       probe.on('error',function(){resolved=true;clearTimeout(t);onlinePeers[pid]=false;onlinePeersTs[pid]=Date.now();updateDots(pid);});
     }catch(e){}
   });
@@ -2137,7 +2188,27 @@ function updateDots(pid){
 }
 function setupConn(conn){
   var type=(conn.metadata&&conn.metadata.type)||'dm';
-  if(type==='presence'){conn.on('open',function(){setTimeout(function(){try{conn.close();}catch(e){}},300);});return;}
+  /* FIX (block gap): dm/group/conf-type connections from a blocked peer were fully
+     accepted here — 'open' unconditionally ran syncStatusOnConnOpen(conn) below, handing
+     them your current Pulses even though handleData()'s isBlocked() check would later
+     drop every actual message from them anyway. Reject outright instead, same as a
+     blocked caller already is in peer.on('call'). Presence-type connections are left
+     alone (see that branch's own FIX comment) — they carry no message/status content of
+     their own; the one place a Pulse could piggyback onto a presence ping
+     (checkPresence()'s outgoing probe) is guarded separately at that call site. */
+  if(type!=='presence'&&isBlocked(conn.peer)){try{conn.close();}catch(e){}return;}
+  if(type==='presence'){
+    /* FIX (status "wasn't shown to anyone"): this used to close the connection in
+       300ms with no 'data' listener at all — so even though checkPresence() below
+       now sends a status-sync on every ping, the receiving side was throwing it
+       away unread. Presence pings already happen every ~25s between every contact
+       regardless of chat history, which is exactly the "goes to everyone, costs
+       the server nothing" delivery path that was needed — it just wasn't wired to
+       actually receive anything. */
+    conn.on('data',function(data){handleData(conn.peer,data,conn);});
+    conn.on('open',function(){setTimeout(function(){try{conn.close();}catch(e){}},700);});
+    return;
+  }
   conn.on('open',function(){
     var pid=conn.peer;addRecentSilent(pid);
     syncStatusOnConnOpen(conn);
@@ -2253,8 +2324,25 @@ function handleData(from,data,conn){
         toast(from+' declined the call');logCall(from,'declined','out');weAreCaller=false;endCall();
       }
       break;
+    case 'conf-decline':
+      // FIX (conference decline had no signal): mirrors the 1:1 'call-cancel' declined
+      // toast — lets the initiator (or whoever relayed the invite) know this person
+      // isn't joining, instead of leaving them wondering why that slot never appears.
+      toast(from+' declined the conference call');
+      break;
     case 'conf-invite':
-      incomingCall={isConf:true,peerId:from,mc:null,members:data.members||[],groupId:data.groupId||null};showIncoming(from,'conf');
+      if(incomingCall&&incomingCall.isConf&&incomingCall.peerId===from){
+        /* Merge — see the matching FIX comment in peer.on('call') above. */
+        incomingCall.members=data.members||[];incomingCall.groupId=data.groupId||incomingCall.groupId;
+      }else if(currentCall||confStream||(incomingCall&&!incomingCall.isConf)||(incomingCall&&incomingCall.isConf&&incomingCall.peerId!==from)){
+        /* FIX (conference invite could hijack an active call): same busy-check as the
+           direct-media-call path in peer.on('call') — drop the relayed invite instead of
+           overwriting whatever call state is already active. (isBlocked(from) is already
+           handled at the top of handleData() for this message type.) */
+        break;
+      }else{
+        incomingCall={isConf:true,peerId:from,mc:null,members:data.members||[],groupId:data.groupId||null};showIncoming(from,'conf');
+      }
       break;
     case 'file-meta':handleFileMeta(from,data);break;
     case 'file-chunk':handleFileChunk(data);break;
@@ -2683,6 +2771,7 @@ function openForwardPicker(text){
   }
   recentPeers.forEach(function(pid){
     if(pid===myId)return;
+    if(isBlocked(pid))return; // FIX (block gap): forwarding bypassed the block entirely — see forwardToDm() comment
     var row=document.createElement('div');row.className='settings-row';row.style.cursor='pointer';
     row.innerHTML='<div class="settings-row-left"><div class="settings-row-icon" style="background:var(--accent-light);">'+pid[0].toUpperCase()+'</div><div class="s-label">'+esc(pid)+'</div></div>';
     row.onclick=function(){forwardToDm(pid);};
@@ -2700,6 +2789,11 @@ function openForwardPicker(text){
 function closeForwardModal(){document.getElementById('forward-modal').classList.remove('show');}
 function forwardToDm(pid){
   closeForwardModal();
+  /* FIX (block gap): forwarding was a completely separate send path from sendMsg() and
+     never checked isBlocked() at all — the picker didn't filter blocked contacts out
+     (fixed above) and this function would happily send to one anyway if reached any
+     other way. Guard here too, matching the sendMsg()/startCall()/sendFile() pattern. */
+  if(isBlocked(pid)){toast('You have blocked this user');return;}
   var now=fmtTime();
   if(!dmHistory[pid])dmHistory[pid]=[];
   var mo={me:true,text:forwardText,time:now,_id:'m'+Date.now()+'_'+Math.random().toString(36).slice(2,6)};
@@ -3146,11 +3240,12 @@ async function waitForBufferDrain(conn){
 }
 async function sendFile(file,caption){
   if(!file)return;
+  if(chatMode==='dm'&&isBlocked(chatPeerId)){toast('You have blocked this user');return;} // FIX (block gap): sendMsg()/startCall() already guard this way; the attach button is hidden in the UI when blocked, but sendFile() itself had no check, so any other call path (future forwarding, share-target, etc.) could silently bypass the block
   if(file.size>FILE_MAX){toast('File too large — max 50 MB');return;}
   var tfId=genTfId();
   var isImage=file.type&&(file.type.startsWith('image/')||file.type.startsWith('video/'));
   var now=fmtTime();
-  var meta={type:'file-meta',transferId:tfId,name:file.name,size:file.size,mime:file.type||'application/octet-stream',isImage:isImage,time:now};
+  var meta={type:'file-meta',transferId:tfId,name:file.name,size:file.size,mime:file.type||'application/octet-stream',isImage:isImage,time:now,groupId:chatMode==='group'?activeGroupId:null};
   var localUrl=URL.createObjectURL(file);fileBlobs[tfId]=localUrl;
   var fdata={transferId:tfId,name:file.name,size:file.size,isImage:isImage,url:localUrl,progress:100};
   var gid=activeGroupId,g=chatMode==='group'?groups[gid]:null;
@@ -3217,9 +3312,30 @@ async function sendFile(file,caption){
   }
 }
 function handleFileMeta(from,meta){
-  incomingFiles[meta.transferId]={meta:meta,chunks:[],received:0,from:from};
+  incomingFiles[meta.transferId]={meta:meta,chunks:[],received:0,from:from,lastActivity:Date.now()};
   var now=meta.time||fmtTime();
   var fdata={transferId:meta.transferId,name:meta.name,size:meta.size,isImage:meta.isImage,progress:0};
+  /* FIX (group files leaking into the 1:1 chat): file-meta previously carried no
+     groupId at all, so a file shared inside a group always landed in dmHistory[from]
+     — the sender's individual DM history — exactly like text messages would if
+     'chat-group' didn't exist as its own case. sendFile() now stamps meta.groupId
+     when sent from a group; branch on it here the same way 'chat-group' already
+     branches from 'chat-dm' for text. */
+  var gid=meta.groupId;
+  if(gid&&groups[gid]){
+    groups[gid].history.push({sender:from,time:now,file:{name:meta.name,size:meta.size,isImage:meta.isImage,transferId:meta.transferId}});
+    saveAll();
+    if(chatMode==='group'&&activeGroupId===gid&&document.visibilityState==='visible'){
+      /* appendGroupMsg() only renders text — outgoing group files already reuse
+         appendMsg() (see sendFile()'s local echo above), so match that here rather
+         than half-wiring file support into appendGroupMsg for this one call site. */
+      removeEmpty('chat-msgs');appendMsg(false,null,now,false,fdata);
+    }else{
+      unreadGroup[gid]=(unreadGroup[gid]||0)+1;renderGroupsList();
+      toast('📎 ['+groups[gid].name+'] '+from+': '+meta.name);
+    }
+    return;
+  }
   if(!dmHistory[from])dmHistory[from]=[];
   dmHistory[from].push({me:false,time:now,file:{name:meta.name,size:meta.size,isImage:meta.isImage,transferId:meta.transferId}});
   ls_set(SK.DM,dmHistory);
@@ -3228,10 +3344,38 @@ function handleFileMeta(from,meta){
 }
 function handleFileChunk(chunk){
   var t=incomingFiles[chunk.transferId];if(!t)return;
-  t.chunks[chunk.index]=chunk.data;t.received++;t.total=chunk.total;
+  t.chunks[chunk.index]=chunk.data;t.received++;t.total=chunk.total;t.lastActivity=Date.now();
   var pct=Math.round((t.received/chunk.total)*100);
   updateFileProg(chunk.transferId,pct);
 }
+/* FIX (stalled transfers leaked forever): before this, a transfer that never got a
+   file-end — connection dropped mid-send, sender's app backgrounded/killed, etc. — left
+   incomingFiles[transferId] sitting in memory indefinitely with no cleanup, and the
+   message bubble's progress bar just stayed stuck at whatever % forever with zero
+   feedback that it had actually failed. A periodic sweep now gives up on transfers with
+   no chunk activity for a while, frees the memory, and tells the person it failed instead
+   of leaving a silently-frozen progress bar. */
+var FILE_STALL_TIMEOUT_MS=45000;
+function failFileTransfer(tfId,msg){
+  if(!incomingFiles[tfId])return;
+  delete incomingFiles[tfId];
+  document.querySelectorAll('[data-tfid="'+tfId+'"]').forEach(function(el){
+    var track=el.querySelector('.file-prog');if(track)track.style.display='none';
+    var mt=el.querySelector('.msg-file-meta');if(mt)mt.textContent='⚠️ Transfer failed';
+  });
+  toast('⚠️ '+(msg||'File transfer failed'));
+}
+function sweepStaleIncomingFiles(){
+  var now=Date.now();
+  Object.keys(incomingFiles).forEach(function(tfId){
+    var t=incomingFiles[tfId];
+    if(t&&t.lastActivity&&(now-t.lastActivity)>FILE_STALL_TIMEOUT_MS){
+      diagLog('⚠️ File '+tfId+' stalled ('+Math.round((now-t.lastActivity)/1000)+'s no activity) — giving up');
+      failFileTransfer(tfId,'Transfer stalled — connection may have dropped. Ask them to resend.');
+    }
+  });
+}
+setInterval(sweepStaleIncomingFiles,15000);
 function handleFileEnd(tfId,conn){
   var t=incomingFiles[tfId];if(!t)return;
   var expected=t.total||t.received;
@@ -3252,8 +3396,11 @@ function handleFileEnd(tfId,conn){
       try{c.send({type:'file-resend-request',transferId:tfId,missing:missing});}catch(e){}
       return; // wait for the resent chunks; handleFileEnd fires again after resend
     }
-    toast('⚠️ File transfer incomplete — '+missing.length+' of '+expected+' pieces never arrived after retrying. Ask them to resend.');
-    delete incomingFiles[tfId];
+    /* FIX: previously just toasted + deleted state, leaving the progress bar frozen at
+       its last % forever with no visual indication the transfer had actually given up.
+       Route through the same failFileTransfer() the stall-sweep uses so the bubble
+       itself reflects the failure, not just a toast that scrolls away. */
+    failFileTransfer(tfId,'File transfer incomplete — '+missing.length+' of '+expected+' pieces never arrived after retrying. Ask them to resend.');
     return;
   }
   try{
@@ -3326,18 +3473,40 @@ function findOpenConnTo(pid){
   return found;
 }
 function broadcastStatus(s){
-  var sent=0;
+  var pushedNow=0;
   recentPeers.forEach(function(pid){
+    /* FIX (block/Pulse gap): this had no isBlocked() check at all — posting a Pulse
+       pushed it directly to every recent contact, including anyone you'd blocked.
+       receiveStatus() already refuses incoming Pulses FROM a blocked user, but that's
+       one-directional: nothing stopped YOUR Pulse from still reaching THEM. */
+    if(isBlocked(pid))return;
     var conn=findOpenConnTo(pid);
-    if(conn&&conn.open){try{conn.send({type:'status-new',status:s});sent++;}catch(e){}}
+    if(conn&&conn.open){try{conn.send({type:'status-new',status:s});pushedNow++;return;}catch(e){}}
+    /* No open connection to this contact right now — open a short-lived presence-type
+       probe (the same kind checkPresence() already uses to check who's online) purely
+       to deliver this one status immediately instead of waiting for the next routine
+       ~25s presence cycle. Costs nothing extra beyond the broker signaling every
+       connection already needs — no backend storage, no FCM wake. */
+    if(peer&&peerReady){
+      try{
+        var probe=peer.connect(pid,{reliable:false,metadata:{type:'presence'}});
+        var done=false;
+        var t=setTimeout(function(){if(!done){done=true;try{probe.close();}catch(e){}}},4000);
+        probe.on('open',function(){
+          try{probe.send({type:'status-new',status:s});}catch(e){}
+          setTimeout(function(){if(!done){done=true;clearTimeout(t);try{probe.close();}catch(e){}}},600);
+        });
+        probe.on('error',function(){done=true;clearTimeout(t);});
+      }catch(e){}
+    }
   });
-  diagLog('📤 Status pushed live to '+sent+' currently-connected contact(s) — everyone else picks it up P2P the next time a connection opens between us, no server involved');
+  diagLog('📤 Status posted — delivered instantly to '+pushedNow+' contact(s) already connected; the rest pick it up P2P within ~25s via the normal presence ping, all peer-to-peer, nothing stored server-side');
 }
 async function postTextStatus(text,bg){
   text=(text||'').trim();if(!text){toast('Type something first');return;}
   var s={id:genStatusId(),type:'text',text:text.substring(0,700),bg:bg||'#7c3aed',time:Date.now(),expiresAt:Date.now()+STATUS_TTL_MS};
   myStatuses.unshift(s);ls_set(SK.MYSTATUS,myStatuses);
-  broadcastStatus(s);renderStatusScreen();toast('Status posted ✓ · disappears in 24h');
+  broadcastStatus(s);renderStatusScreen();toast('Pulse posted ✓ · disappears in 24h');
 }
 async function postImageStatus(file,caption){
   if(!file)return;
@@ -3346,7 +3515,7 @@ async function postImageStatus(file,caption){
   catch(e){toast('Could not process that image');return;}
   var s={id:genStatusId(),type:'image',dataUrl:dataUrl,text:(caption||'').substring(0,300),time:Date.now(),expiresAt:Date.now()+STATUS_TTL_MS};
   myStatuses.unshift(s);ls_set(SK.MYSTATUS,myStatuses);
-  broadcastStatus(s);renderStatusScreen();toast('Status posted ✓ · disappears in 24h');
+  broadcastStatus(s);renderStatusScreen();toast('Pulse posted ✓ · disappears in 24h');
 }
 function deleteMyStatus(id){
   myStatuses=myStatuses.filter(function(s){return s.id!==id;});
@@ -3381,7 +3550,7 @@ function renderStatusScreen(){
   var myRow=document.getElementById('my-status-row');
   if(myRow){
     var sub=myRow.querySelector('.status-my-sub');
-    sub.textContent=myStatuses.length?myStatuses.length+' update'+(myStatuses.length>1?'s':'')+' · tap to view':'Tap to add a status update';
+    sub.textContent=myStatuses.length?myStatuses.length+' update'+(myStatuses.length>1?'s':'')+' · tap to view':'Tap to add a Pulse';
     var ring=myRow.querySelector('.status-ring');
     ring.classList.toggle('has-status',myStatuses.length>0);
   }
@@ -3390,7 +3559,7 @@ function renderStatusScreen(){
   list.innerHTML='';
   var pids=Object.keys(peerStatuses).filter(function(pid){return (peerStatuses[pid]||[]).length;});
   if(!pids.length){
-    list.innerHTML='<div class="empty-state" style="padding:30px 20px;"><div class="empty-icon">🟣</div><div class="empty-title">No updates yet</div><div class="empty-sub">Updates from contacts will appear here for 24 hours</div></div>';
+    list.innerHTML='<div class="empty-state" style="padding:30px 20px;"><div class="empty-icon">🟣</div><div class="empty-title">No updates yet</div><div class="empty-sub">Pulses from contacts will appear here for 24 hours</div></div>';
     return;
   }
   pids.sort(function(a,b){return peerStatuses[b][0].time-peerStatuses[a][0].time;});
@@ -3423,7 +3592,7 @@ function openStatusViewer(pid){
   var items=pid==='me'?myStatuses:(peerStatuses[pid]||[]);
   if(!items.length)return;
   statusViewerCtx={pid:pid,items:items,idx:0,timer:null};
-  document.getElementById('sv-name').textContent=pid==='me'?'My Status':pid;
+  document.getElementById('sv-name').textContent=pid==='me'?'My Pulse':pid;
   document.getElementById('sv-avatar-letter').textContent=(pid==='me'?myId:pid)[0].toUpperCase();
   document.getElementById('sv-overlay').classList.add('show');
   document.getElementById('sv-delete-btn').style.display=pid==='me'?'flex':'none';
@@ -3981,7 +4150,7 @@ async function startCall(pid,voiceOnly){
   facingMode=settings.backcam?'environment':'user';
   try{localStream=voiceOnly?await getAudioOnlyStream():await getStream(facingMode);}
   catch(e){toast(voiceOnly?'Microphone access denied':'Camera/mic access denied');return;}
-  showScreen('screen-call');setVoiceMode(voiceOnly,pid);requestWakeLock();
+  showScreen('screen-call');setVoiceMode(voiceOnly,pid);requestWakeLock();hideCallChat();
   /* FIX (call-controls black tint): don't rely only on showScreen()'s generic
      setAdmobBannerVisible(false) — force-destroy the native ad view directly the
      moment the call screen opens, so a call is never the one screen where a stuck
@@ -4222,34 +4391,50 @@ function showIncoming(pid,kind){
   }
 }
 async function acceptCall(){
+  if(callActionInFlight)return; // FIX (rapid accept/decline race) — see comment on the var
+  callActionInFlight=true;
+  try{
   document.getElementById('incoming-overlay').classList.remove('show');
   hideHUN();stopRing();
   if(!incomingCall)return;
   if(incomingCall.isConf){
-    if(incomingCall.mc){
-      try{
-        facingMode=settings.backcam?'environment':'user';
-        var stream=await getStream(facingMode);
-        confStream=stream;confFacing=facingMode;
-        var le=document.getElementById('conf-video-local');le.srcObject=confStream;applyMirror(le,confFacing);
-        incomingCall.mc.answer(confStream);confCalls[incomingCall.mc.peer]=incomingCall.mc;
-        incomingCall.mc.on('stream',function(rs){addConfSlot(incomingCall.mc.peer,rs);});
-        incomingCall.mc.on('close',function(){removeConfSlot(incomingCall.mc.peer);});
-        updateConfGrid();showScreen('screen-conf');incomingCall=null;requestWakeLock();
-      }catch(e){
-        toast('Camera/mic denied');
-        /* FIX (answer button / conf calls): IncomingCallActivity's native Accept button
-           already moved Telecom to ACTIVE before this JS function ran — a failure here
-           (camera/mic denied) previously left that connection stuck forever with zero
-           cleanup, blocking every future incoming call until the app was force-killed.
-           No currentCall/callPeerId exists for a conf call, so call the native dismiss
-           directly rather than going through endCall() (which is written for 1:1 calls). */
-        try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.VahinPermissions){
-          window.Capacitor.Plugins.VahinPermissions.dismissCallNotification({from:(incomingCall&&incomingCall.mc&&incomingCall.mc.peer)||''});
-        }}catch(e2){}
-        showScreen('screen-chats','back');
+    try{
+      facingMode=settings.backcam?'environment':'user';
+      var stream=await getStream(facingMode);
+      confStream=stream;confFacing=facingMode;
+      var le=document.getElementById('conf-video-local');le.srcObject=confStream;applyMirror(le,confFacing);
+      activeGroupId=incomingCall.groupId||activeGroupId||null;
+      var initiatorId=incomingCall.peerId;
+      if(incomingCall.mc){
+        incomingCall.mc.answer(confStream);confCalls[initiatorId]=incomingCall.mc;
+        incomingCall.mc.on('stream',function(rs){addConfSlot(initiatorId,rs);});
+        incomingCall.mc.on('close',function(){removeConfSlot(initiatorId);});
+      }else{
+        connectToConfPeer(initiatorId); // relayed invite with no direct media call yet — open one ourselves
       }
-    }else{joinConf(incomingCall.peerId,incomingCall.members,incomingCall.groupId);incomingCall=null;}
+      /* FIX (conference calls only ever formed a star through whoever started them):
+         mesh-connect directly to every OTHER invited member too, not just whoever
+         happens to be calling us. Previously this list was silently dropped whenever
+         incomingCall.mc was set (i.e. basically always, since starting a group call
+         opens a direct media call to every member) — so nobody in a 3+ person call
+         could ever see or hear anyone except the initiator. */
+      (incomingCall.members||[]).forEach(function(pid){if(pid!==myId)connectToConfPeer(pid);});
+      var lblg=document.getElementById('conf-group-name');if(lblg)lblg.textContent=(groups[activeGroupId]&&groups[activeGroupId].name)||'';
+      document.getElementById('conf-label-local').textContent=myId;
+      updateConfGrid();showScreen('screen-conf');incomingCall=null;requestWakeLock();
+    }catch(e){
+      toast('Camera/mic denied');
+      /* FIX (answer button / conf calls): IncomingCallActivity's native Accept button
+         already moved Telecom to ACTIVE before this JS function ran — a failure here
+         (camera/mic denied) previously left that connection stuck forever with zero
+         cleanup, blocking every future incoming call until the app was force-killed.
+         No currentCall/callPeerId exists for a conf call, so call the native dismiss
+         directly rather than going through endCall() (which is written for 1:1 calls). */
+      try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.VahinPermissions){
+        window.Capacitor.Plugins.VahinPermissions.dismissCallNotification({from:(incomingCall&&incomingCall.mc&&incomingCall.mc.peer)||''});
+      }}catch(e2){}
+      showScreen('screen-chats','back');
+    }
     return;
   }
   try{
@@ -4272,7 +4457,7 @@ async function acceptCall(){
     var stream=await takePreWarmedStream(callIsVoiceOnly,facingMode);localStream=stream;
     diagLog('✅ acceptCall: got local stream — answering the WebRTC call now');
     var lv=document.getElementById('video-local');lv.srcObject=localStream;applyMirror(lv,facingMode);
-    incomingCall.answer(localStream);currentCall=incomingCall;
+    incomingCall.answer(localStream);currentCall=incomingCall;hideCallChat();
     document.getElementById('call-status').textContent='Connecting…';
     currentCall.on('stream',function(rs){
       diagLog('ℹ️ acceptCall: SDP-level stream received — waiting for real ICE connectivity before showing Connected');
@@ -4282,12 +4467,30 @@ async function acceptCall(){
     currentCall.on('close',function(){diagLog('ℹ️ acceptCall: MediaConnection closed');endCall();});
     logCall(callPeerId,'connected','in');incomingCall=null;addRecentSilent(callPeerId);requestWakeLock();
   }catch(e){diagLog('❌ acceptCall: failed — '+(e&&e.message?e.message:e));toast('Camera/mic denied');endCall();}
+  }finally{callActionInFlight=false;}
 }
 function declineCall(){
+  if(callActionInFlight)return; // FIX (rapid accept/decline race) — see comment on the var
+  callActionInFlight=true;
   document.getElementById('incoming-overlay').classList.remove('show');
   hideHUN();stopRing();
   stopPreWarmStream(); // FIX (fast-accept): never left running unused after a decline/missed call
-  if(incomingCall&&!incomingCall.isConf){
+  if(incomingCall&&incomingCall.isConf){
+    /* FIX (declining a conference invite did nothing): this branch didn't exist before —
+       incomingCall.isConf fell through to neither branch below, so decline just hid the
+       overlay and cleared incomingCall with no cleanup: incomingCall.mc (if the direct
+       media call had already arrived) was never closed, leaving a dangling PeerJS
+       MediaConnection on our side; the initiator/other members were never told we
+       declined (no 'declined' toast on their end, unlike 1:1 calls); and the native call
+       notification for a conf invite was never dismissed. */
+    try{if(incomingCall.mc)incomingCall.mc.close();}catch(e){}
+    var declPeer=incomingCall.peerId,declGid=incomingCall.groupId||null;
+    var declConn=findOpenConnTo(declPeer);
+    if(declConn&&declConn.open){try{declConn.send({type:'conf-decline',groupId:declGid});}catch(e){}}
+    try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.VahinPermissions){
+      window.Capacitor.Plugins.VahinPermissions.dismissCallNotification({from:declPeer});
+    }}catch(e){}
+  }else if(incomingCall&&!incomingCall.isConf){
     logCall(incomingCall.peer,'declined','in');
     // FIX: previously this only sent call-cancel if chatConn was ALREADY open at the
     // exact instant declineCall() ran — on a fresh incoming call (especially answered
@@ -4318,6 +4521,7 @@ function declineCall(){
     }}catch(e){}
   }
   incomingCall=null;showScreen('screen-chats','back');
+  callActionInFlight=false;
 }
 function endCall(){
   stopOutTone();stopRing();hideHUN();stopOutPhaseTimer();
@@ -4413,11 +4617,29 @@ function toggleSpeaker(){
   toast(speakerOn?'Speaker on':'Speaker muted');
 }
 function toggleCallChat(){document.getElementById('call-chat-panel').classList.toggle('show');}
+function hideCallChat(){
+  /* FIX (in-call chat "doesn't turn off"): called explicitly at the start of every
+     call AND at teardown, instead of relying only on the toggle button, so a panel
+     left open by some earlier interrupted call (app killed mid-call, etc.) can never
+     bleed into a fresh one. */
+  var p=document.getElementById('call-chat-panel');if(p)p.classList.remove('show');
+  var inp=document.getElementById('cc-input');if(inp)inp.value='';
+}
 function sendCallChatMsg(){
   var inp=document.getElementById('cc-input');var t=inp.value.trim();if(!t)return;inp.value='';
   var ms=document.getElementById('cc-msgs');var d=document.createElement('div');d.className='msg-row me';
   var b=document.createElement('div');b.className='msg-bubble';b.textContent=t;d.appendChild(b);ms.appendChild(d);ms.scrollTop=ms.scrollHeight;
-  if(callConn&&callConn.open)callConn.send({type:'call-chat',text:t});
+  /* FIX (in-call chat didn't work for whoever ANSWERED the call): this used to send
+     only over callConn — but callConn is set up exclusively on the CALLER's side
+     (see placeCallOutgoing). The callee never gets a callConn at all, so their send
+     silently no-op'd every time; only the caller's messages ever got through, and
+     only if the callee happened to already have a dm connection open for other
+     reasons. findOpenConnTo() (already used for status delivery) checks both
+     callConn AND any other open connection to the call peer — chatConn included —
+     so it works correctly regardless of which side of the call you're on. */
+  var conn=(callConn&&callConn.open)?callConn:findOpenConnTo(callPeerId);
+  if(conn&&conn.open){try{conn.send({type:'call-chat',text:t});}catch(e){toast('⚠️ Message not delivered');}}
+  else toast('⚠️ Message not delivered — connection lost');
 }
 function applyMirror(el,facing){el.classList.toggle('mirror',facing==='user');}
 async function flipCamera(){
@@ -4450,10 +4672,22 @@ async function startGroupCall(gid,voiceOnly){
   var le=document.getElementById('conf-video-local');if(le)le.srcObject=confStream;applyMirror(le,confFacing);
   document.getElementById('conf-label-local').textContent=myId;
   var lbl=document.getElementById('conf-group-name');if(lbl)lbl.textContent=g.name;
-  g.members.forEach(function(pid){
-    if(pid===myId)return;
+  var otherMembers=g.members.filter(function(p){return p!==myId;});
+  otherMembers.forEach(function(pid){
     connectToConfPeer(pid);
     notifyPeer(pid,'conf',null); // rings their phone via FCM if they're offline/backgrounded, same as a 1:1 call
+    /* FIX (conference calls only ever formed a star through whoever started them):
+       this is the other half of the fix — connectToConfPeer() alone only puts
+       US directly in touch with each member; it never told any member about the
+       OTHER members, so acceptCall()'s new mesh-connect-to-everyone step had an
+       empty roster to work with for a call started this way (as opposed to
+       inviteToConf(), which already sent this same message for its case). Send
+       each invitee everyone else's ID once our data connection to them opens, so
+       they can mesh-connect directly to one another too. */
+    var others=otherMembers.filter(function(p){return p!==pid;});
+    if(confConns[pid]){
+      confConns[pid].on('open',function(){try{confConns[pid].send({type:'conf-invite',initiator:myId,members:others,groupId:gid});}catch(e){}});
+    }
   });
   updateConfGrid();showScreen('screen-conf');requestWakeLock();
 }
