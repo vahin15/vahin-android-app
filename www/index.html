@@ -4701,6 +4701,12 @@ function setupMediaConnectionEvents(mc,pid,voiceOnly,isCaller){
         onStream(rs);
       });
     }catch(e){}
+    // Start ICE monitoring right away instead of waiting for the 'stream' event —
+    // otherwise candidate gathering/failures in the first few seconds go completely
+    // unlogged, which is exactly what was masking the real cause of dropped calls.
+    monitorCallConnection(mc);
+  }else{
+    diagLog('⚠️ '+(isCaller?'placeCallAttempt':'acceptCall')+': mc.peerConnection not yet available at call setup — ICE monitoring delayed');
   }
   mc.on('close',function(){
     diagLog('ℹ️ '+(isCaller?'placeCallAttempt':'acceptCall')+': MediaConnection closed');
@@ -4713,6 +4719,8 @@ function setupMediaConnectionEvents(mc,pid,voiceOnly,isCaller){
 
 function monitorCallConnection(mc){
   if(!mc||!mc.peerConnection)return;
+  if(mc._monitorAttached)return; // already watching this call's ICE — avoid double listeners
+  mc._monitorAttached=true;
   var pc=mc.peerConnection;
   var reconnectAttempted=false,forcedRelayAttempted=false;
   var disconnectRetryTimer=null,relayRetryTimer=null,disconnectGiveUpTimer=null,periodicRetryTimer=null,checkingFallbackTimer=null;
