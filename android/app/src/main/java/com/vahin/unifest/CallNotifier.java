@@ -259,6 +259,38 @@ public final class CallNotifier {
         }
     }
 
+    public static void showGroupNotification(Context ctx, String title, String text, String action, String targetId) {
+        try {
+            ensureChannels(ctx);
+            String safeTitle = (title == null || title.isEmpty()) ? "Group" : title;
+            String safeAction = (action == null) ? "group" : action;
+            String safeTarget = (targetId == null) ? "" : targetId;
+
+            Intent openIntent = new Intent(ctx, MainActivity.class);
+            openIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            openIntent.putExtra("vahinAction", safeAction);
+            openIntent.putExtra("vahinFrom", safeTarget);
+
+            PendingIntent pi = PendingIntent.getActivity(
+                ctx, (safeAction + "-" + safeTarget).hashCode(), openIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(ctx, CHANNEL_ID_MESSAGES)
+                .setSmallIcon(android.R.drawable.sym_action_chat)
+                .setContentTitle(safeTitle)
+                .setContentText(text == null ? "New group update" : text)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setContentIntent(pi);
+
+            NotificationManager nm = ctx.getSystemService(NotificationManager.class);
+            if (nm != null) nm.notify(("group-" + safeTarget).hashCode(), builder.build());
+
+        } catch (Exception e) {
+            Log.e(TAG, "showGroupNotification: exception — " + e.getMessage(), e);
+        }
+    }
+
     // Deduplicates a ring arriving over both FCM and WebSocket within a short window.
     private static String lastRingKey = null;
     private static long   lastRingAt  = 0;

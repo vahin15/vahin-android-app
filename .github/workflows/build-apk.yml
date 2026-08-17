@@ -65,6 +65,14 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
+      - name: Build debug APK
+        # assembleDebug needs no signing config (Gradle auto-generates/reuses a local
+        # debug keystore), so this doesn't depend on the release keystore step above —
+        # gives a quick, always-buildable APK for sideloading/testing even if release
+        # signing secrets aren't configured yet.
+        working-directory: android
+        run: ./gradlew assembleDebug --stacktrace
+
       - name: Build release APK
         working-directory: android
         run: ./gradlew assembleRelease --stacktrace

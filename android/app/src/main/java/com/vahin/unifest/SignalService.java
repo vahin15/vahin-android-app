@@ -235,6 +235,20 @@ public class SignalService extends Service {
                     Log.w(TAG, "handleMessage: VahinTelecom refused call — falling back to CallNotifier for from=" + from);
                     CallNotifier.showIncomingCall(SignalService.this, callType, from);
                 }
+            } else if ("group-invite".equals(callType)) {
+                String groupId   = msg.optString("groupId", null);
+                String groupName = msg.optString("groupName", null);
+                String safeTitle = (groupName != null && !groupName.isEmpty()) ? groupName : "Group Invitation";
+                String safeBody  = from + " added you to " + safeTitle;
+                Log.d(TAG, "handleMessage: group-invite event from=" + from + " group=" + safeTitle);
+                CallNotifier.showGroupNotification(SignalService.this, safeTitle, safeBody, "group-invite", groupId != null ? groupId : from);
+            } else if ("group-msg".equals(callType)) {
+                String groupId   = msg.optString("groupId", null);
+                String groupName = msg.optString("groupName", null);
+                String safeTitle = (groupName != null && !groupName.isEmpty()) ? groupName : "Group Message";
+                String safeBody  = from + ": " + (msgText != null ? msgText : "New message");
+                Log.d(TAG, "handleMessage: group-msg event from=" + from + " group=" + safeTitle);
+                CallNotifier.showGroupNotification(SignalService.this, safeTitle, safeBody, "group-msg", groupId != null ? groupId : from);
             } else {
                 Log.d(TAG, "handleMessage: message event from=" + from);
                 CallNotifier.showMessage(SignalService.this, from, msgText);

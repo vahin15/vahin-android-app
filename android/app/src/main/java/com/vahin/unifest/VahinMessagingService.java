@@ -127,6 +127,18 @@ public class VahinMessagingService extends FirebaseMessagingService {
                 
                 // 2. Hand to Telecom for system-level audio routing and Bluetooth/Auto integration
                 VahinTelecom.addIncomingCall(this, from, isConf);
+            } else if ("group-invite".equals(type)) {
+                String groupId = data.get("groupId");
+                String groupName = data.get("groupName");
+                String safeTitle = (groupName != null && !groupName.isEmpty()) ? groupName : "Group Invitation";
+                String safeBody = (from != null ? from : "Someone") + " added you to " + safeTitle;
+                CallNotifier.showGroupNotification(this, safeTitle, safeBody, "group-invite", groupId != null ? groupId : from);
+            } else if ("group-msg".equals(type)) {
+                String groupId = data.get("groupId");
+                String groupName = data.get("groupName");
+                String safeTitle = (groupName != null && !groupName.isEmpty()) ? groupName : "Group Message";
+                String safeBody = (from != null ? (from + ": ") : "") + (text != null ? text : "New message");
+                CallNotifier.showGroupNotification(this, safeTitle, safeBody, "group-msg", groupId != null ? groupId : from);
             } else {
                 CallNotifier.showMessage(this, from, text);
             }

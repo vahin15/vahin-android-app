@@ -275,6 +275,56 @@ public class VahinPermissionsPlugin extends Plugin {
         call.resolve();
     }
 
+    /**
+     * Saves a base64-encoded file to cache/shared storage and opens it with the system viewer or chooser.
+     */
+    @PluginMethod
+    public void saveAndOpenFile(PluginCall call) {
+        String base64Data = call.getString("base64Data", "");
+        String fileName = call.getString("fileName", "file");
+        String mimeType = call.getString("mimeType", "application/octet-stream");
+
+        try {
+            if (base64Data == null || base64Data.isEmpty()) {
+                call.reject("base64Data is required");
+                return;
+            }
+            String raw = base64Data.contains(",") ? base64Data.split(",", 2)[1] : base64Data;
+            byte[] bytes = Base64.decode(raw, Base64.DEFAULT);
+
+            File cacheDir = new File(getContext().getCacheDir(), "shared_files");
+            if (!cacheDir.exists()) cacheDir.mkdirs();
+            File destFile = new File(cacheDir, fileName);
+            try (OutputStream os = new FileOutputStream(destFile)) {
+                os.write(bytes);
+            }
+
+            Uri contentUri = androidx.core.content.FileProvider.getUriForFile(
+                getContext(),
+                getContext().getPackageName() + ".fileprovider",
+                destFile
+            );
+
+            Intent viewIntent = new Intent(Intent.ACTION_VIEW);
+            viewIntent.setDataAndType(contentUri, mimeType);
+            viewIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+
+            try {
+                getContext().startActivity(viewIntent);
+            } catch (ActivityNotFoundException ex) {
+                Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                shareIntent.setType(mimeType);
+                shareIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
+                shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(Intent.createChooser(shareIntent, "Open " + fileName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            }
+
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to save and open file: " + e.getMessage());
+        }
+    }
+
     private void openAppDetailsSettings() {
         try {
             Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
