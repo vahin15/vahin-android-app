@@ -4693,21 +4693,33 @@ function setupMediaConnectionEvents(mc,pid,voiceOnly,isCaller){
     if(isCaller){logCall(pid,'connected','out');}
   }
   mc.on('stream',onStream);
-  if(mc.peerConnection){
-    var pc=mc.peerConnection;
-    try{
-      pc.addEventListener('track',function(evt){
-        var rs=(evt.streams&&evt.streams[0])?evt.streams[0]:new MediaStream([evt.track]);
-        onStream(rs);
-      });
-    }catch(e){}
-    // Start ICE monitoring right away instead of waiting for the 'stream' event —
-    // otherwise candidate gathering/failures in the first few seconds go completely
-    // unlogged, which is exactly what was masking the real cause of dropped calls.
-    monitorCallConnection(mc);
-  }else{
-    diagLog('⚠️ '+(isCaller?'placeCallAttempt':'acceptCall')+': mc.peerConnection not yet available at call setup — ICE monitoring delayed');
-  }
+  // FIX (still zero 🧊 candidate logs even after the earlier timing fix): checking
+  // mc.peerConnection ONCE, synchronously, right here is itself a race — PeerJS
+  // creates the real RTCPeerConnection a tick or more AFTER call()/answer() returns,
+  // especially on the caller side. A single synchronous check can miss it entirely
+  // and fall through to the "delayed" branch with nothing ever following up, which
+  // is exactly what silently skipped ICE monitoring on this call. Poll briefly
+  // instead of checking once, so monitoring attaches the moment pc actually exists.
+  var pcWaitAttempts=0;
+  (function waitForPeerConnection(){
+    if(mc.peerConnection){
+      var pc=mc.peerConnection;
+      try{
+        pc.addEventListener('track',function(evt){
+          var rs=(evt.streams&&evt.streams[0])?evt.streams[0]:new MediaStream([evt.track]);
+          onStream(rs);
+        });
+      }catch(e){}
+      monitorCallConnection(mc);
+      return;
+    }
+    pcWaitAttempts++;
+    if(pcWaitAttempts>40){ // ~2s at 50ms — give up and log it plainly instead of failing silently
+      diagLog('⚠️ '+(isCaller?'placeCallAttempt':'acceptCall')+': mc.peerConnection never became available — ICE monitoring never attached');
+      return;
+    }
+    setTimeout(waitForPeerConnection,50);
+  })();
   mc.on('close',function(){
     diagLog('ℹ️ '+(isCaller?'placeCallAttempt':'acceptCall')+': MediaConnection closed');
     endCall();
