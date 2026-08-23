@@ -5414,10 +5414,49 @@ function setVoiceMode(on,pid){
   var camBtn=document.getElementById('btn-cam');if(camBtn)camBtn.style.display=on?'none':'flex';
   var flipBtn=document.getElementById('btn-flip');if(flipBtn)flipBtn.style.display=on?'none':'flex';
 }
+/* FIX (root cause of "call UI doesn't show" — confirmed via debug log): PeerJS's
+   connection to the signaling broker drops and reconnects fairly often (network
+   blips, server restarts, the "ID still clearing" race after a fast reconnect —
+   all visible in a real debug log as a burst of "Broker connection dropped —
+   reconnecting" lines lasting anywhere from a few seconds to ~20s). Previously,
+   if someone tapped Call during exactly one of those windows, startCall() bailed
+   out immediately with nothing but a small, easy-to-miss toast ("Not connected
+   yet") and never called showScreen('screen-call') at all — from the user's side
+   that looks exactly like "I tapped call and nothing happened" / "the call UI
+   never showed up", even though the app was actually fine and reconnected
+   moments later on its own. Reconnects are short-lived, so instead of failing
+   instantly, actively kick the reconnect and give it a real window to finish
+   before giving up for good. */
+function waitForPeerReady(timeoutMs){
+  return new Promise(function(resolve){
+    if(peer&&peerReady){resolve(true);return;}
+    var done=false;
+    var iv=setInterval(function(){
+      if(done)return;
+      if(peer&&peerReady){done=true;clearInterval(iv);resolve(true);}
+    },200);
+    setTimeout(function(){
+      if(done)return;
+      done=true;clearInterval(iv);resolve(!!(peer&&peerReady));
+    },timeoutMs);
+  });
+}
 async function startCall(pid,voiceOnly){
   if(!pid){toast('Enter an ID');return;}if(pid===myId){toast("Can't call yourself");return;}
-  if(!peer||!peerReady){toast('Not connected yet');return;}if(currentCall){toast('Already in a call');return;}
+  if(currentCall){toast('Already in a call');return;}
   if(isBlocked(pid)){toast('You have blocked this user');return;}
+  if(!peer||!peerReady){
+    diagLog('⏳ startCall: peer not ready ('+(peer?'disconnected':'null')+') — kicking reconnect and waiting up to 6s before giving up');
+    toast('Reconnecting…');
+    try{ensurePeerConnected();}catch(e){}
+    var ready=await waitForPeerReady(6000);
+    if(!ready){
+      diagLog('❌ startCall: still not connected after 6s — aborting call');
+      toast('Not connected — check your internet and try again');
+      return;
+    }
+    diagLog('✅ startCall: reconnected — continuing with the call');
+  }
   callPeerId=pid;addRecentSilent(pid);callIsVoiceOnly=!!voiceOnly;weAreCaller=true;
   facingMode=settings.backcam?'environment':'user';
   try{localStream=voiceOnly?await getAudioOnlyStream():await getStream(facingMode);}
