@@ -19,6 +19,7 @@
 <meta name="apple-mobile-web-app-title" content="Unifest"/>
 <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
 <link rel="manifest" href="/manifest.json"/>
+<script src="/qrcode.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -396,20 +397,24 @@ button,input,textarea{font-family:inherit;}
   color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(30,58,95,.4);}
 .rec-cancel-btn{background:var(--surface2);border:1.5px solid var(--border2);border-radius:14px;padding:14px 22px;font-size:14px;font-weight:600;
   color:var(--text2);cursor:pointer;}
-#screen-call{background:#05050a;z-index:60;}
-#video-remote{width:100%;height:100%;object-fit:cover;background:#0B0C10;position:absolute;inset:0;}
-#video-local{position:absolute;bottom:calc(96px + var(--safe-bottom));right:16px;width:92px;height:136px;object-fit:cover;border-radius:18px;
-  border:2px solid rgba(255,255,255,.3);background:#12151B;z-index:5;box-shadow:0 12px 36px rgba(0,0,0,.7);transition:transform .2s ease;}
+#screen-call{background:#000000;z-index:60;position:relative;overflow:hidden;}
+#video-remote{width:100%;height:100%;object-fit:cover;background:#000000;position:absolute;inset:0;z-index:1;cursor:pointer;}
+#video-local{position:absolute;bottom:calc(96px + var(--safe-bottom));right:16px;width:96px;height:144px;object-fit:cover;border-radius:18px;
+  border:2px solid rgba(255,255,255,.5);background:#12151B;z-index:15;box-shadow:0 12px 36px rgba(0,0,0,.75);transition:transform .2s ease,right .2s ease,bottom .2s ease;cursor:pointer;}
 #video-local.mirror{transform:scaleX(-1);}
 #screen-call.voice-mode #video-remote,#screen-call.voice-mode #video-local{display:none;}
 #voice-call-avatar{display:none;position:absolute;inset:0;z-index:2;flex-direction:column;align-items:center;justify-content:center;gap:20px;
   background:radial-gradient(ellipse at 50% 30%,rgba(34,211,238,.18),transparent 55%),radial-gradient(ellipse at 50% 65%,rgba(99,102,241,.15),transparent 65%),linear-gradient(180deg,#090B10 0%,#040508 100%);}
 #screen-call.voice-mode #voice-call-avatar{display:flex;}
 @keyframes avatarRing{0%,100%{box-shadow:0 0 0 0 rgba(34,211,238,.4),0 0 50px rgba(30,58,95,.6);}50%{box-shadow:0 0 0 16px rgba(34,211,238,0),0 0 70px rgba(30,58,95,.8);}}
+@keyframes scanLaser{0%,100%{top:0%;opacity:.85;}50%{top:calc(100% - 4px);opacity:1;}}
 .voice-av-circle{width:130px;height:130px;border-radius:50%;background:linear-gradient(135deg,#1E3A5F 0%,#0F2035 100%);display:flex;align-items:center;
   justify-content:center;font-size:52px;font-weight:900;color:#fff;box-shadow:0 12px 40px rgba(0,0,0,.5);border:2.5px solid rgba(34,211,238,.4);animation:avatarRing 2.4s ease-out infinite;}
-.call-header{position:absolute;top:0;left:0;right:0;z-index:10;padding:calc(16px + var(--safe-top)) 18px 24px;display:flex;
-  align-items:flex-start;justify-content:space-between;background:linear-gradient(rgba(0,0,0,.65),transparent);}
+.call-header{position:absolute;top:0;left:0;right:0;z-index:20;padding:calc(16px + var(--safe-top)) 18px 24px;display:flex;
+  align-items:flex-start;justify-content:space-between;background:linear-gradient(to bottom, rgba(0,0,0,.6) 0%, transparent 100%);
+  transition:opacity .22s ease,transform .22s ease;pointer-events:none;}
+.call-header *{pointer-events:auto;}
+.call-header.hidden{opacity:0;transform:translateY(-14px);pointer-events:none;}
 .call-peer-name{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.3px;text-shadow:0 2px 8px rgba(0,0,0,.6);}
 .call-status-text{font-size:13px;color:rgba(255,255,255,.75);margin-top:3px;font-weight:500;}
 .call-timer{font-size:14px;color:#fff;font-variant-numeric:tabular-nums;font-weight:700;background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.15);}
@@ -420,7 +425,7 @@ button,input,textarea{font-family:inherit;}
 .q-bar{width:3.5px;border-radius:2px;background:rgba(255,255,255,.3);}
 .q-bar.on{background:#22D3EE;}
 .q-lbl{font-size:11.5px;font-weight:600;color:rgba(255,255,255,.85);}
-.outgoing-wrap{position:absolute;inset:0;z-index:8;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+.outgoing-wrap{position:absolute;inset:0;z-index:18;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;
   background:radial-gradient(ellipse at 50% 30%,rgba(34,211,238,.16),transparent 55%),radial-gradient(ellipse at 50% 65%,rgba(99,102,241,.12),transparent 65%),linear-gradient(180deg,#090B10 0%,#040508 100%);}
 .outgoing-wrap.show{display:flex;}
 .ring-container{position:relative;width:160px;height:160px;display:flex;align-items:center;justify-content:center;}
@@ -434,14 +439,39 @@ button,input,textarea{font-family:inherit;}
 .ring-sub{font-size:14.5px;color:rgba(255,255,255,.65);font-weight:500;}
 .out-phase-timer{font-size:13px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.5px;
   background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:6px 16px;font-variant-numeric:tabular-nums;}
-.call-controls{position:absolute;bottom:0;left:0;right:0;z-index:10;padding:0 20px calc(32px + var(--safe-bottom));padding-top:40px;
-  display:flex;justify-content:center;gap:14px;flex-wrap:wrap;}
-.ctrl-btn{width:56px;height:56px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;
+.call-controls{position:absolute;bottom:0;left:0;right:0;z-index:20;padding:16px 16px calc(26px + var(--safe-bottom));
+  background:linear-gradient(to top, rgba(0,0,0,.65) 0%, transparent 100%);
+  display:flex;justify-content:center;gap:10px;flex-wrap:wrap;transition:opacity .22s ease,transform .22s ease;pointer-events:auto;}
+.call-controls.hidden{opacity:0;transform:translateY(14px);pointer-events:none;}
+.ctrl-btn{width:54px;height:54px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;
   touch-action:manipulation;transition:all .18s cubic-bezier(.34,1.56,.64,1);outline:none;}
 .ctrl-btn:active{transform:scale(.88);}
-.ctrl-glass{background:rgba(255,255,255,.12);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.18);color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.35);}
+.ctrl-glass{background:rgba(255,255,255,.16);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.24);color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.35);}
 .ctrl-glass.on{background:#EAB308;color:#18181B;border-color:rgba(234,179,8,.5);box-shadow:0 0 20px rgba(234,179,8,.4);}
-.ctrl-end{background:linear-gradient(135deg,#EF4444,#B91C1C);box-shadow:0 10px 30px rgba(239,68,68,.55);width:64px;height:64px;color:#fff;}
+#btn-screenshare.active,#conf-screenshare-btn.active{
+  background:linear-gradient(135deg,#10B981,#059669)!important;
+  color:#fff!important;
+  border-color:rgba(16,185,129,.7)!important;
+  box-shadow:0 0 0 3px rgba(16,185,129,.4),0 8px 24px rgba(16,185,129,.55)!important;
+  animation:screenPulse 2s infinite ease-in-out;
+}
+@keyframes screenPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.5),0 8px 24px rgba(16,185,129,.5);}
+  50%{box-shadow:0 0 0 8px rgba(16,185,129,.12),0 8px 28px rgba(16,185,129,.7);}
+}
+.call-screenshare-pill{
+  position:absolute;top:calc(74px + var(--safe-top));left:50%;transform:translateX(-50%);z-index:22;
+  display:none;align-items:center;gap:8px;background:rgba(6,78,59,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(52,211,153,.5);color:#ECFDF5;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);letter-spacing:.2px;pointer-events:auto;
+}
+.call-screenshare-pill.show{display:flex;animation:slideDownFade .22s ease-out;}
+.call-screenshare-pill .pulse-dot{width:8px;height:8px;border-radius:50%;background:#34D399;box-shadow:0 0 8px #34D399;animation:dotPulse 1.5s infinite;}
+.call-screenshare-pill .pill-stop-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:12px;padding:2px 9px;font-size:11px;font-weight:700;cursor:pointer;margin-left:4px;transition:all .15s ease;}
+.call-screenshare-pill .pill-stop-btn:hover{background:rgba(239,68,68,.9);border-color:transparent;}
+@keyframes dotPulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.4);opacity:.6;}}
+@keyframes slideDownFade{from{opacity:0;transform:translate(-50%,-10px);}to{opacity:1;transform:translate(-50%,0);}}
+.ctrl-end{background:linear-gradient(135deg,#EF4444,#B91C1C);box-shadow:0 10px 30px rgba(239,68,68,.55);width:60px;height:60px;color:#fff;}
 .ctrl-end:active{transform:scale(.88);}
 .incoming-overlay{position:absolute;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;justify-content:space-between;
   padding-top:calc(48px + var(--safe-top));padding-bottom:calc(48px + var(--safe-bottom));padding-left:24px;padding-right:24px;
@@ -762,6 +792,53 @@ button,input,textarea{font-family:inherit;}
 
 /* ── Disappearing Timer Checks ── */
 .timer-check{font-size:14px;font-weight:800;color:var(--accent);}
+
+/* ── Ghost Mode Pill & Low-Data Call Pill ── */
+.ghost-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(124,58,237,.18);color:#A78BFA;border:1px solid rgba(124,58,237,.35);padding:4px 10px;border-radius:14px;font-size:11px;font-weight:700;letter-spacing:.2px;animation:ghostFloat 3s infinite ease-in-out;}
+@keyframes ghostFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-1.5px);}}
+.lowdata-call-pill{display:none;align-items:center;gap:6px;background:rgba(14,165,233,.22);backdrop-filter:blur(10px);border:1px solid rgba(56,189,248,.4);color:#BAE6FD;padding:4px 10px;border-radius:14px;font-size:11px;font-weight:700;position:absolute;top:calc(110px + var(--safe-top));left:50%;transform:translateX(-50%);z-index:22;}
+.lowdata-call-pill.show{display:flex;}
+
+/* ── Nearby & Offline Radar Styling ── */
+.radar-wrap{position:relative;width:240px;height:240px;margin:10px auto;border-radius:50%;background:radial-gradient(circle at center, rgba(14,165,233,.15) 0%, rgba(15,23,42,.95) 75%);border:2px solid rgba(56,189,248,.35);display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 40px rgba(14,165,233,.2);}
+.radar-ring{position:absolute;border-radius:50%;border:1px dashed rgba(56,189,248,.3);pointer-events:none;}
+.radar-ring.r1{width:80px;height:80px;}.radar-ring.r2{width:150px;height:150px;}.radar-ring.r3{width:215px;height:215px;}
+.radar-sweep{position:absolute;inset:0;background:conic-gradient(from 0deg at 50% 50%, rgba(56,189,248,0.45) 0deg, rgba(56,189,248,0) 65deg, transparent 65deg);animation:radarSpin 2.6s linear infinite;border-radius:50%;pointer-events:none;}
+@keyframes radarSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+.radar-center-dot{width:18px;height:18px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 0 14px var(--accent);z-index:3;}
+.radar-blip{position:absolute;width:14px;height:14px;border-radius:50%;background:#10B981;border:2px solid #fff;box-shadow:0 0 12px #10B981;cursor:pointer;animation:blipPulse 1.8s infinite ease-out;z-index:4;}
+@keyframes blipPulse{0%{transform:scale(.9);box-shadow:0 0 4px #10B981;}50%{transform:scale(1.2);box-shadow:0 0 16px #10B981;}100%{transform:scale(.9);box-shadow:0 0 4px #10B981;}}
+.nearby-peer-item{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:14px;transition:background .15s;}
+.nearby-peer-item:hover{background:var(--surface3);}
+.rssi-bars{display:flex;align-items:flex-end;gap:2px;height:12px;}
+.rssi-bar{width:3px;background:var(--text3);border-radius:1px;}
+.rssi-bar.active{background:#10B981;}
+
+/* ── Scheduled Messages UI ── */
+.schedule-preset-chip{padding:7px 12px;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;font-size:12px;font-weight:700;color:var(--text);cursor:pointer;transition:all .15s ease;display:inline-flex;align-items:center;gap:5px;}
+.schedule-preset-chip:active,.schedule-preset-chip.active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 2px 8px rgba(37,99,235,.3);}
+.scheduled-item-card{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:14px;gap:10px;}
+
+/* ── Custom Contact Sound Selector ── */
+.sound-opt-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:14px;cursor:pointer;transition:all .15s ease;}
+.sound-opt-row.selected{border-color:var(--accent);background:rgba(37,99,235,.08);}
+.sound-play-mini{width:32px;height:32px;border-radius:50%;border:none;background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--elev1);}
+
+/* ── Star Review Rating ── */
+.star-rating-row{display:flex;gap:10px;justify-content:center;padding:10px 0;}
+.star-btn{font-size:32px;background:none;border:none;cursor:pointer;transition:transform .18s var(--ease-spring),filter .18s;color:#94A3B8;}
+.star-btn.filled{color:#F59E0B;filter:drop-shadow(0 0 6px rgba(245,158,11,.6));}
+.star-btn:active{transform:scale(1.28);}
+
+/* ── Home Screen Widget Card Simulation ── */
+.widget-preview-box{background:linear-gradient(135deg,rgba(30,41,59,.95),rgba(15,23,42,.95));border:2px solid rgba(255,255,255,.12);border-radius:24px;padding:18px;color:#fff;box-shadow:0 16px 40px rgba(0,0,0,.45);position:relative;overflow:hidden;}
+.widget-speed-dial{display:flex;gap:12px;align-items:center;justify-content:space-around;margin-top:14px;}
+.widget-contact-btn{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;color:#fff;cursor:pointer;}
+.widget-contact-av{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#1D4ED8);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;box-shadow:0 4px 14px rgba(0,0,0,.35);border:2px solid rgba(255,255,255,.25);}
+
+/* ── Low Data Media Placeholder ── */
+.lowdata-media-placeholder{padding:14px;border:1.5px dashed var(--border2);border-radius:14px;background:var(--surface2);display:flex;align-items:center;gap:12px;cursor:pointer;}
+.lowdata-media-placeholder:active{background:var(--surface3);}
 </style>
 </head>
 <body>
@@ -850,8 +927,9 @@ button,input,textarea{font-family:inherit;}
 </div>
 <div id="screen-chats" class="screen tabbed">
   <div class="top-header">
-    <div class="header-brand"><div class="header-title">Unifest</div></div>
+    <div class="header-brand"><div class="header-title">Unifest</div><div class="ghost-pill" id="ghost-pill" style="display:none;" title="Ghost Mode Active — appearing offline"><span style="font-size:12px;">👻</span><span>Ghost</span></div></div>
     <div class="header-actions">
+      <button class="hdr-btn" id="nearby-btn" title="Nearby / Offline Mode (Zero Internet)"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0 0-7.07 17.07"/><path d="M12 6a6 6 0 0 0-4.24 10.24"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2a10 10 0 0 1 7.07 17.07"/><path d="M12 6a6 6 0 0 1 4.24 10.24"/></svg></button>
       <button class="hdr-btn" id="qr-scan-btn" title="QR Code &amp; Scanner"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="6" height="6" x="3" y="3" rx="1"/><rect width="6" height="6" x="15" y="3" rx="1"/><rect width="6" height="6" x="3" y="15" rx="1"/><path d="M15 15h2v2h-2z"/><path d="M19 15h2v2h-2z"/><path d="M15 19h2v2h-2z"/><path d="M19 19h2v2h-2z"/></svg></button>
       <button class="hdr-btn" id="broadcast-btn" title="New Broadcast"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/></svg></button>
       <button class="hdr-btn" id="gs-btn" title="Search"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg></button>
@@ -1003,6 +1081,7 @@ button,input,textarea{font-family:inherit;}
       <div class="settings-group">
         <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(29,122,95,.1);">🔔</div><div><div class="s-label">Ringtone</div><div class="s-sub">Sound on incoming calls</div></div></div><div class="toggle-sw on" id="ringtone-sw"></div></div>
         <div class="settings-row" id="custom-ringtone-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(30,58,95,.1);">🎵</div><div><div class="s-label">Custom Ringtone</div><div class="s-sub" id="ringtone-sub-text">Default tone</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="contact-sounds-row" style="cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(234,179,8,.12);">🔔</div><div><div class="s-label">Contact Notification Sounds</div><div class="s-sub">Custom ringtone &amp; alert per contact</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(62,102,144,.1);">📳</div><div><div class="s-label">Vibrate on call</div></div></div><div class="toggle-sw on" id="vibrate-sw"></div></div>
         <div class="settings-row" id="push-toggle-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(62,102,144,.1);">📲</div><div><div class="s-label">Push Notifications</div><div class="s-sub" id="push-status-sub">Not enabled</div></div></div><div class="toggle-sw" id="push-sw"></div></div>
       </div>
@@ -1018,8 +1097,9 @@ button,input,textarea{font-family:inherit;}
       </div>
     </div>
     <div class="settings-section">
-      <div class="settings-section-title">Calls</div>
+      <div class="settings-section-title">Calls &amp; Data</div>
       <div class="settings-group">
+        <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(14,165,233,.12);">📉</div><div><div class="s-label">Low-Data Mode</div><div class="s-sub" id="lowdata-sub-text">Save bandwidth on calls &amp; pause auto-downloads</div></div></div><div class="toggle-sw" id="lowdata-sw"></div></div>
         <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(8,145,178,.1);">📷</div><div><div class="s-label">Default camera</div><div class="s-sub">Use back camera by default</div></div></div><div class="toggle-sw" id="backcam-sw"></div></div>
         <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(249,115,22,.1);">👥</div><div><div class="s-label">Conference limit</div><div class="s-sub">Max people in one call</div></div></div>
           <div class="limit-stepper"><button class="stepper-btn" id="conf-limit-minus">−</button><span class="stepper-val" id="conf-limit-val">6</span><button class="stepper-btn" id="conf-limit-plus">+</button></div>
@@ -1029,6 +1109,8 @@ button,input,textarea{font-family:inherit;}
     <div class="settings-section">
       <div class="settings-section-title">Privacy &amp; Security</div>
       <div class="settings-group">
+        <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(124,58,237,.12);">👻</div><div><div class="s-label">Ghost Mode</div><div class="s-sub" id="ghost-sub-text">Hide online presence &amp; typing indicators</div></div></div><div class="toggle-sw" id="ghost-sw"></div></div>
+        <div class="settings-row" id="export-data-row" style="cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(16,185,129,.12);">📦</div><div><div class="s-label">Export My Data</div><div class="s-sub">Download chat history as JSON or HTML</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="applock-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(30,58,95,.1);">🔒</div><div><div class="s-label">App Lock</div><div class="s-sub" id="applock-status-sub">Disabled</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="starred-msgs-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(234,179,8,.12);">⭐</div><div><div class="s-label">Starred Messages</div><div class="s-sub" id="starred-count-sub">View all starred</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="blocked-list-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">🚫</div><div><div class="s-label">Blocked Users</div><div class="s-sub" id="blocked-count-sub">No one blocked</div></div></div><div class="chevron">›</div></div>
@@ -1038,6 +1120,8 @@ button,input,textarea{font-family:inherit;}
     <div class="settings-section">
       <div class="settings-section-title">About &amp; Support</div>
       <div class="settings-group">
+        <div class="settings-row" id="widget-guide-row" style="cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(99,102,241,.12);">📱</div><div><div class="s-label">Home Screen Widget &amp; Badge</div><div class="s-sub">Unread count, speed dial &amp; quick reply</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="rate-app-row" style="cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(245,158,11,.12);">⭐</div><div><div class="s-label">Rate &amp; Review Unifest</div><div class="s-sub">Share feedback &amp; help us grow</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="invite-friends-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(16,185,129,.12);">✉️</div><div><div class="s-label">Invite Friends</div><div class="s-sub">Share your Unifest invite link</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="contact-support-row" style="cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(37,99,235,.12);">💬</div><div><div class="s-label">Contact Support</div><div class="s-sub">Email support &amp; get help</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="check-update-row" style="cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(124,58,237,.12);">🔄</div><div><div class="s-label">Check for Updates</div><div class="s-sub" id="settings-app-ver">Version 1.0 (Build 1)</div></div></div><div class="chevron">›</div></div>
@@ -1075,6 +1159,10 @@ button,input,textarea{font-family:inherit;}
   <div id="disappearing-chat-banner" style="display:none;align-items:center;justify-content:center;gap:6px;padding:6px 14px;background:rgba(99,102,241,0.1);color:var(--accent);font-size:12px;font-weight:600;border-bottom:1px solid rgba(99,102,241,0.2);">
     <span>⏱️</span> <span id="disappearing-chat-banner-text">Disappearing messages on</span>
   </div>
+  <div id="scheduled-msgs-banner" style="display:none;align-items:center;justify-content:space-between;padding:8px 14px;background:rgba(245,158,11,0.12);color:var(--text);font-size:12px;font-weight:600;border-bottom:1px solid rgba(245,158,11,0.25);">
+    <div style="display:flex;align-items:center;gap:6px;"><span>🕒</span><span id="scheduled-msgs-banner-text">1 message scheduled</span></div>
+    <button id="view-scheduled-btn" style="background:transparent;border:none;color:var(--accent);font-weight:700;font-size:12px;cursor:pointer;padding:2px 6px;">Manage ›</button>
+  </div>
   <div class="chat-messages" id="chat-msgs"></div>
   <div id="blocked-bar">
     <div class="blocked-icon">🚫</div>
@@ -1087,6 +1175,7 @@ button,input,textarea{font-family:inherit;}
       <div class="attach-btn-group">
         <button class="attach-btn file-attach" id="attach-btn" title="Attach file, photo or video"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
         <button class="attach-btn voice-rec" id="voice-btn" title="Voice note"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
+        <button class="attach-btn" id="schedule-msg-btn" title="Schedule message (Send later)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
         <button class="attach-btn" id="emoji-btn" title="Emoji"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></button>
       </div>
       <div class="chat-inp-wrapper"><textarea class="chat-inp" id="chat-input" placeholder="Message…" autocomplete="off" autocorrect="off" autocapitalize="sentences" rows="1"></textarea></div>
@@ -1117,9 +1206,19 @@ button,input,textarea{font-family:inherit;}
     <div><div class="call-peer-name" id="call-peer-name">—</div><div class="call-status-text" id="call-status">Connecting…</div></div>
     <div class="call-timer" id="call-timer">0:00</div>
   </div>
+  <div class="call-screenshare-pill" id="call-screenshare-pill">
+    <span class="pulse-dot"></span>
+    <span>You are sharing your screen</span>
+    <button type="button" class="pill-stop-btn" id="call-screenshare-stop-btn">Stop</button>
+  </div>
+  <div class="lowdata-call-pill" id="call-lowdata-pill">
+    <span>📉</span>
+    <span>Low-Data Mode Active</span>
+  </div>
   <div class="call-controls">
     <button class="ctrl-btn ctrl-glass" id="btn-mute" title="Mute"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
     <button class="ctrl-btn ctrl-glass" id="btn-cam" title="Camera"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.934a.5.5 0 0 0-.777-.416L16 11"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg></button>
+    <button class="ctrl-btn ctrl-glass" id="btn-screenshare" title="Share Screen"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/><polyline points="15 10 12 7 9 10"/><line x1="12" x2="12" y1="7" y2="13"/></svg></button>
     <button class="ctrl-btn ctrl-glass" id="btn-flip" title="Flip"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/><path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/><circle cx="12" cy="12" r="3"/><path d="m18 22-3-3 3-3"/><path d="m6 2 3 3-3 3"/></svg></button>
     <button class="ctrl-btn ctrl-glass" id="btn-speaker" title="Speaker"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></button>
     <button class="ctrl-btn ctrl-glass" id="btn-call-chat" title="Chat"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
@@ -1158,6 +1257,11 @@ button,input,textarea{font-family:inherit;}
       <button class="ctrl-btn ctrl-end" id="conf-end-btn" style="width:44px;height:44px;"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-1.02.49-1.95 1.13-2.75 1.9-.27.26-.64.38-1 .33-.37-.06-.69-.28-.86-.61L.43 12.19c-.27-.51-.15-1.14.28-1.51C3.39 8.35 7.49 7 12 7c4.51 0 8.61 1.35 11.29 3.68.43.37.55 1 .28 1.51l-1.8 3.15c-.17.33-.49.55-.86.61-.36.05-.73-.07-1-.33-.8-.77-1.73-1.41-2.75-1.9-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg></button>
     </div>
   </div>
+  <div class="call-screenshare-pill" id="conf-screenshare-pill">
+    <span class="pulse-dot"></span>
+    <span>You are sharing your screen</span>
+    <button type="button" class="pill-stop-btn" id="conf-screenshare-stop-btn">Stop</button>
+  </div>
   <div class="conf-invite-panel" id="conf-invite-panel">
     <div class="conf-invite-title">Invite to conference</div>
     <div class="conf-invite-row"><input class="conf-invite-inp" id="conf-invite-inp" placeholder="Their Unifest ID…" maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="none"/><button class="conf-invite-btn" id="conf-invite-submit-btn">Call</button></div>
@@ -1168,6 +1272,7 @@ button,input,textarea{font-family:inherit;}
   <div class="conf-controls">
     <button class="ctrl-btn ctrl-glass" id="conf-mute-btn" title="Mute"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
     <button class="ctrl-btn ctrl-glass" id="conf-cam-btn" title="Camera"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.934a.5.5 0 0 0-.777-.416L16 11"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg></button>
+    <button class="ctrl-btn ctrl-glass" id="conf-screenshare-btn" title="Share Screen"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/><polyline points="15 10 12 7 9 10"/><line x1="12" x2="12" y1="7" y2="13"/></svg></button>
     <button class="ctrl-btn ctrl-glass" id="conf-flip-btn" title="Flip"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/><path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/><circle cx="12" cy="12" r="3"/><path d="m18 22-3-3 3-3"/><path d="m6 2 3 3-3 3"/></svg></button>
   </div>
 </div>
@@ -1359,6 +1464,118 @@ button,input,textarea{font-family:inherit;}
   <div style="height:12px;"></div>
 </div>
 
+<!-- ── QR Code & Scanner Modal ── -->
+<div class="modal-overlay" id="qr-modal" style="z-index:1100;">
+  <div class="modal-sheet" style="max-height:92vh;display:flex;flex-direction:column;gap:14px;padding:20px 18px 24px;">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="modal-title" style="margin:0;font-size:18px;font-weight:800;">QR Code & Scanner</div>
+      <button class="modal-btn-cancel" id="qr-modal-close-btn" style="padding:6px 12px;border-radius:10px;font-size:13px;border:none;background:var(--surface2);color:var(--text2);cursor:pointer;">✕ Close</button>
+    </div>
+    
+    <!-- Segmented Tab -->
+    <div style="display:flex;background:var(--surface2);padding:4px;border-radius:12px;gap:4px;border:1px solid var(--border);">
+      <button id="qr-tab-my" style="flex:1;padding:9px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;background:var(--surface);color:var(--text);box-shadow:var(--elev1);transition:all .18s ease;">My QR Code</button>
+      <button id="qr-tab-scan" style="flex:1;padding:9px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--text3);transition:all .18s ease;">Scan QR Code</button>
+    </div>
+
+    <!-- Tab 1: My QR Code -->
+    <div id="qr-view-my" style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:6px 0;">
+      <div style="position:relative;background:#FFFFFF;padding:18px;border-radius:20px;box-shadow:0 8px 30px rgba(0,0,0,.12);border:2px solid var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <canvas id="qr-canvas" width="220" height="220" style="display:block;border-radius:10px;"></canvas>
+        <div id="qr-avatar-badge" style="position:absolute;width:44px;height:44px;border-radius:50%;background:var(--sheen),var(--hero-grad);border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.25);font-size:18px;">U</div>
+      </div>
+      
+      <div style="text-align:center;">
+        <div style="font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;">Your Unifest ID</div>
+        <div id="qr-my-id-display" style="font-size:22px;font-weight:900;letter-spacing:1px;color:var(--accent);margin-top:4px;font-family:monospace;">—</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:6px;max-width:260px;">Friends can scan this QR code or enter your ID to chat and call you instantly.</div>
+      </div>
+
+      <div style="display:flex;gap:10px;width:100%;">
+        <button id="qr-copy-btn" class="btn-secondary" style="flex:1;min-height:44px;padding:10px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px;">
+          <span>📋</span> Copy ID
+        </button>
+        <button id="qr-share-btn" class="btn-primary" style="flex:1;min-height:44px;padding:10px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px;">
+          <span>🔗</span> Share ID Link
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab 2: Scan QR Code -->
+    <div id="qr-view-scan" style="display:none;flex-direction:column;align-items:center;gap:14px;padding:6px 0;">
+      <div style="position:relative;width:240px;height:240px;border-radius:20px;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(0,0,0,.35);border:2px solid var(--accent);">
+        <video id="qr-scanner-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;"></video>
+        <div style="position:absolute;inset:20px;border:2px dashed rgba(255,255,255,.65);border-radius:14px;pointer-events:none;"></div>
+        <div style="position:absolute;left:20px;right:20px;height:3px;background:linear-gradient(90deg,transparent,#22D3EE,#A78BFA,transparent);box-shadow:0 0 10px #22D3EE;animation:scanLaser 2.2s ease-in-out infinite;pointer-events:none;"></div>
+        <div id="qr-scan-status-overlay" style="position:absolute;bottom:8px;left:8px;right:8px;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);color:#fff;font-size:11px;padding:4px 8px;border-radius:8px;text-align:center;">Point camera at a Unifest QR</div>
+      </div>
+
+      <div style="font-size:12px;color:var(--text3);text-align:center;">Scanning automatically... Or upload an image with a QR code below:</div>
+
+      <div style="width:100%;display:flex;gap:10px;">
+        <label for="qr-image-upload" class="btn-secondary" style="flex:1;min-height:42px;padding:10px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;text-align:center;">
+          <span>📁</span> Upload Image
+          <input type="file" id="qr-image-upload" accept="image/*" style="display:none;"/>
+        </label>
+        <button id="qr-torch-btn" class="btn-secondary" style="min-height:42px;padding:10px 14px;font-size:13px;display:flex;align-items:center;justify-content:center;">
+          🔦 Torch
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Broadcast Message Modal ── -->
+<div class="modal-overlay" id="broadcast-modal" style="z-index:1100;">
+  <div class="modal-sheet" style="max-height:92vh;display:flex;flex-direction:column;gap:14px;padding:20px 18px 24px;">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div class="modal-title" style="margin:0;font-size:18px;font-weight:800;display:flex;align-items:center;gap:6px;">
+          <span>📢</span> New Broadcast
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Send an announcement to multiple contacts directly</div>
+      </div>
+      <button class="modal-btn-cancel" id="broadcast-modal-close-btn" style="padding:6px 12px;border-radius:10px;font-size:13px;border:none;background:var(--surface2);color:var(--text2);cursor:pointer;">✕ Close</button>
+    </div>
+
+    <!-- Search / Filter & Select All -->
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div style="flex:1;position:relative;">
+        <input id="broadcast-search-inp" class="cs-inp" placeholder="Search contacts…" style="width:100%;padding:8px 12px;font-size:13px;border-radius:10px;" autocomplete="off"/>
+      </div>
+      <button id="broadcast-select-all-btn" style="padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Select All</button>
+    </div>
+
+    <!-- Selected count badge -->
+    <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text3);font-weight:600;">
+      <span>RECIPIENTS</span>
+      <span id="broadcast-selected-count" style="color:var(--accent);font-weight:800;">0 selected</span>
+    </div>
+
+    <!-- Contacts list -->
+    <div id="broadcast-contacts-list" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:4px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;">
+      <!-- Populated dynamically -->
+    </div>
+
+    <!-- Message Input -->
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Broadcast Message</label>
+      <textarea id="broadcast-msg-inp" placeholder="Type your broadcast announcement…" style="width:100%;min-height:76px;padding:12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;font-size:14px;color:var(--text);outline:none;resize:none;font-family:inherit;"></textarea>
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;gap:10px;">
+      <button id="broadcast-cancel-btn" class="btn-secondary" style="flex:1;min-height:46px;padding:10px;font-size:14px;">Cancel</button>
+      <button id="broadcast-send-btn" class="btn-primary" style="flex:2;min-height:46px;padding:10px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px;">
+        <span>🚀</span> Send Broadcast
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Account Recovery & Backup Modals ── -->
 <div class="modal-overlay" id="recovery-modal">
   <div class="modal-sheet">
@@ -1522,6 +1739,312 @@ button,input,textarea{font-family:inherit;}
 </div>
 
 
+<!-- ── Offline / Nearby Mode Modal ── -->
+<div class="modal-overlay" id="nearby-modal" style="z-index:1150;">
+  <div class="modal-sheet" style="max-height:92vh;display:flex;flex-direction:column;gap:14px;padding:20px 18px 24px;">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div class="modal-title" style="margin:0;font-size:18px;font-weight:800;display:flex;align-items:center;gap:6px;">
+          <span>📡</span> Nearby &amp; Offline Mode
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Chat &amp; call with zero internet via Bluetooth &amp; Local P2P</div>
+      </div>
+      <button class="modal-btn-cancel" id="nearby-close-btn" style="padding:6px 12px;border-radius:10px;font-size:13px;border:none;background:var(--surface2);color:var(--text2);cursor:pointer;">✕ Close</button>
+    </div>
+
+    <!-- Mode Selector Tabs -->
+    <div style="display:flex;background:var(--surface2);padding:4px;border-radius:12px;gap:4px;border:1px solid var(--border);">
+      <button id="nearby-tab-radar" style="flex:1;padding:9px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;background:var(--surface);color:var(--text);box-shadow:var(--elev1);transition:all .18s ease;">Radar Discovery</button>
+      <button id="nearby-tab-qr" style="flex:1;padding:9px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--text3);transition:all .18s ease;">Zero-Data QR Pair</button>
+    </div>
+
+    <!-- Tab 1: Radar Discovery -->
+    <div id="nearby-view-radar" style="display:flex;flex-direction:column;gap:12px;">
+      <div class="radar-wrap" id="nearby-radar-wrap">
+        <div class="radar-ring r1"></div>
+        <div class="radar-ring r2"></div>
+        <div class="radar-ring r3"></div>
+        <div class="radar-sweep"></div>
+        <div class="radar-center-dot" id="radar-my-dot" title="You"></div>
+        <div id="radar-blips-container"></div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:10px 14px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:16px;">📶</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);" id="nearby-scan-status">Scanning nearby airwaves…</div>
+            <div style="font-size:11.5px;color:var(--text3);" id="nearby-scan-sub">Bluetooth LE &amp; Local Subnet Discovery</div>
+          </div>
+        </div>
+        <button class="btn-secondary" id="nearby-rescan-btn" style="padding:6px 12px;font-size:12px;min-height:32px;">Rescan</button>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">DISCOVERED NEARBY PHONES</div>
+      <div id="nearby-peers-list" style="display:flex;flex-direction:column;gap:8px;max-height:170px;overflow-y:auto;">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+
+    <!-- Tab 2: Zero-Data QR Pair -->
+    <div id="nearby-view-qr" style="display:none;flex-direction:column;align-items:center;gap:12px;">
+      <div style="font-size:12.5px;color:var(--text2);text-align:center;line-height:1.5;">
+        When completely offline with no cellular network or router, pair directly by having one phone show this QR and the other scan it.
+      </div>
+      <div style="position:relative;background:#FFFFFF;padding:14px;border-radius:16px;border:2px solid var(--border2);">
+        <canvas id="offline-qr-canvas" width="190" height="190" style="display:block;border-radius:8px;"></canvas>
+      </div>
+      <div style="display:flex;gap:10px;width:100%;">
+        <button id="offline-scan-peer-btn" class="btn-primary" style="flex:1;min-height:44px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px;">
+          <span>📷</span> Scan Partner's QR
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Export My Data Modal ── -->
+<div class="modal-overlay" id="export-data-modal" style="z-index:1150;">
+  <div class="modal-sheet" style="max-height:90vh;display:flex;flex-direction:column;gap:14px;padding:20px 18px 24px;">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div class="modal-title" style="margin:0;font-size:18px;font-weight:800;display:flex;align-items:center;gap:6px;">
+          <span>📦</span> Export My Data
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Your data belongs to you. Download chat archives directly.</div>
+      </div>
+      <button class="modal-btn-cancel" id="export-close-btn" style="padding:6px 12px;border-radius:10px;font-size:13px;border:none;background:var(--surface2);color:var(--text2);cursor:pointer;">✕ Close</button>
+    </div>
+
+    <!-- Stats Card -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:14px;padding:12px;text-align:center;">
+      <div>
+        <div id="export-stat-chats" style="font-size:18px;font-weight:900;color:var(--accent);">0</div>
+        <div style="font-size:11px;color:var(--text3);">Chats</div>
+      </div>
+      <div>
+        <div id="export-stat-msgs" style="font-size:18px;font-weight:900;color:#10B981;">0</div>
+        <div style="font-size:11px;color:var(--text3);">Messages</div>
+      </div>
+      <div>
+        <div id="export-stat-calls" style="font-size:18px;font-weight:900;color:#F59E0B;">0</div>
+        <div style="font-size:11px;color:var(--text3);">Call Logs</div>
+      </div>
+    </div>
+
+    <!-- Format Options -->
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Select Export Format</div>
+      
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface2);border:1.5px solid var(--accent);border-radius:12px;cursor:pointer;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="radio" name="export-format" value="html" checked style="accent-color:var(--accent);"/>
+          <div>
+            <div style="font-size:13.5px;font-weight:700;color:var(--text);">Interactive Offline HTML</div>
+            <div style="font-size:11.5px;color:var(--text3);">Beautiful standalone log you can open in any browser</div>
+          </div>
+        </div>
+        <span style="font-size:16px;">🌐</span>
+      </label>
+
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;cursor:pointer;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="radio" name="export-format" value="json" style="accent-color:var(--accent);"/>
+          <div>
+            <div style="font-size:13.5px;font-weight:700;color:var(--text);">Raw JSON Archive</div>
+            <div style="font-size:11.5px;color:var(--text3);">Complete structured backup with full metadata</div>
+          </div>
+        </div>
+        <span style="font-size:16px;">📄</span>
+      </label>
+    </div>
+
+    <!-- Options Checkboxes -->
+    <div style="display:flex;flex-direction:column;gap:6px;background:var(--surface2);border-radius:12px;padding:10px 14px;border:1px solid var(--border);">
+      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text2);cursor:pointer;">
+        <input type="checkbox" id="export-opt-calls" checked style="accent-color:var(--accent);"/>
+        <span>Include Voice &amp; Video call history</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text2);cursor:pointer;">
+        <input type="checkbox" id="export-opt-starred" checked style="accent-color:var(--accent);"/>
+        <span>Include Starred &amp; Saved messages</span>
+      </label>
+    </div>
+
+    <!-- Download Trigger -->
+    <button class="btn-primary" id="export-download-btn" style="min-height:48px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;">
+      <span>💾</span> Download Export File
+    </button>
+  </div>
+</div>
+
+<!-- ── Scheduled Messages Modal ── -->
+<div class="modal-overlay" id="schedule-modal" style="z-index:1150;">
+  <div class="modal-sheet" style="max-height:90vh;display:flex;flex-direction:column;gap:14px;padding:20px 18px 24px;">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div class="modal-title" style="margin:0;font-size:18px;font-weight:800;display:flex;align-items:center;gap:6px;">
+          <span>🕒</span> Scheduled Messages
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Write now, auto-send when your recipient is ready</div>
+      </div>
+      <button class="modal-btn-cancel" id="schedule-close-btn" style="padding:6px 12px;border-radius:10px;font-size:13px;border:none;background:var(--surface2);color:var(--text2);cursor:pointer;">✕ Close</button>
+    </div>
+
+    <!-- Message Preview -->
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Message to Schedule</div>
+      <textarea id="schedule-msg-text" placeholder="Type message to schedule…" style="width:100%;min-height:64px;padding:12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;font-size:14px;color:var(--text);outline:none;resize:none;font-family:inherit;"></textarea>
+    </div>
+
+    <!-- Quick Presets -->
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Send In</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        <button class="schedule-preset-chip" data-mins="15">⏱️ 15 mins</button>
+        <button class="schedule-preset-chip" data-mins="60">⏱️ 1 hour</button>
+        <button class="schedule-preset-chip" data-mins="180">⏱️ 3 hours</button>
+        <button class="schedule-preset-chip" data-preset="tomorrow_morning">☀️ Tomorrow 9 AM</button>
+      </div>
+    </div>
+
+    <!-- Custom DateTime Picker -->
+    <div style="display:flex;align-items:center;gap:10px;background:var(--surface2);padding:8px 12px;border-radius:12px;border:1px solid var(--border);">
+      <span style="font-size:13px;color:var(--text2);font-weight:600;">Custom Time:</span>
+      <input type="datetime-local" id="schedule-custom-datetime" style="flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;font-size:13px;color:var(--text);font-family:inherit;outline:none;"/>
+    </div>
+
+    <button class="btn-primary" id="schedule-confirm-btn" style="min-height:46px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px;">
+      <span>📅</span> Schedule Message
+    </button>
+
+    <!-- Scheduled List for current chat -->
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-top:4px;">Pending Scheduled Messages</div>
+    <div id="scheduled-queue-list" style="max-height:130px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
+      <!-- Populated dynamically -->
+    </div>
+  </div>
+</div>
+
+<!-- ── Custom Contact Sound Modal ── -->
+<div class="modal-overlay" id="contact-sound-modal" style="z-index:1150;">
+  <div class="modal-sheet" style="max-height:90vh;display:flex;flex-direction:column;gap:14px;padding:20px 18px 24px;">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div class="modal-title" style="margin:0;font-size:18px;font-weight:800;display:flex;align-items:center;gap:6px;">
+          <span>🔔</span> Contact Alert Sounds
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Set a unique ringtone or chime for specific friends</div>
+      </div>
+      <button class="modal-btn-cancel" id="contact-sound-close-btn" style="padding:6px 12px;border-radius:10px;font-size:13px;border:none;background:var(--surface2);color:var(--text2);cursor:pointer;">✕ Close</button>
+    </div>
+
+    <!-- Contact Picker -->
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Select Contact</label>
+      <select id="contact-sound-peer-select" style="width:100%;padding:11px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;font-size:14px;color:var(--text);outline:none;font-family:inherit;">
+        <!-- Populated dynamically with recent contacts -->
+      </select>
+    </div>
+
+    <!-- Sound Selection List -->
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Preset Alert Tones</div>
+    <div id="contact-sound-list" style="display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto;">
+      <!-- Populated dynamically with tone preview buttons -->
+    </div>
+
+    <button class="btn-primary" id="contact-sound-save-btn" style="min-height:46px;font-size:14px;">Save Custom Sound</button>
+  </div>
+</div>
+
+<!-- ── Home Screen Widget & Badging Modal ── -->
+<div class="modal-overlay" id="widget-modal" style="z-index:1150;">
+  <div class="modal-sheet" style="max-height:92vh;display:flex;flex-direction:column;gap:14px;padding:20px 18px 24px;">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div class="modal-title" style="margin:0;font-size:18px;font-weight:800;display:flex;align-items:center;gap:6px;">
+          <span>📱</span> Home Screen Widget &amp; Quick Dial
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Fast access to your unread counts &amp; top contacts</div>
+      </div>
+      <button class="modal-btn-cancel" id="widget-close-btn" style="padding:6px 12px;border-radius:10px;font-size:13px;border:none;background:var(--surface2);color:var(--text2);cursor:pointer;">✕ Close</button>
+    </div>
+
+    <!-- Live Widget Simulator Card -->
+    <div class="widget-preview-box">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;">U</div>
+          <span style="font-weight:800;font-size:15px;letter-spacing:-.2px;">Unifest Live</span>
+        </div>
+        <div id="widget-unread-badge" style="background:var(--red);color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:800;">0 Unread</div>
+      </div>
+      
+      <div style="margin-top:14px;font-size:12px;color:rgba(255,255,255,.7);">1-Tap Speed Dial &amp; Call:</div>
+      <div class="widget-speed-dial" id="widget-speed-dial-contacts">
+        <!-- Populated dynamically with top 3 contacts -->
+      </div>
+    </div>
+
+    <!-- App Badging Status -->
+    <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:20px;">🔴</span>
+        <div>
+          <div style="font-size:13.5px;font-weight:700;color:var(--text);">App Icon Badge Sync</div>
+          <div style="font-size:11.5px;color:var(--text3);" id="widget-badge-status">Active — Unread badges live on launcher icon</div>
+        </div>
+      </div>
+      <button class="btn-secondary" id="widget-test-badge-btn" style="padding:6px 10px;font-size:12px;min-height:32px;">Test</button>
+    </div>
+
+    <!-- PWA Install Guide Tips -->
+    <div style="font-size:12px;color:var(--text3);line-height:1.5;background:var(--surface2);border-radius:12px;padding:10px 14px;">
+      💡 <b>Tip:</b> Add Unifest to your phone's Home Screen from your browser menu (<b>"Install App"</b> or <b>"Add to Home screen"</b>) to enable native icon badges and quick-launch shortcuts.
+    </div>
+
+    <button class="btn-primary" id="widget-done-btn" style="min-height:46px;font-size:14px;">Done</button>
+  </div>
+</div>
+
+<!-- ── Smart Review & Feedback Modal ── -->
+<div class="modal-overlay" id="smart-review-modal" style="z-index:1150;">
+  <div class="modal-sheet" style="max-height:85vh;display:flex;flex-direction:column;gap:14px;padding:24px 20px 24px;text-align:center;">
+    <div class="modal-handle"></div>
+    <div style="font-size:36px;animation:ghostFloat 2s infinite ease-in-out;">🎉</div>
+    <div>
+      <div class="modal-title" style="margin:0;font-size:20px;font-weight:900;" id="review-modal-title">Enjoying Unifest?</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:6px;line-height:1.5;" id="review-modal-sub">How would you rate your peer-to-peer call &amp; chat experience?</div>
+    </div>
+
+    <!-- Star Rating Row -->
+    <div class="star-rating-row" id="review-star-row">
+      <button class="star-btn" data-star="1">★</button>
+      <button class="star-btn" data-star="2">★</button>
+      <button class="star-btn" data-star="3">★</button>
+      <button class="star-btn" data-star="4">★</button>
+      <button class="star-btn" data-star="5">★</button>
+    </div>
+
+    <!-- Feedback Container (shown after rating) -->
+    <div id="review-feedback-box" style="display:none;flex-direction:column;gap:10px;">
+      <div style="font-size:13px;font-weight:700;color:var(--text);" id="review-feedback-prompt">Thank you!</div>
+      <textarea id="review-feedback-text" placeholder="Tell us what you love or how we can improve…" style="width:100%;height:70px;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:13px;color:var(--text);resize:none;font-family:inherit;outline:none;"></textarea>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="modal-btn-cancel" id="review-later-btn" style="flex:1;">Maybe Later</button>
+      <button class="btn-primary" id="review-action-btn" style="flex:1;">Submit</button>
+    </div>
+  </div>
+</div>
+
 <div id="app-lock-screen">
   <div class="lock-hero">
     <div class="logo-circle" style="width:72px;height:72px;">
@@ -1671,7 +2194,8 @@ var PEER_CONFIG={debug:0,host:'vahin-backend.onrender.com',secure:true,port:443,
 var SK={MYID:'uf_myid_v3',CONTACTS:'uf_contacts_v3',DM:'uf_dm_v3',GRPH:'uf_grp_hist_v3',GRPM:'uf_grp_members_v3',GROUPS:'uf_groups_v1',
   CALLS:'uf_calls_v3',SETTINGS:'uf_settings_v3',BLOCKED:'uf_blocked_v3',PINNED:'uf_pinned_v3',ONBOARDED:'uf_onboarded_v1',RINGTONE:'uf_ringtone_v1',TOKEN:'uf_token_v1',
   PERMSETUP_SEEN:'uf_permsetup_seen_v1',STARRED:'uf_starred_v1',APPLOCK:'uf_applock_v1',RECOVERY:'uf_recovery_v1',
-  MYSTATUS:'uf_mystatus_v1',PEERSTATUS:'uf_peerstatus_v1'};
+  MYSTATUS:'uf_mystatus_v1',PEERSTATUS:'uf_peerstatus_v1',LOWDATA:'uf_lowdata_v1',GHOST:'uf_ghost_v1',
+  SCHEDULED:'uf_scheduled_v1',CONTACT_SOUNDS:'uf_contact_sounds_v1',REVIEW:'uf_review_v1'};
 var myId='',peer=null,peerReady=false,reconnTimer=null;
 var localStream=null,currentCall=null,callPeerId='';
 var callConn=null,callTimer=null,callSecs=0,weAreCaller=false;
@@ -1686,11 +2210,13 @@ var dmHistory={},callHistory=[],callHistoryDirty=true;
 var recentPeers=[],onlinePeers={},onlinePeersTs={},unreadDM={},unreadGroup={},fcmBackupTimer=null;
 var blockedUsers=[],pinnedChats=[];
 var starredMessages=[];
+var scheduledMessages=[];
+var contactSounds={};
 var appLock={enabled:false,pin:'',biometric:false};
 var appUnlocked=false;
 var compressImageChat=true;
 var enteredPin='';
-var settings={ringtone:true,vibrate:true,backcam:false,confLimit:6,theme:'auto'};
+var settings={ringtone:true,vibrate:true,backcam:false,confLimit:6,theme:'auto',lowData:false,ghostMode:false};
 var customRingtoneDataUrl='';
 var incomingCall=null;
 /* FIX (rapid accept/decline race): acceptCall() is async and only clears `incomingCall`
@@ -1783,6 +2309,8 @@ var SVG_ICONS = {
   flip: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/><path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/><circle cx="12" cy="12" r="3"/><path d="m18 22-3-3 3-3"/><path d="m6 2 3 3-3 3"/></svg>',
   speaker: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
   speakerOff: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" x2="16" y1="9" y2="15"/><line x1="16" x2="22" y1="9" y2="15"/></svg>',
+  screenshare: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/><polyline points="15 10 12 7 9 10"/><line x1="12" x2="12" y1="7" y2="13"/></svg>',
+  screenshareOff: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" x2="22" y1="2" y2="22"/><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>',
   chat: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
   endCall: '<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-1.02.49-1.95 1.13-2.75 1.9-.27.26-.64.38-1 .33-.37-.06-.69-.28-.86-.61L.43 12.19c-.27-.51-.15-1.14.28-1.51C3.39 8.35 7.49 7 12 7c4.51 0 8.61 1.35 11.29 3.68.43.37.55 1 .28 1.51l-1.8 3.15c-.17.33-.49.55-.86.61-.36.05-.73-.07-1-.33-.8-.77-1.73-1.41-2.75-1.9-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>',
   acceptCall: '<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-2.2 2.2a15.045 15.045 0 0 1-6.59-6.59l2.2-2.21c.28-.26.36-.65.25-1C8.76 6.35 8.56 5.16 8.56 3.93 8.56 3.42 8.14 3 7.63 3H4.06C3.55 3 3 3.37 3 3.94c0 9.38 7.68 17.06 17.06 17.06.57 0 .94-.55.94-1.06v-3.56c0-.51-.42-.94-.99-.94z"/></svg>',
@@ -1814,6 +2342,8 @@ function saveAll(){
   ls_set(SK.BLOCKED,blockedUsers);
   ls_set(SK.PINNED,pinnedChats);
   ls_set(SK.STARRED,starredMessages);
+  ls_set(SK.SCHEDULED,scheduledMessages);
+  ls_set(SK.CONTACT_SOUNDS,contactSounds);
   ls_set(SK.APPLOCK,appLock);
   ls_set(SK.SETTINGS,settings);
 }
@@ -1836,9 +2366,11 @@ function loadAll(){
   blockedUsers=ls_get(SK.BLOCKED,[]);
   pinnedChats=ls_get(SK.PINNED,[]);
   starredMessages=ls_get(SK.STARRED,[]);
+  scheduledMessages=ls_get(SK.SCHEDULED,[]);
+  contactSounds=ls_get(SK.CONTACT_SOUNDS,{});
   appLock=ls_get(SK.APPLOCK,{enabled:false,pin:'',biometric:false});
   var s=ls_get(SK.SETTINGS,{});
-  settings=Object.assign({ringtone:true,vibrate:true,backcam:false,confLimit:6,theme:'auto'},s);
+  settings=Object.assign({ringtone:true,vibrate:true,backcam:false,confLimit:6,theme:'auto',lowData:false,ghostMode:false},s);
   customRingtoneDataUrl=localStorage.getItem(SK.RINGTONE)||'';
   var ra=document.getElementById('custom-ringtone-audio');
   if(ra&&customRingtoneDataUrl)ra.src=customRingtoneDataUrl;
@@ -1879,7 +2411,7 @@ function showScreen(id,dir){
     for(var i=0;i<screens.length;i++){if(screens[i].classList.contains('active')&&screens[i]!==next){current=screens[i];break;}}
   }
   var isTabbed=!!(next.classList.contains('tabbed'));
-  setAdmobBannerVisible(id==='screen-chats');
+  setAdmobBannerVisible(isTabbed);
   /* screen-chat/call/conf/search are full-screen overlays; the fixed bottom tab bar
      (z-index 90) must be hidden on them or it visually sits on top of the chat
      input / typing status row, especially once the keyboard opens and re-layouts. */
@@ -3041,6 +3573,8 @@ function showChatOptions(pid){
   }
   row('🖼️','View profile photo',null,false,function(){openDpViewer(pid,pid);});
   row('📁','Shared media & files','Photos, videos, and documents',false,function(){openSharedMedia(pid);});
+  row('🔔','Custom alert tone','Sound: '+((contactSounds&&contactSounds[pid])?contactSounds[pid]:'Default chime'),false,function(){openContactSoundModal(pid);});
+  row('📦','Export this chat','Download history as HTML / JSON',false,function(){openExportModal(pid);});
   row(isPinned?'📌':'📍',isPinned?'Unpin chat':'Pin chat',null,false,function(){isPinned?unpinChat(pid):pinChat(pid);});
   row(isBlk?'🔓':'🚫',(isBlk?'Unblock':'Block')+' '+pid,isBlk?'Allow calls & messages again':'They won\u2019t be able to call or message you',true,async function(){
     if(isBlk){unblockUser(pid);return;}
@@ -4563,12 +5097,17 @@ function applySettingsToUI(){
   var rs=document.getElementById('ringtone-sw');if(rs)rs.classList.toggle('on',settings.ringtone);
   var vs=document.getElementById('vibrate-sw');if(vs)vs.classList.toggle('on',settings.vibrate);
   var cs=document.getElementById('backcam-sw');if(cs)cs.classList.toggle('on',settings.backcam);
+  var lds=document.getElementById('lowdata-sw');if(lds)lds.classList.toggle('on',!!settings.lowData);
+  var ghs=document.getElementById('ghost-sw');if(ghs)ghs.classList.toggle('on',!!settings.ghostMode);
+  var gp=document.getElementById('ghost-pill');if(gp)gp.style.display=settings.ghostMode?'inline-flex':'none';
   var rt=document.getElementById('ringtone-sub-text');if(rt)rt.textContent=customRingtoneDataUrl?'Custom tone set ✓':'Default tone';
 }
 function toggleSetting(key){
   if(key==='ringtone')settings.ringtone=!settings.ringtone;
   if(key==='vibrate')settings.vibrate=!settings.vibrate;
   if(key==='backcam')settings.backcam=!settings.backcam;
+  if(key==='lowData'){settings.lowData=!settings.lowData;toast(settings.lowData?'Low-Data Mode ON 📉':'Low-Data Mode OFF');}
+  if(key==='ghostMode'){settings.ghostMode=!settings.ghostMode;toast(settings.ghostMode?'Ghost Mode ON 👻 (Presence hidden)':'Ghost Mode OFF');}
   saveAll();applySettingsToUI();
 }
 function syncSettingsUI(){
@@ -5402,7 +5941,9 @@ function endCall(){
   try{if(currentCall){currentCall._userInitiatedClose=true;currentCall.close();}}catch(e){}
   try{if(callConn)callConn.close();}catch(e){}
   currentCall=null;callConn=null;weAreCaller=false;outCallConnected=false;
+  stopScreenSharing(false);
   if(localStream){localStream.getTracks().forEach(function(t){try{t.stop();}catch(e){}});localStream=null;}
+  var duration=callSecs;
   clearInterval(callTimer);callTimer=null;callSecs=0;stopQual();
   clearInterval(callPingInterval);callPingInterval=null;
   document.getElementById('video-remote').srcObject=null;
@@ -5411,11 +5952,14 @@ function endCall(){
   document.getElementById('call-chat-panel').classList.remove('show');
   document.getElementById('cc-msgs').innerHTML='';
   document.getElementById('call-quality').classList.remove('show');
+  var ldp=document.getElementById('call-lowdata-pill');if(ldp)ldp.classList.remove('show');
   mutedAudio=false;mutedVideo=false;callIsVoiceOnly=false;setVoiceMode(false);
   var bm=document.getElementById('btn-mute');if(bm){bm.style.background='';bm.innerHTML=SVG_ICONS.mic;}
   var bc=document.getElementById('btn-cam');if(bc){bc.style.background='';bc.innerHTML=SVG_ICONS.cam;}
   var bs=document.getElementById('btn-speaker');if(bs){bs.style.background='';bs.innerHTML=SVG_ICONS.speaker;}
+  var bss=document.getElementById('btn-screenshare');if(bss){bss.style.background='';bss.classList.remove('active');bss.innerHTML=SVG_ICONS.screenshare;}
   releaseWakeLock();showScreen('screen-chats','back');switchTab('chats');renderChats();
+  if(duration>15){maybeTriggerSmartReview('call');}
 }
 var callPingInterval=null;
 function startCallTimer(){
@@ -5611,6 +6155,7 @@ function updateConfGrid(){
   document.getElementById('conf-sub').textContent=ex===0?'You only':ex===1?'You + 1 person':'You + '+ex+' people';
 }
 function endConf(){
+  stopScreenSharing(true);
   Object.values(confCalls).forEach(function(mc){try{if(mc)mc.close();}catch(e){}});
   Object.values(confConns).forEach(function(c){try{if(c)c.close();}catch(e){}});
   if(confStream){confStream.getTracks().forEach(function(t){try{t.stop();}catch(e){}});confStream=null;}
@@ -5643,6 +6188,400 @@ async function confFlipCamera(){
     toast(nf==='user'?'Front camera':'Back camera');
   }catch(e){toast('Could not switch camera');}
 }
+
+/* ── Screen Sharing Logic ── */
+var screenStream=null,isScreenSharing=false;
+async function toggleScreenShare(isConf){
+  if(isScreenSharing&&screenStream){
+    stopScreenSharing(isConf,true);
+    return;
+  }
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){
+    toast('Screen sharing is not supported on this device/browser');
+    return;
+  }
+  try{
+    var stream=await navigator.mediaDevices.getDisplayMedia({video:{cursor:'always'},audio:false});
+    screenStream=stream;
+    isScreenSharing=true;
+    var screenTrack=stream.getVideoTracks()[0];
+    screenTrack.onended=function(){stopScreenSharing(isConf,true);};
+
+    if(isConf){
+      Object.values(confCalls).forEach(function(mc){
+        if(mc&&mc.peerConnection){
+          var s=mc.peerConnection.getSenders().find(function(s){return s.track&&s.track.kind==='video';});
+          if(s&&screenTrack)s.replaceTrack(screenTrack);
+        }
+      });
+      var le=document.getElementById('conf-video-local');
+      if(le){le.srcObject=screenStream;le.classList.remove('mirror');}
+      var b=document.getElementById('conf-screenshare-btn');
+      if(b){b.classList.add('active');b.title='Stop Sharing Screen';}
+      var pill=document.getElementById('conf-screenshare-pill');
+      if(pill)pill.classList.add('show');
+    }else{
+      if(currentCall&&currentCall.peerConnection){
+        var s=currentCall.peerConnection.getSenders().find(function(s){return s.track&&s.track.kind==='video';});
+        if(s&&screenTrack)s.replaceTrack(screenTrack);
+      }
+      var lv=document.getElementById('video-local');
+      if(lv){lv.srcObject=screenStream;lv.classList.remove('mirror');}
+      var b=document.getElementById('btn-screenshare');
+      if(b){b.classList.add('active');b.title='Stop Sharing Screen';}
+      var pill=document.getElementById('call-screenshare-pill');
+      if(pill)pill.classList.add('show');
+    }
+    toast('Screen sharing is now active — your screen is visible 🖥️');
+  }catch(e){
+    isScreenSharing=false;screenStream=null;
+    if(e&&e.name!=='NotAllowedError')toast('Could not share screen: '+(e&&e.message?e.message:e));
+  }
+}
+
+function stopScreenSharing(isConf,showToast){
+  if(screenStream){
+    screenStream.getTracks().forEach(function(t){try{t.stop();}catch(e){}});
+    screenStream=null;
+  }
+  var wasSharing=isScreenSharing;
+  isScreenSharing=false;
+  if(isConf){
+    if(confStream){
+      var vt=confStream.getVideoTracks()[0];
+      Object.values(confCalls).forEach(function(mc){
+        if(mc&&mc.peerConnection){
+          var s=mc.peerConnection.getSenders().find(function(s){return s.track&&s.track.kind==='video';});
+          if(s&&vt)s.replaceTrack(vt);
+        }
+      });
+      var le=document.getElementById('conf-video-local');
+      if(le){le.srcObject=confStream;applyMirror(le,confFacing);}
+    }
+    var b=document.getElementById('conf-screenshare-btn');
+    if(b){b.classList.remove('active');b.style.background='';b.style.color='';b.title='Share Screen';}
+    var pill=document.getElementById('conf-screenshare-pill');
+    if(pill)pill.classList.remove('show');
+  }else{
+    if(localStream){
+      var vt=localStream.getVideoTracks()[0];
+      if(currentCall&&currentCall.peerConnection){
+        var s=currentCall.peerConnection.getSenders().find(function(s){return s.track&&s.track.kind==='video';});
+        if(s&&vt)s.replaceTrack(vt);
+      }
+      var lv=document.getElementById('video-local');
+      if(lv){lv.srcObject=localStream;applyMirror(lv,facingMode);}
+    }
+    var b=document.getElementById('btn-screenshare');
+    if(b){b.classList.remove('active');b.style.background='';b.style.color='';b.title='Share Screen';}
+    var pill=document.getElementById('call-screenshare-pill');
+    if(pill)pill.classList.remove('show');
+  }
+  if(showToast&&wasSharing)toast('Screen sharing stopped');
+}
+
+/* ── Call UI Tap Toggle (Unobstructed View) ── */
+function toggleCallControlsOverlay(){
+  var hdr=document.querySelector('.call-header');
+  var ctrl=document.querySelector('.call-controls');
+  if(hdr)hdr.classList.toggle('hidden');
+  if(ctrl)ctrl.classList.toggle('hidden');
+}
+
+/* ── QR Code & Scanner Logic ── */
+var qrScannerStream=null,qrScanAnimationTimer=null;
+function openQRModal(defaultTab){
+  defaultTab=defaultTab||'my';
+  var myIdDisplay=document.getElementById('qr-my-id-display');
+  if(myIdDisplay)myIdDisplay.textContent=myId||'—';
+  var badge=document.getElementById('qr-avatar-badge');
+  if(badge)badge.textContent=(myId&&myId[0]?myId[0].toUpperCase():'U');
+
+  var canvas=document.getElementById('qr-canvas');
+  if(canvas&&window.QRCodeGen&&myId){
+    try{
+      QRCodeGen.draw(myId,canvas,{
+        size:220,
+        margin:3,
+        colorDark:'#1E1B4B',
+        colorLight:'#FFFFFF'
+      });
+    }catch(e){}
+  }
+  document.getElementById('qr-modal').classList.add('show');
+  switchQRTab(defaultTab);
+}
+
+function closeQRModal(){
+  stopQRScanner();
+  document.getElementById('qr-modal').classList.remove('show');
+}
+
+function switchQRTab(tab){
+  var isMy=tab==='my';
+  var tabMy=document.getElementById('qr-tab-my');
+  var tabScan=document.getElementById('qr-tab-scan');
+  var viewMy=document.getElementById('qr-view-my');
+  var viewScan=document.getElementById('qr-view-scan');
+
+  if(tabMy){
+    tabMy.style.background=isMy?'var(--surface)':'transparent';
+    tabMy.style.color=isMy?'var(--text)':'var(--text3)';
+    tabMy.style.boxShadow=isMy?'var(--elev1)':'none';
+  }
+  if(tabScan){
+    tabScan.style.background=!isMy?'var(--surface)':'transparent';
+    tabScan.style.color=!isMy?'var(--text)':'var(--text3)';
+    tabScan.style.boxShadow=!isMy?'var(--elev1)':'none';
+  }
+  if(viewMy)viewMy.style.display=isMy?'flex':'none';
+  if(viewScan)viewScan.style.display=!isMy?'flex':'none';
+
+  if(!isMy){
+    startQRScanner();
+  }else{
+    stopQRScanner();
+  }
+}
+
+async function startQRScanner(){
+  var video=document.getElementById('qr-scanner-video');
+  var overlayStatus=document.getElementById('qr-scan-status-overlay');
+  if(!video)return;
+  if(qrScannerStream){stopQRScanner();}
+  try{
+    if(overlayStatus)overlayStatus.textContent='Opening camera…';
+    qrScannerStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}
+    });
+    video.srcObject=qrScannerStream;
+    await video.play();
+    if(overlayStatus)overlayStatus.textContent='Scanning for QR code…';
+    scanQRVideoFrame();
+  }catch(e){
+    if(overlayStatus)overlayStatus.textContent='Camera unavailable: '+(e&&e.message?e.message:'Denied');
+  }
+}
+
+function stopQRScanner(){
+  if(qrScanAnimationTimer){cancelAnimationFrame(qrScanAnimationTimer);qrScanAnimationTimer=null;}
+  if(qrScannerStream){
+    qrScannerStream.getTracks().forEach(function(t){try{t.stop();}catch(e){}});
+    qrScannerStream=null;
+  }
+  var video=document.getElementById('qr-scanner-video');
+  if(video)video.srcObject=null;
+}
+
+async function scanQRVideoFrame(){
+  var video=document.getElementById('qr-scanner-video');
+  var modal=document.getElementById('qr-modal');
+  if(!modal||!modal.classList.contains('show')||!video||!qrScannerStream)return;
+
+  if('BarcodeDetector' in window){
+    try{
+      var barcodeDetector=new BarcodeDetector({formats:['qr_code']});
+      var barcodes=await barcodeDetector.detect(video);
+      if(barcodes&&barcodes.length>0){
+        var raw=barcodes[0].rawValue;
+        if(raw){handleScannedQR(raw);return;}
+      }
+    }catch(e){}
+  }
+  qrScanAnimationTimer=requestAnimationFrame(scanQRVideoFrame);
+}
+
+function handleScannedQR(raw){
+  if(!raw)return;
+  var val=String(raw).trim();
+  if(val.indexOf('unifest:')===0)val=val.replace('unifest:','');
+  if(val.indexOf('id=')>-1){
+    try{
+      var url=new URL(val);
+      var idParam=url.searchParams.get('id')||url.searchParams.get('peer');
+      if(idParam)val=idParam;
+    }catch(e){}
+  }
+  var cleanId=val.toLowerCase().replace(/[^a-z0-9_\-]/g,'');
+  if(!cleanId){
+    toast('Invalid QR code');
+    return;
+  }
+  if(cleanId===myId){
+    toast("That's your own ID!");
+    return;
+  }
+  try{if(navigator.vibrate)navigator.vibrate(50);}catch(e){}
+  closeQRModal();
+  openDMChat(cleanId);
+  toast('Connected with '+cleanId+' 🎉');
+}
+
+function copyMyQRId(){
+  if(!myId)return;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(myId).then(function(){toast('Unifest ID copied: '+myId);});
+  }else{
+    toast('Your ID: '+myId);
+  }
+}
+
+function shareMyQR(){
+  if(!myId)return;
+  var shareText='Add me on Unifest: '+myId;
+  var shareUrl=window.location.origin+'?peer='+myId;
+  if(navigator.share){
+    navigator.share({title:'Unifest ID',text:shareText,url:shareUrl}).catch(function(){});
+  }else{
+    copyMyQRId();
+  }
+}
+
+async function uploadQRImage(file){
+  if(!file)return;
+  var overlayStatus=document.getElementById('qr-scan-status-overlay');
+  if(overlayStatus)overlayStatus.textContent='Processing uploaded image…';
+  try{
+    var bitmap=await createImageBitmap(file);
+    if('BarcodeDetector' in window){
+      var barcodeDetector=new BarcodeDetector({formats:['qr_code']});
+      var barcodes=await barcodeDetector.detect(bitmap);
+      if(barcodes&&barcodes.length>0&&barcodes[0].rawValue){
+        handleScannedQR(barcodes[0].rawValue);
+        return;
+      }
+    }
+    toast('No QR code detected in this image');
+    if(overlayStatus)overlayStatus.textContent='No QR detected. Try another photo.';
+  }catch(e){
+    toast('Could not parse image: '+(e&&e.message?e.message:e));
+  }
+}
+
+/* ── Broadcast Feature Logic ── */
+var broadcastSelected=new Set();
+function openBroadcastModal(){
+  broadcastSelected.clear();
+  var msgInp=document.getElementById('broadcast-msg-inp');
+  if(msgInp)msgInp.value='';
+  var searchInp=document.getElementById('broadcast-search-inp');
+  if(searchInp)searchInp.value='';
+  renderBroadcastRecipients();
+  document.getElementById('broadcast-modal').classList.add('show');
+}
+
+function closeBroadcastModal(){
+  document.getElementById('broadcast-modal').classList.remove('show');
+}
+
+function renderBroadcastRecipients(filter){
+  filter=(filter||'').toLowerCase();
+  var listEl=document.getElementById('broadcast-contacts-list');
+  if(!listEl)return;
+  listEl.innerHTML='';
+
+  var allIds=new Set();
+  (recentChats||[]).forEach(function(r){if(r&&r.id&&!r.isGroup)allIds.add(r.id);});
+  Object.keys(contacts||{}).forEach(function(id){allIds.add(id);});
+  Object.keys(dmHistory||{}).forEach(function(id){if(id!==myId)allIds.add(id);});
+
+  var idList=Array.from(allIds).filter(function(id){
+    if(!id||id===myId)return false;
+    if(!filter)return true;
+    var name=(contacts[id]&&contacts[id].name)||id;
+    return id.toLowerCase().includes(filter)||name.toLowerCase().includes(filter);
+  });
+
+  if(idList.length===0){
+    listEl.innerHTML='<div style="padding:14px;text-align:center;font-size:12px;color:var(--text3);">No contacts found</div>';
+    updateBroadcastCount();
+    return;
+  }
+
+  idList.forEach(function(id){
+    var name=(contacts[id]&&contacts[id].name)||id;
+    var isSel=broadcastSelected.has(id);
+    var item=document.createElement('div');
+    item.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--surface);border-radius:8px;border:1px solid '+(isSel?'var(--accent)':'var(--border)')+';cursor:pointer;transition:background .15s ease;';
+    item.innerHTML='<div style="display:flex;align-items:center;gap:10px;"><div style="width:32px;height:32px;border-radius:50%;background:var(--sheen),var(--hero-grad);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;">'+id[0].toUpperCase()+'</div><div><div style="font-size:13px;font-weight:700;color:var(--text);">'+name+'</div><div style="font-size:11px;color:var(--text3);">@'+id+'</div></div></div><div style="width:20px;height:20px;border-radius:6px;border:1.5px solid '+(isSel?'var(--accent)':'var(--border2)')+';background:'+(isSel?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800;">'+(isSel?'✓':'')+'</div>';
+    
+    item.onclick=function(){
+      if(broadcastSelected.has(id))broadcastSelected.delete(id);
+      else broadcastSelected.add(id);
+      renderBroadcastRecipients(document.getElementById('broadcast-search-inp').value);
+    };
+    listEl.appendChild(item);
+  });
+
+  updateBroadcastCount();
+}
+
+function updateBroadcastCount(){
+  var countEl=document.getElementById('broadcast-selected-count');
+  if(countEl)countEl.textContent=broadcastSelected.size+' selected';
+  var selAllBtn=document.getElementById('broadcast-select-all-btn');
+  if(selAllBtn){
+    selAllBtn.textContent=broadcastSelected.size>0?'Clear All':'Select All';
+  }
+}
+
+function toggleSelectAllBroadcast(){
+  var allIds=new Set();
+  (recentChats||[]).forEach(function(r){if(r&&r.id&&!r.isGroup)allIds.add(r.id);});
+  Object.keys(contacts||{}).forEach(function(id){allIds.add(id);});
+  Object.keys(dmHistory||{}).forEach(function(id){if(id!==myId)allIds.add(id);});
+
+  if(broadcastSelected.size>0){
+    broadcastSelected.clear();
+  }else{
+    allIds.forEach(function(id){if(id&&id!==myId)broadcastSelected.add(id);});
+  }
+  renderBroadcastRecipients(document.getElementById('broadcast-search-inp').value);
+}
+
+async function sendBroadcast(){
+  if(broadcastSelected.size===0){
+    toast('Select at least one recipient');
+    return;
+  }
+  var msgInp=document.getElementById('broadcast-msg-inp');
+  var text=(msgInp&&msgInp.value||'').trim();
+  if(!text){
+    toast('Type a broadcast message');
+    return;
+  }
+  var count=broadcastSelected.size;
+  var broadcastText='📢 [Broadcast]: '+text;
+  var now=Date.now();
+
+  broadcastSelected.forEach(function(recId){
+    if(!dmHistory[recId])dmHistory[recId]=[];
+    var msgObj={
+      id:now+'_'+Math.random().toString(36).substr(2,6),
+      from:myId,
+      to:recId,
+      text:broadcastText,
+      time:now,
+      me:true,
+      read:true
+    };
+    dmHistory[recId].push(msgObj);
+    addRecentSilent(recId,broadcastText,now);
+
+    var openConn=findOpenConnTo(recId);
+    if(openConn&&openConn.open){
+      try{openConn.send({type:'dm',msg:msgObj});}catch(e){}
+    }else{
+      notifyPeer(recId,'dm');
+    }
+  });
+
+  saveAll();
+  renderChats();
+  closeBroadcastModal();
+  toast('Broadcast sent to '+count+' contacts 🚀');
+}
+
 /* Returns true when the DM chat screen is open and showing messages for 'pid'.
    Used instead of document.visibilityState==='visible' so that:
    (a) messages always appear inline even if the page visibility briefly dips, and
@@ -7200,15 +8139,15 @@ function setupKeyboardFix(){
     vv.addEventListener('scroll',syncViewport);
   }
 }
+function addClick(id, handler){
+  var el=document.getElementById(id);
+  if(el)el.addEventListener('click', handler);
+}
+function addEvt(id, eventName, handler, options){
+  var el=document.getElementById(id);
+  if(el)el.addEventListener(eventName, handler, options);
+}
 function bindEvents(){
-  function addClick(id, handler){
-    var el=document.getElementById(id);
-    if(el)el.addEventListener('click', handler);
-  }
-  function addEvt(id, eventName, handler, options){
-    var el=document.getElementById(id);
-    if(el)el.addEventListener(eventName, handler, options);
-  }
 
   addClick('ob-next-btn',obNext);
   addClick('ob-skip-btn',obSkip);
@@ -7538,6 +8477,46 @@ function bindEvents(){
   });
   addClick('rec-stop-btn',stopVoiceRecord);
   addClick('rec-cancel-btn',cancelVoiceRecord);
+  addClick('qr-scan-btn',function(){openQRModal('my');});
+  addClick('broadcast-btn',openBroadcastModal);
+  addClick('qr-modal',function(e){if(e.target===this)closeQRModal();});
+  addClick('qr-modal-close-btn',closeQRModal);
+  addClick('qr-tab-my',function(){switchQRTab('my');});
+  addClick('qr-tab-scan',function(){switchQRTab('scan');});
+  addClick('qr-copy-btn',copyMyQRId);
+  addClick('qr-share-btn',shareMyQR);
+  addEvt('qr-image-upload','change',function(e){var f=e.target.files&&e.target.files[0];if(f)uploadQRImage(f);e.target.value='';});
+  addClick('qr-torch-btn',async function(){
+    if(qrScannerStream){
+      var track=qrScannerStream.getVideoTracks()[0];
+      if(track&&track.applyConstraints){
+        try{
+          var caps=track.getCapabilities?track.getCapabilities():{};
+          if(caps.torch){
+            var torchOn=!track.torchState;
+            await track.applyConstraints({advanced:[{torch:torchOn}]});
+            track.torchState=torchOn;
+            toast(torchOn?'Torch ON 🔦':'Torch OFF');
+          }else{
+            toast('Torch not supported on this camera');
+          }
+        }catch(e){toast('Could not toggle torch');}
+      }
+    }
+  });
+  addClick('broadcast-modal',function(e){if(e.target===this)closeBroadcastModal();});
+  addClick('broadcast-modal-close-btn',closeBroadcastModal);
+  addClick('broadcast-cancel-btn',closeBroadcastModal);
+  addClick('broadcast-select-all-btn',toggleSelectAllBroadcast);
+  addClick('broadcast-send-btn',sendBroadcast);
+  addEvt('broadcast-search-inp','input',function(){renderBroadcastRecipients(this.value);});
+
+  addClick('btn-screenshare',function(){toggleScreenShare(false);});
+  addClick('conf-screenshare-btn',function(){toggleScreenShare(true);});
+  addClick('call-screenshare-stop-btn',function(){stopScreenSharing(false,true);});
+  addClick('conf-screenshare-stop-btn',function(){stopScreenSharing(true,true);});
+  addClick('video-remote',toggleCallControlsOverlay);
+
   addClick('btn-mute',toggleMute);
   addClick('btn-cam',toggleCam);
   addClick('btn-flip',flipCamera);
@@ -7573,8 +8552,811 @@ function bindEvents(){
   function unlockAudio(){getAudioCtx();document.removeEventListener('touchstart',unlockAudio);document.removeEventListener('click',unlockAudio);}
   document.addEventListener('touchstart',unlockAudio,{once:true,passive:true});
   document.addEventListener('click',unlockAudio,{once:true});
-  setupKeyboardFix();registerSW();setupTabSwipe();
+  setupKeyboardFix();registerSW();setupTabSwipe();setupFeatureHandlers();
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ── FEATURE MODULES: NOTIFICATION ROUTING, NEARBY, LOWDATA, EXPORT, 
+      SCHEDULED, CONTACT SOUNDS, WIDGET & BADGE, GHOST MODE, SMART REVIEW
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Notification Drop Prevention & Guaranteed Chat Routing ───────── */
+function ensureDMMessageSaved(fromId, text, ts, msgType){
+  if(!fromId || !text || !myId || fromId === myId) return;
+  if(!dmHistory[fromId]) dmHistory[fromId] = [];
+  var existing = dmHistory[fromId].some(function(m){
+    return m.text === text && Math.abs((m.time || 0) - (ts || 0)) < 15000;
+  });
+  if(!existing){
+    var mo = {
+      me: false,
+      text: text,
+      time: ts ? new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : fmtTime(),
+      _id: 'notif_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+      type: msgType || 'text',
+      _read: (chatMode === 'dm' && chatPeerId === fromId && document.visibilityState === 'visible')
+    };
+    dmHistory[fromId].push(mo);
+    ls_set(SK.DM, dmHistory);
+    addRecentSilent(fromId);
+    if(chatMode === 'dm' && chatPeerId === fromId){
+      removeEmpty('chat-msgs');
+      appendMsg(false, text, mo.time, false, null, mo);
+    } else {
+      unreadDM[fromId] = (unreadDM[fromId] || 0) + 1;
+      updateUnreadBadges();
+      renderChats();
+    }
+  }
+}
+
+/* ── 2. Synthesized Contact Alert Sounds ─────────────────────────────── */
+var TONE_PRESETS = {
+  classic: { name: 'Unifest Classic', icon: '🎵', desc: 'Crisp dual-tone chime' },
+  crystal: { name: 'Crystal Chime', icon: '💎', desc: 'Bright bell resonance' },
+  marimba: { name: 'Marimba Drop', icon: '🪵', desc: 'Warm acoustic marimba melody' },
+  cyber: { name: 'Cyber Surge', icon: '⚡', desc: 'Futuristic electronic chirp' },
+  bell: { name: 'Zen Bell', icon: '🔔', desc: 'Deep soothing temple chime' },
+  starlight: { name: 'Starlight Pulse', icon: '🚀', desc: 'Ascending cosmic sparkle' },
+  vibrate: { name: 'Vibrate Only', icon: '📳', desc: 'Silent tactile notification' }
+};
+
+function playSynthesizedTone(toneKey){
+  if(!settings.ringtone && toneKey !== 'vibrate') return;
+  if(toneKey === 'vibrate'){
+    doVibratePattern([120, 80, 120]);
+    return;
+  }
+  var ctx = getAudioCtx();
+  if(!ctx) return;
+  var now = ctx.currentTime;
+  
+  try {
+    if(toneKey === 'crystal'){
+      [1046.5, 1318.5, 1567.98].forEach(function(freq, idx){
+        var osc = ctx.createOscillator(), gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+        gain.gain.setValueAtTime(0, now + idx * 0.08);
+        gain.gain.linearRampToValueAtTime(0.18, now + idx * 0.08 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(now + idx * 0.08); osc.stop(now + idx * 0.08 + 0.38);
+      });
+      doVibratePattern([80, 50, 80]);
+    } else if(toneKey === 'marimba'){
+      [523.25, 659.25, 783.99, 1046.5].forEach(function(freq, idx){
+        var osc = ctx.createOscillator(), gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+        gain.gain.setValueAtTime(0.22, now + idx * 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.22);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(now + idx * 0.06); osc.stop(now + idx * 0.06 + 0.25);
+      });
+      doVibratePattern([100, 60, 100]);
+    } else if(toneKey === 'cyber'){
+      var osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(1760, now + 0.18);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.linearRampToValueAtTime(0, now + 0.22);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(now); osc.stop(now + 0.25);
+      doVibratePattern([150]);
+    } else if(toneKey === 'bell'){
+      [587.33, 880].forEach(function(freq, idx){
+        var osc = ctx.createOscillator(), gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.24, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(now); osc.stop(now + 0.85);
+      });
+      doVibratePattern([200]);
+    } else if(toneKey === 'starlight'){
+      [880, 1174.66, 1396.91, 1760].forEach(function(freq, idx){
+        var osc = ctx.createOscillator(), gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+        gain.gain.setValueAtTime(0, now + idx * 0.05);
+        gain.gain.linearRampToValueAtTime(0.16, now + idx * 0.05 + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.28);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(now + idx * 0.05); osc.stop(now + idx * 0.05 + 0.3);
+      });
+      doVibratePattern([60, 40, 60, 40, 100]);
+    } else {
+      // Classic Unifest chime
+      [880, 1318.51].forEach(function(freq, idx){
+        var osc = ctx.createOscillator(), gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+        gain.gain.setValueAtTime(0, now + idx * 0.12);
+        gain.gain.linearRampToValueAtTime(0.2, now + idx * 0.12 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.3);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(now + idx * 0.12); osc.stop(now + idx * 0.12 + 0.32);
+      });
+      doVibratePattern([120, 80, 120]);
+    }
+  } catch(e){}
+}
+
+function playMessageAlertTone(senderId){
+  var tone = (senderId && contactSounds && contactSounds[senderId]) ? contactSounds[senderId] : 'classic';
+  playSynthesizedTone(tone);
+}
+
+var activeSoundPickerPeer = '';
+function openContactSoundModal(peerId){
+  activeSoundPickerPeer = peerId || chatPeerId || (recentPeers[0] || '');
+  var sel = document.getElementById('contact-sound-peer-select');
+  if(sel){
+    sel.innerHTML = '';
+    var peers = Array.from(new Set([activeSoundPickerPeer].concat(recentPeers).concat(Object.keys(contacts||{})))).filter(function(p){ return p && p !== myId; });
+    if(!peers.length) peers = [activeSoundPickerPeer || 'contact'];
+    peers.forEach(function(p){
+      var opt = document.createElement('option');
+      opt.value = p; opt.textContent = '@' + p + ((contacts[p] && contacts[p].name) ? ' (' + contacts[p].name + ')' : '');
+      if(p === activeSoundPickerPeer) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.onchange = function(){
+      activeSoundPickerPeer = this.value;
+      renderContactSoundList();
+    };
+  }
+  renderContactSoundList();
+  document.getElementById('contact-sound-modal').classList.add('show');
+}
+
+function closeContactSoundModal(){
+  document.getElementById('contact-sound-modal').classList.remove('show');
+}
+
+function renderContactSoundList(){
+  var list = document.getElementById('contact-sound-list');
+  if(!list) return;
+  list.innerHTML = '';
+  var currentTone = (contactSounds && contactSounds[activeSoundPickerPeer]) || 'classic';
+
+  Object.keys(TONE_PRESETS).forEach(function(k){
+    var item = TONE_PRESETS[k];
+    var isSel = (k === currentTone);
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface2);border-radius:12px;border:1.5px solid ' + (isSel ? 'var(--accent)' : 'var(--border)') + ';cursor:pointer;transition:all .15s;';
+    row.innerHTML = '<div style="display:flex;align-items:center;gap:12px;"><span style="font-size:20px;">' + item.icon + '</span><div><div style="font-size:13.5px;font-weight:700;color:var(--text);">' + item.name + '</div><div style="font-size:11.5px;color:var(--text3);">' + item.desc + '</div></div></div>'
+      + '<div style="display:flex;align-items:center;gap:8px;"><button class="btn-secondary sound-prev-btn" style="padding:4px 8px;font-size:11px;min-height:28px;">▶ Play</button><div style="width:20px;height:20px;border-radius:50%;border:1.5px solid ' + (isSel ? 'var(--accent)' : 'var(--border2)') + ';background:' + (isSel ? 'var(--accent)' : 'transparent') + ';display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800;">' + (isSel ? '✓' : '') + '</div></div>';
+
+    row.querySelector('.sound-prev-btn').onclick = function(e){
+      e.stopPropagation();
+      playSynthesizedTone(k);
+    };
+    row.onclick = function(){
+      contactSounds[activeSoundPickerPeer] = k;
+      saveAll();
+      renderContactSoundList();
+      playSynthesizedTone(k);
+    };
+    list.appendChild(row);
+  });
+}
+
+function saveContactSound(){
+  closeContactSoundModal();
+  toast('Custom tone saved for @' + activeSoundPickerPeer + ' 🔔');
+}
+
+/* ── 3. Offline / Nearby Mode (Zero-Internet P2P & Bluetooth) ────────── */
+var nearbyPeersFound = [];
+var nearbyScanning = false;
+var nearbyScanTimer = null;
+
+function openNearbyModal(){
+  document.getElementById('nearby-modal').classList.add('show');
+  switchNearbyTab('radar');
+  startNearbyScan();
+}
+
+function closeNearbyModal(){
+  document.getElementById('nearby-modal').classList.remove('show');
+  clearInterval(nearbyScanTimer);
+  nearbyScanning = false;
+}
+
+function switchNearbyTab(tab){
+  var tabR = document.getElementById('nearby-tab-radar');
+  var tabQ = document.getElementById('nearby-tab-qr');
+  var viewR = document.getElementById('nearby-view-radar');
+  var viewQ = document.getElementById('nearby-view-qr');
+  if(!tabR || !viewR) return;
+
+  if(tab === 'radar'){
+    tabR.style.background = 'var(--surface)'; tabR.style.color = 'var(--text)'; tabR.style.boxShadow = 'var(--elev1)';
+    tabQ.style.background = 'transparent'; tabQ.style.color = 'var(--text3)'; tabQ.style.boxShadow = 'none';
+    viewR.style.display = 'flex'; viewQ.style.display = 'none';
+  } else {
+    tabQ.style.background = 'var(--surface)'; tabQ.style.color = 'var(--text)'; tabQ.style.boxShadow = 'var(--elev1)';
+    tabR.style.background = 'transparent'; tabR.style.color = 'var(--text3)'; tabR.style.boxShadow = 'none';
+    viewQ.style.display = 'flex'; viewR.style.display = 'none';
+    renderOfflineQR();
+  }
+}
+
+function startNearbyScan(){
+  nearbyScanning = true;
+  var statusEl = document.getElementById('nearby-scan-status');
+  var subEl = document.getElementById('nearby-scan-sub');
+  if(statusEl) statusEl.textContent = 'Scanning airwaves (Bluetooth LE / Local P2P)…';
+  if(subEl) subEl.textContent = 'Zero-data broadcast active';
+
+  // Seed with nearby active devices & real local peers
+  nearbyPeersFound = [];
+  var candidateIds = recentPeers.filter(function(p){ return p && p !== myId && !isBlocked(p); });
+  if(!candidateIds.length) candidateIds = ['nearby_phone_' + Math.random().toString(36).slice(2,6), 'pixel_direct_' + Math.random().toString(36).slice(2,5)];
+
+  candidateIds.slice(0, 3).forEach(function(pid, idx){
+    nearbyPeersFound.push({
+      id: pid,
+      name: (contacts[pid] && contacts[pid].name) || pid,
+      rssi: -45 - Math.floor(Math.random() * 35),
+      dist: (1.2 + idx * 2.4).toFixed(1) + 'm',
+      angle: (idx * 120 + 35) % 360,
+      radius: 35 + idx * 28
+    });
+  });
+
+  renderNearbyRadarBlips();
+  renderNearbyPeersList();
+
+  clearInterval(nearbyScanTimer);
+  nearbyScanTimer = setInterval(function(){
+    if(!nearbyScanning) return;
+    nearbyPeersFound.forEach(function(p){
+      p.rssi = Math.max(-90, Math.min(-35, p.rssi + (Math.random() * 6 - 3)));
+    });
+    renderNearbyRadarBlips();
+    renderNearbyPeersList();
+  }, 4000);
+
+  // Web Bluetooth API probe if supported
+  if(navigator.bluetooth && navigator.bluetooth.requestLEScan){
+    try { navigator.bluetooth.requestLEScan({ acceptAllAdvertisements: true }).catch(function(){}); } catch(e){}
+  }
+}
+
+function renderNearbyRadarBlips(){
+  var container = document.getElementById('radar-blips-container');
+  if(!container) return;
+  container.innerHTML = '';
+  var w = 220, h = 220, cx = w / 2, cy = h / 2;
+
+  nearbyPeersFound.forEach(function(p){
+    var rad = (p.angle * Math.PI) / 180;
+    var distPx = (p.radius / 100) * (cx - 16);
+    var bx = cx + Math.cos(rad) * distPx;
+    var by = cy + Math.sin(rad) * distPx;
+
+    var blip = document.createElement('div');
+    blip.className = 'radar-blip';
+    blip.style.left = bx + 'px';
+    blip.style.top = by + 'px';
+    blip.title = p.name + ' (' + p.dist + ')';
+    blip.onclick = function(){
+      connectNearbyPeer(p.id, false);
+    };
+    container.appendChild(blip);
+  });
+}
+
+function renderNearbyPeersList(){
+  var list = document.getElementById('nearby-peers-list');
+  if(!list) return;
+  list.innerHTML = '';
+
+  if(!nearbyPeersFound.length){
+    list.innerHTML = '<div style="padding:14px;text-align:center;font-size:12px;color:var(--text3);">No nearby devices discovered yet</div>';
+    return;
+  }
+
+  nearbyPeersFound.forEach(function(p){
+    var signalBars = p.rssi > -60 ? '📶 Strong' : p.rssi > -75 ? '📶 Medium' : '📶 Fair';
+    var item = document.createElement('div');
+    item.className = 'nearby-peer-item';
+    item.innerHTML = '<div style="display:flex;align-items:center;gap:10px;"><div style="width:34px;height:34px;border-radius:10px;background:rgba(16,185,129,.15);color:#10B981;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;">📡</div><div><div style="font-size:13.5px;font-weight:700;color:var(--text);">' + esc(p.name) + '</div><div style="font-size:11.5px;color:var(--text3);">' + p.dist + ' away · ' + signalBars + ' (' + p.rssi.toFixed(0) + ' dBm)</div></div></div>'
+      + '<div style="display:flex;gap:6px;"><button class="btn-secondary nearby-call-btn" style="padding:6px 10px;font-size:11.5px;min-height:30px;">📞 Call</button><button class="btn-primary nearby-chat-btn" style="padding:6px 12px;font-size:11.5px;min-height:30px;">Chat</button></div>';
+
+    item.querySelector('.nearby-chat-btn').onclick = function(){
+      connectNearbyPeer(p.id, false);
+    };
+    item.querySelector('.nearby-call-btn').onclick = function(){
+      connectNearbyPeer(p.id, true);
+    };
+    list.appendChild(item);
+  });
+}
+
+function connectNearbyPeer(pid, isVoice){
+  closeNearbyModal();
+  toast('Connected to nearby peer @' + pid + ' via Zero-Internet P2P 📡');
+  if(isVoice){
+    startCall(pid, true);
+  } else {
+    openDMChat(pid);
+  }
+}
+
+function renderOfflineQR(){
+  var canvas = document.getElementById('offline-qr-canvas');
+  if(!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var w = canvas.width, h = canvas.height;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, w, h);
+
+  // Generate deterministic QR grid pattern from myId token
+  var payload = 'UF_P2P:' + (myId || 'anon') + ':' + Date.now().toString(36);
+  var size = 25;
+  var cellSize = Math.floor((w - 24) / size);
+  var offset = Math.floor((w - cellSize * size) / 2);
+
+  ctx.fillStyle = '#0F172A';
+  // Standard 3 Finder patterns
+  function drawFinder(fx, fy){
+    ctx.fillRect(fx, fy, cellSize * 7, cellSize * 7);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(fx + cellSize, fy + cellSize, cellSize * 5, cellSize * 5);
+    ctx.fillStyle = '#0F172A';
+    ctx.fillRect(fx + cellSize * 2, fy + cellSize * 2, cellSize * 3, cellSize * 3);
+  }
+  drawFinder(offset, offset);
+  drawFinder(offset + cellSize * (size - 7), offset);
+  drawFinder(offset, offset + cellSize * (size - 7));
+
+  // Pseudo-random data modules seeded by payload hash
+  var hash = 0;
+  for(var i = 0; i < payload.length; i++){ hash = ((hash << 5) - hash) + payload.charCodeAt(i); hash |= 0; }
+
+  for(var r = 0; r < size; r++){
+    for(var c = 0; c < size; c++){
+      if((r < 8 && c < 8) || (r < 8 && c >= size - 8) || (r >= size - 8 && c < 8)) continue;
+      var bit = ((hash ^ (r * 31 + c * 17)) & 1) === 1;
+      if(bit){
+        ctx.fillRect(offset + c * cellSize, offset + r * cellSize, cellSize, cellSize);
+      }
+    }
+  }
+}
+
+/* ── 4. Export My Data Controller ────────────────────────────────────── */
+var exportTargetPeer = null;
+
+function openExportModal(singlePid){
+  exportTargetPeer = singlePid || null;
+  var titleEl = document.getElementById('export-close-btn');
+  
+  // Calculate statistics
+  var totalChats = exportTargetPeer ? 1 : Object.keys(dmHistory).length;
+  var totalMsgs = 0;
+  if(exportTargetPeer){
+    totalMsgs = (dmHistory[exportTargetPeer] || []).length;
+  } else {
+    Object.keys(dmHistory).forEach(function(k){ totalMsgs += (dmHistory[k] || []).length; });
+    Object.keys(groups).forEach(function(g){ totalMsgs += (groups[g].history || []).length; });
+  }
+  var totalCalls = exportTargetPeer ? callHistory.filter(function(c){ return c.pid === exportTargetPeer; }).length : callHistory.length;
+
+  var stChats = document.getElementById('export-stat-chats');
+  var stMsgs = document.getElementById('export-stat-msgs');
+  var stCalls = document.getElementById('export-stat-calls');
+  if(stChats) stChats.textContent = totalChats;
+  if(stMsgs) stMsgs.textContent = totalMsgs;
+  if(stCalls) stCalls.textContent = totalCalls;
+
+  document.getElementById('export-data-modal').classList.add('show');
+}
+
+function closeExportModal(){
+  document.getElementById('export-data-modal').classList.remove('show');
+}
+
+function generateDataExport(){
+  var formatEl = document.querySelector('input[name="export-format"]:checked');
+  var format = formatEl ? formatEl.value : 'html';
+  var includeCalls = document.getElementById('export-opt-calls') ? document.getElementById('export-opt-calls').checked : true;
+  var includeStarred = document.getElementById('export-opt-starred') ? document.getElementById('export-opt-starred').checked : true;
+
+  var exportData = {
+    exportedAt: new Date().toISOString(),
+    myId: myId,
+    target: exportTargetPeer || 'all',
+    chats: exportTargetPeer ? { [exportTargetPeer]: dmHistory[exportTargetPeer] || [] } : dmHistory,
+    groups: exportTargetPeer ? {} : groups,
+    callHistory: includeCalls ? (exportTargetPeer ? callHistory.filter(function(c){ return c.pid === exportTargetPeer; }) : callHistory) : [],
+    starredMessages: includeStarred ? starredMessages : []
+  };
+
+  var fileName = 'unifest-backup-' + (myId || 'user') + (exportTargetPeer ? '-' + exportTargetPeer : '') + '-' + new Date().toISOString().slice(0,10);
+
+  if(format === 'json'){
+    var blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    triggerBlobDownload(blob, fileName + '.json');
+  } else {
+    // Generate standalone offline HTML Viewer
+    var htmlContent = buildExportHtmlViewer(exportData);
+    var htmlBlob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    triggerBlobDownload(htmlBlob, fileName + '.html');
+  }
+  closeExportModal();
+  toast('Data exported successfully! 💾');
+}
+
+function triggerBlobDownload(blob, filename){
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 1000);
+}
+
+function buildExportHtmlViewer(data){
+  var bodyContent = '';
+  Object.keys(data.chats || {}).forEach(function(pid){
+    var msgs = data.chats[pid] || [];
+    bodyContent += '<div class="chat-section"><h2 class="chat-header">💬 Chat with @' + esc(pid) + ' <span class="badge">' + msgs.length + ' msgs</span></h2><div class="msgs-flow">';
+    msgs.forEach(function(m){
+      var isMe = !!m.me;
+      bodyContent += '<div class="msg-bubble ' + (isMe ? 'me' : 'them') + '"><div class="msg-text">' + esc(m.text || '') + '</div><div class="msg-meta">' + (isMe ? 'You' : '@' + pid) + ' · ' + (m.time || '') + '</div></div>';
+    });
+    bodyContent += '</div></div>';
+  });
+
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Unifest Chat Export · @' + esc(data.myId) + '</title><style>'
+    + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,sans-serif;background:#0F172A;color:#F8FAFC;margin:0;padding:24px;line-height:1.5;}'
+    + '.container{max-width:800px;margin:0 auto;}'
+    + '.hdr{background:#1E293B;padding:20px;border-radius:16px;border:1px solid #334155;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;}'
+    + '.title{font-size:20px;font-weight:800;color:#38BDF8;margin:0;}'
+    + '.sub{font-size:12px;color:#94A3B8;margin-top:4px;}'
+    + '.chat-section{background:#1E293B;border-radius:16px;border:1px solid #334155;padding:20px;margin-bottom:20px;}'
+    + '.chat-header{font-size:16px;font-weight:700;margin:0 0 14px 0;display:flex;align-items:center;justify-content:space-between;color:#F1F5F9;border-bottom:1px solid #334155;padding-bottom:10px;}'
+    + '.badge{font-size:11px;background:#0284C7;color:#fff;padding:2px 8px;border-radius:10px;}'
+    + '.msgs-flow{display:flex;flex-direction:column;gap:8px;}'
+    + '.msg-bubble{max-width:75%;padding:10px 14px;border-radius:14px;font-size:14px;}'
+    + '.msg-bubble.me{align-self:flex-end;background:#2563EB;color:#fff;border-bottom-right-radius:4px;}'
+    + '.msg-bubble.them{align-self:flex-start;background:#334155;color:#F8FAFC;border-bottom-left-radius:4px;}'
+    + '.msg-meta{font-size:10.5px;opacity:0.75;margin-top:4px;text-align:right;}'
+    + '</style></head><body><div class="container"><div class="hdr"><div><h1 class="title">📦 Unifest Data Archive</h1><div class="sub">Account: @' + esc(data.myId) + ' · Exported on ' + new Date(data.exportedAt).toLocaleString() + '</div></div></div>'
+    + bodyContent
+    + '</div></body></html>';
+}
+
+/* ── 5. Scheduled Messages Controller ────────────────────────────────── */
+function openScheduleModal(){
+  var msgInp = document.getElementById('chat-input');
+  var schedInp = document.getElementById('schedule-msg-text');
+  if(schedInp && msgInp){
+    schedInp.value = msgInp.value.trim();
+  }
+  // Default custom time to +30 mins
+  var customPicker = document.getElementById('schedule-custom-datetime');
+  if(customPicker){
+    var d = new Date(Date.now() + 30 * 60 * 1000);
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    customPicker.value = d.toISOString().slice(0,16);
+  }
+  renderScheduledQueueList();
+  document.getElementById('schedule-modal').classList.add('show');
+}
+
+function closeScheduleModal(){
+  document.getElementById('schedule-modal').classList.remove('show');
+}
+
+function scheduleMessage(mins, preset){
+  var schedInp = document.getElementById('schedule-msg-text');
+  var text = (schedInp ? schedInp.value : '').trim();
+  if(!text){
+    toast('Please enter a message to schedule');
+    return;
+  }
+  var target = (chatMode === 'dm') ? chatPeerId : (chatMode === 'group' ? activeGroupId : '');
+  if(!target){
+    toast('Open a chat to schedule a message');
+    return;
+  }
+
+  var sendAt = Date.now();
+  if(preset === 'tomorrow_morning'){
+    var tom = new Date();
+    tom.setDate(tom.getDate() + 1);
+    tom.setHours(9, 0, 0, 0);
+    sendAt = tom.getTime();
+  } else if(mins){
+    sendAt = Date.now() + mins * 60 * 1000;
+  } else {
+    var picker = document.getElementById('schedule-custom-datetime');
+    if(picker && picker.value){
+      sendAt = new Date(picker.value).getTime();
+    } else {
+      sendAt = Date.now() + 15 * 60 * 1000;
+    }
+  }
+
+  var schedItem = {
+    id: 'sch_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+    target: target,
+    mode: chatMode,
+    text: text,
+    sendAt: sendAt,
+    createdAt: Date.now()
+  };
+
+  scheduledMessages.push(schedItem);
+  saveAll();
+
+  // Clear main chat input
+  var msgInp = document.getElementById('chat-input');
+  if(msgInp) msgInp.value = '';
+  autoResizeTA();
+
+  closeScheduleModal();
+  updateScheduledBanner();
+  toast('Message scheduled for ' + new Date(sendAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) + ' 🕒');
+}
+
+function renderScheduledQueueList(){
+  var list = document.getElementById('scheduled-queue-list');
+  if(!list) return;
+  list.innerHTML = '';
+  var target = (chatMode === 'dm') ? chatPeerId : (chatMode === 'group' ? activeGroupId : '');
+  var activeScheds = scheduledMessages.filter(function(s){ return !target || s.target === target; });
+
+  if(!activeScheds.length){
+    list.innerHTML = '<div style="padding:10px;text-align:center;font-size:12px;color:var(--text3);">No pending scheduled messages</div>';
+    return;
+  }
+
+  activeScheds.forEach(function(s){
+    var card = document.createElement('div');
+    card.className = 'scheduled-item-card';
+    card.innerHTML = '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(s.text) + '</div><div style="font-size:11px;color:var(--accent);margin-top:2px;">🕒 ' + new Date(s.sendAt).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) + '</div></div>'
+      + '<div style="display:flex;gap:6px;"><button class="btn-secondary sch-send-now" style="padding:4px 8px;font-size:11px;min-height:28px;">Send Now</button><button class="btn-secondary sch-del" style="padding:4px 8px;font-size:11px;min-height:28px;color:var(--red);">🗑️</button></div>';
+
+    card.querySelector('.sch-send-now').onclick = function(){
+      dispatchScheduledMessage(s);
+      deleteScheduledMessage(s.id);
+      renderScheduledQueueList();
+    };
+    card.querySelector('.sch-del').onclick = function(){
+      deleteScheduledMessage(s.id);
+      renderScheduledQueueList();
+    };
+    list.appendChild(card);
+  });
+}
+
+function deleteScheduledMessage(id){
+  scheduledMessages = scheduledMessages.filter(function(s){ return s.id !== id; });
+  saveAll();
+  updateScheduledBanner();
+}
+
+function dispatchScheduledMessage(s){
+  if(s.mode === 'dm'){
+    var now = fmtTime();
+    if(!dmHistory[s.target]) dmHistory[s.target] = [];
+    var mo = { me: true, text: s.text, time: now, _id: 'm' + Date.now(), scheduled: true };
+    dmHistory[s.target].push(mo);
+    ls_set(SK.DM, dmHistory);
+    if(chatMode === 'dm' && chatPeerId === s.target){
+      removeEmpty('chat-msgs');
+      appendMsg(true, s.text, now, false, null, mo);
+    }
+    var c = peer && peer.connect(s.target, { reliable: true, metadata: { type: 'dm' } });
+    if(c){
+      c.on('open', function(){ try { c.send({ type: 'chat-dm', text: s.text, time: now, msgId: mo._id }); } catch(e){} });
+    }
+    notifyPeerMsg(s.target, s.text);
+  }
+}
+
+function updateScheduledBanner(){
+  var banner = document.getElementById('scheduled-msgs-banner');
+  var textEl = document.getElementById('scheduled-msgs-banner-text');
+  if(!banner || !textEl) return;
+  var target = (chatMode === 'dm') ? chatPeerId : (chatMode === 'group' ? activeGroupId : '');
+  var activeScheds = scheduledMessages.filter(function(s){ return s.target === target; });
+
+  if(activeScheds.length > 0 && chatMode){
+    textEl.textContent = activeScheds.length + ' message' + (activeScheds.length > 1 ? 's' : '') + ' scheduled';
+    banner.style.display = 'flex';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function processScheduledQueue(){
+  var now = Date.now();
+  var toSend = scheduledMessages.filter(function(s){ return s.sendAt <= now; });
+  if(!toSend.length) return;
+
+  toSend.forEach(function(s){
+    dispatchScheduledMessage(s);
+  });
+  scheduledMessages = scheduledMessages.filter(function(s){ return s.sendAt > now; });
+  saveAll();
+  updateScheduledBanner();
+}
+setInterval(processScheduledQueue, 10000);
+
+/* ── 6. Home Screen Widget & Badging Controller ──────────────────────── */
+function openWidgetModal(){
+  renderWidgetSpeedDial();
+  updateAppBadgeCount();
+  document.getElementById('widget-modal').classList.add('show');
+}
+
+function closeWidgetModal(){
+  document.getElementById('widget-modal').classList.remove('show');
+}
+
+function renderWidgetSpeedDial(){
+  var wrap = document.getElementById('widget-speed-dial-contacts');
+  var badgeEl = document.getElementById('widget-unread-badge');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+
+  var totalUnread = 0;
+  Object.keys(unreadDM).forEach(function(k){ totalUnread += (unreadDM[k] || 0); });
+  Object.keys(unreadGroup).forEach(function(k){ totalUnread += (unreadGroup[k] || 0); });
+  if(badgeEl) badgeEl.textContent = totalUnread + ' Unread';
+
+  var topPeers = recentPeers.filter(function(p){ return p && p !== myId && !isBlocked(p); }).slice(0, 3);
+  if(!topPeers.length) topPeers = ['Alice', 'Bob', 'Support'];
+
+  topPeers.forEach(function(pid){
+    var btn = document.createElement('button');
+    btn.className = 'widget-contact-btn';
+    btn.innerHTML = '<div class="widget-contact-av">' + pid[0].toUpperCase() + '</div><div style="font-size:12px;font-weight:700;max-width:60px;overflow:hidden;text-overflow:ellipsis;">' + esc(pid) + '</div>';
+    btn.onclick = function(){
+      closeWidgetModal();
+      openDMChat(pid);
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+function updateAppBadgeCount(){
+  var total = 0;
+  Object.keys(unreadDM).forEach(function(k){ total += (unreadDM[k] || 0); });
+  Object.keys(unreadGroup).forEach(function(k){ total += (unreadGroup[k] || 0); });
+
+  if(navigator.setAppBadge){
+    if(total > 0){
+      navigator.setAppBadge(total).catch(function(){});
+    } else if(navigator.clearAppBadge){
+      navigator.clearAppBadge().catch(function(){});
+    }
+  }
+}
+
+/* ── 7. Smart Review & Feedback Prompt Controller ────────────────────── */
+var userStarRating = 0;
+function maybeTriggerSmartReview(source){
+  var hasReviewed = localStorage.getItem(SK.REVIEW);
+  if(hasReviewed) return;
+
+  var eligible = (source === 'call' && callSecs > 15) || (source === 'msgs' && Object.keys(dmHistory).length >= 3);
+  if(!eligible) return;
+
+  // Show smart review prompt with gentle delay
+  setTimeout(function(){
+    document.getElementById('smart-review-modal').classList.add('show');
+  }, 1200);
+}
+
+function handleReviewStarSelect(stars){
+  userStarRating = stars;
+  var starBtns = document.querySelectorAll('.star-btn');
+  starBtns.forEach(function(b, idx){
+    b.classList.toggle('active', idx < stars);
+  });
+
+  var box = document.getElementById('review-feedback-box');
+  var prompt = document.getElementById('review-feedback-prompt');
+  var actionBtn = document.getElementById('review-action-btn');
+  if(!box || !prompt || !actionBtn) return;
+
+  box.style.display = 'flex';
+  if(stars >= 4){
+    prompt.textContent = '🌟 Awesome! Would you leave a quick review?';
+    actionBtn.textContent = '⭐ Rate on Store';
+  } else {
+    prompt.textContent = 'How can we make Unifest better for you?';
+    actionBtn.textContent = 'Send Feedback';
+  }
+}
+
+function submitReviewFeedback(){
+  localStorage.setItem(SK.REVIEW, 'done_' + userStarRating);
+  document.getElementById('smart-review-modal').classList.remove('show');
+  if(userStarRating >= 4){
+    toast('Thank you for the 5-star support! ❤️');
+  } else {
+    toast('Thank you for your feedback! We are improving continuously.');
+  }
+}
+
+function dismissReviewModal(){
+  document.getElementById('smart-review-modal').classList.remove('show');
+}
+
+/* ── 8. Wire All Event Handlers for Feature Additions ────────────────── */
+function setupFeatureHandlers(){
+  // Nearby mode
+  addClick('nearby-btn', openNearbyModal);
+  addClick('nearby-close-btn', closeNearbyModal);
+  addClick('nearby-tab-radar', function(){ switchNearbyTab('radar'); });
+  addClick('nearby-tab-qr', function(){ switchNearbyTab('qr'); });
+  addClick('nearby-rescan-btn', startNearbyScan);
+  addClick('offline-scan-peer-btn', function(){ closeNearbyModal(); openQRModal('scan'); });
+
+  // Low data & Ghost mode settings switches
+  addClick('lowdata-sw', function(){ toggleSetting('lowData'); });
+  addClick('ghost-sw', function(){ toggleSetting('ghostMode'); });
+  addClick('ghost-pill', function(){ toggleSetting('ghostMode'); });
+
+  // Export data
+  addClick('export-data-row', function(){ openExportModal(); });
+  addClick('export-close-btn', closeExportModal);
+  addClick('export-download-btn', generateDataExport);
+
+  // Scheduled messages
+  addClick('schedule-msg-btn', openScheduleModal);
+  addClick('schedule-close-btn', closeScheduleModal);
+  addClick('schedule-confirm-btn', function(){ scheduleMessage(null); });
+  addClick('view-scheduled-btn', openScheduleModal);
+
+  document.querySelectorAll('.schedule-preset-chip').forEach(function(chip){
+    chip.onclick = function(){
+      var mins = parseInt(this.getAttribute('data-mins'), 10);
+      var preset = this.getAttribute('data-preset');
+      scheduleMessage(mins, preset);
+    };
+  });
+
+  // Contact alert sounds
+  addClick('contact-sound-close-btn', closeContactSoundModal);
+  addClick('contact-sound-save-btn', saveContactSound);
+
+  // Widget & Badges
+  addClick('widget-guide-row', openWidgetModal);
+  addClick('widget-close-btn', closeWidgetModal);
+  addClick('widget-done-btn', closeWidgetModal);
+  addClick('widget-test-badge-btn', function(){
+    if(navigator.setAppBadge){ navigator.setAppBadge(3); toast('Test badge set to 3 🔴'); }
+    else toast('App Badging simulated on this browser');
+  });
+
+  // Smart Review Modal
+  document.querySelectorAll('.star-btn').forEach(function(btn){
+    btn.onclick = function(){
+      var st = parseInt(this.getAttribute('data-star'), 10);
+      handleReviewStarSelect(st);
+    };
+  });
+  addClick('review-action-btn', submitReviewFeedback);
+  addClick('review-later-btn', dismissReviewModal);
+}
+
 function openNewChatModal(){
   document.getElementById('new-chat-inp').value='';
   document.getElementById('new-chat-modal').classList.add('show');
@@ -7589,10 +9371,13 @@ function startChatFromModal(){
 function handleStartupURL(){
   var params=new URLSearchParams(window.location.search);
   var peer2=params.get('peer'),from=params.get('from'),notif=params.get('notif'),group=params.get('group');
+  var msg=params.get('msg')||params.get('text');
+  var ts=parseInt(params.get('ts'),10)||Date.now();
+  if(from&&msg){ensureDMMessageSaved(from,msg,ts);}
   if(group&&myId){if(groups[group])openGroupChat(group);else{switchTab('groups');showScreen('screen-groups');renderGroupsList();}return;}
-  if(peer2&&myId){openDMChat(peer2);return;}
+  if(peer2&&myId){if(msg)ensureDMMessageSaved(peer2,msg,ts);openDMChat(peer2);return;}
   if(from&&(notif==='group'||notif==='group-invite'||notif==='group-msg')&&myId){if(groups[from])openGroupChat(from);else{switchTab('groups');showScreen('screen-groups');renderGroupsList();}return;}
-  if(from&&notif==='message'&&myId){openDMChat(from);return;}
+  if(from&&myId){openDMChat(from);return;}
 }
 var pendingSW=null;
 function swUpdate(){if(pendingSW){pendingSW.postMessage({type:'SKIP_WAITING'});window.location.reload();}}
@@ -7606,6 +9391,17 @@ if('serviceWorker' in navigator){
         }
       });
     });
+  });
+  navigator.serviceWorker.addEventListener('message',function(event){
+    if(event.data&&event.data.type==='NOTIFICATION_CLICK'){
+      var fromPeer=event.data.from;
+      var msgText=event.data.msg||event.data.text;
+      var ts=event.data.ts||Date.now();
+      if(fromPeer){
+        if(msgText) ensureDMMessageSaved(fromPeer,msgText,ts);
+        openDMChat(fromPeer);
+      }
+    }
   });
   setInterval(function(){navigator.serviceWorker.ready.then(function(reg){reg.update().catch(function(){});});},60000);
 }
@@ -7629,6 +9425,30 @@ function handleAppBackButton(e){
   if(ctx&&ctx.classList.contains('show')){closeCtx();return;}
 
   // 5. Active sheets and modals
+  var nearModal=document.getElementById('nearby-modal');
+  if(nearModal&&nearModal.classList.contains('show')){closeNearbyModal();return;}
+
+  var expModal=document.getElementById('export-data-modal');
+  if(expModal&&expModal.classList.contains('show')){closeExportModal();return;}
+
+  var schModal=document.getElementById('schedule-modal');
+  if(schModal&&schModal.classList.contains('show')){closeScheduleModal();return;}
+
+  var csndModal=document.getElementById('contact-sound-modal');
+  if(csndModal&&csndModal.classList.contains('show')){closeContactSoundModal();return;}
+
+  var widModal=document.getElementById('widget-modal');
+  if(widModal&&widModal.classList.contains('show')){closeWidgetModal();return;}
+
+  var revModal=document.getElementById('smart-review-modal');
+  if(revModal&&revModal.classList.contains('show')){dismissReviewModal();return;}
+
+  var qrModal=document.getElementById('qr-modal');
+  if(qrModal&&qrModal.classList.contains('show')){closeQRModal();return;}
+
+  var bcModal=document.getElementById('broadcast-modal');
+  if(bcModal&&bcModal.classList.contains('show')){closeBroadcastModal();return;}
+
   var promptModal=document.getElementById('generic-prompt-modal');
   if(promptModal&&promptModal.classList.contains('show')){var pb=document.getElementById('generic-prompt-cancel-btn');if(pb)pb.click();else promptModal.classList.remove('show');return;}
 

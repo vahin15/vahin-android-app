@@ -113,7 +113,7 @@ self.addEventListener('push', (event) => {
 });
 
 self.addEventListener('notificationclick', (event) => {
-  const { type, from } = event.notification.data || {};
+  const { type, from, text, ts } = event.notification.data || {};
   event.notification.close();
   let action = 'open';
   if (event.action === 'accept') action = 'accept';
@@ -124,10 +124,13 @@ self.addEventListener('notificationclick', (event) => {
       const target = clients.find((c) => c.visibilityState === 'visible') || clients[0];
       if (target) {
         target.focus();
-        target.postMessage({ kind: 'notification-action', action, notifType: type, from });
+        target.postMessage({ kind: 'notification-action', action, notifType: type, from, text, ts });
         return;
       }
-      const url = '/?notif=' + encodeURIComponent(type) + '&from=' + encodeURIComponent(from || '') + '&action=' + action;
+      const cleanType = type || 'message';
+      const cleanFrom = from || '';
+      const cleanText = text || '';
+      const url = '/?notif=' + encodeURIComponent(cleanType) + '&from=' + encodeURIComponent(cleanFrom) + '&msg=' + encodeURIComponent(cleanText) + '&action=' + encodeURIComponent(action);
       return self.clients.openWindow(url);
     })
   );

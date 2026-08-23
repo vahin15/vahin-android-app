@@ -27,6 +27,20 @@
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
+      "name": "Scan QR Code",
+      "short_name": "Scan QR",
+      "description": "Scan a contact's Unifest QR code",
+      "url": "/?action=scan_qr",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Nearby Offline Mode",
+      "short_name": "Nearby",
+      "description": "Connect offline without internet",
+      "url": "/?action=nearby",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
       "name": "New Call",
       "short_name": "Call",
       "description": "Start a video or voice call",
