@@ -50,6 +50,10 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         activeInstance = this;
 
+        try {
+            com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().log("MainActivity onCreate");
+        } catch (Exception ignored) {}
+
         Log.d(TAG, "onCreate: registering Telecom PhoneAccount");
         // FIX C: VahinTelecom.register() now logs whether the PhoneAccount is actually
         // accepted by Telecom after registration, and fires window.onTelecomRegistrationFailed

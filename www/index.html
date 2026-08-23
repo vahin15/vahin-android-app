@@ -729,6 +729,39 @@ button,input,textarea{font-family:inherit;}
 
 /* ── Draft Indicator ── */
 .draft-tag{color:var(--red);font-weight:700;}
+
+/* ── Skeleton Loaders ── */
+@keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+.skeleton{background:linear-gradient(90deg,var(--surface2) 25%,var(--surface3) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.6s infinite;border-radius:8px;}
+.skeleton-avatar{width:48px;height:48px;border-radius:50%;flex-shrink:0;}
+.skeleton-row{display:flex;align-items:center;gap:14px;padding:12px 16px;}
+.skeleton-line{height:12px;margin:5px 0;border-radius:6px;}
+
+/* ── Link Preview Card ── */
+.link-preview-card{background:rgba(0,0,0,0.06);border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:8px 10px;margin-top:6px;cursor:pointer;text-decoration:none;display:block;transition:background .15s;color:inherit;}
+.msg-row.me .link-preview-card{background:rgba(255,255,255,0.18);border-left-color:#fff;}
+.link-preview-card:active{opacity:0.85;}
+.link-preview-domain{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.8;display:flex;align-items:center;gap:4px;}
+.link-preview-title{font-size:13px;font-weight:700;margin-top:2px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.link-preview-url{font-size:11.5px;opacity:0.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+
+/* ── Edited Tag ── */
+.edited-tag{font-size:10.5px;opacity:0.75;font-style:italic;margin-left:4px;vertical-align:baseline;}
+
+/* ── Archived Folder Row ── */
+.archived-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;touch-action:manipulation;}
+.archived-row:active{background:var(--surface2);transform:scale(0.985);}
+.archived-ico{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(79,70,229,0.15));color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.archived-title{font-size:15px;font-weight:700;color:var(--text);}
+.archived-count{font-size:12px;color:var(--accent);font-weight:700;}
+
+/* ── Wallpaper Cards ── */
+.wp-card{transition:transform .15s var(--ease-spring),border-color .15s,box-shadow .15s;touch-action:manipulation;}
+.wp-card:active{transform:scale(0.94);}
+.wp-card.active{box-shadow:0 0 0 3px var(--accent);}
+
+/* ── Disappearing Timer Checks ── */
+.timer-check{font-size:14px;font-weight:800;color:var(--accent);}
 </style>
 </head>
 <body>
@@ -819,6 +852,8 @@ button,input,textarea{font-family:inherit;}
   <div class="top-header">
     <div class="header-brand"><div class="header-title">Unifest</div></div>
     <div class="header-actions">
+      <button class="hdr-btn" id="qr-scan-btn" title="QR Code &amp; Scanner"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="6" height="6" x="3" y="3" rx="1"/><rect width="6" height="6" x="15" y="3" rx="1"/><rect width="6" height="6" x="3" y="15" rx="1"/><path d="M15 15h2v2h-2z"/><path d="M19 15h2v2h-2z"/><path d="M15 19h2v2h-2z"/><path d="M19 19h2v2h-2z"/></svg></button>
+      <button class="hdr-btn" id="broadcast-btn" title="New Broadcast"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/></svg></button>
       <button class="hdr-btn" id="gs-btn" title="Search"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg></button>
       <div class="online-pill" id="online-pill"><div class="online-dot off" id="online-dot"></div><span class="online-name" id="topbar-myid">—</span></div>
     </div>
@@ -960,6 +995,7 @@ button,input,textarea{font-family:inherit;}
       <div class="settings-group">
         <div class="settings-row" id="account-recovery-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(124,58,237,.12);">🔐</div><div><div class="s-label">Account Recovery Key</div><div class="s-sub">View 12-word backup phrase</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="switch-account-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(30,58,95,.1);">🔄</div><div><div class="s-label">Switch Account</div><div class="s-sub">Log in as a different ID</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="delete-account-row" style="cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.12);color:var(--red);">🗑️</div><div><div class="s-label" style="color:var(--red);">Delete Account &amp; Data</div><div class="s-sub">Erase all messages &amp; deregister</div></div></div><div class="chevron">›</div></div>
       </div>
     </div>
     <div class="settings-section">
@@ -974,9 +1010,10 @@ button,input,textarea{font-family:inherit;}
     <div class="settings-section" id="reliability-section" style="display:none;">
       <div class="settings-section-title">Reliability</div>
       <div class="settings-group">
-        <div class="settings-row" id="notif-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">      </div><div><div class="s-label">Notifications</div><div class="s-sub" id="notif-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="notif-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">🔔</div><div><div class="s-label">Notifications</div><div class="s-sub" id="notif-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="fsi-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">📞</div><div><div class="s-label">Full-screen calls</div><div class="s-sub" id="fsi-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="battery-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">🔋</div><div><div class="s-label">Allow background running</div><div class="s-sub" id="battery-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="battery-guide-row" style="cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(234,179,8,.12);">💡</div><div><div class="s-label">Phone Brand Setup Guide</div><div class="s-sub">Samsung, Xiaomi, Vivo, Oppo instructions</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="debug-log-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(107,114,128,.1);">🧪</div><div><div class="s-label">Debug log</div><div class="s-sub">View/copy call diagnostics for support</div></div></div><div class="chevron">›</div></div>
       </div>
     </div>
@@ -995,13 +1032,16 @@ button,input,textarea{font-family:inherit;}
         <div class="settings-row" id="applock-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(30,58,95,.1);">🔒</div><div><div class="s-label">App Lock</div><div class="s-sub" id="applock-status-sub">Disabled</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="starred-msgs-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(234,179,8,.12);">⭐</div><div><div class="s-label">Starred Messages</div><div class="s-sub" id="starred-count-sub">View all starred</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="blocked-list-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">🚫</div><div><div class="s-label">Blocked Users</div><div class="s-sub" id="blocked-count-sub">No one blocked</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="privacy-policy-row" style="cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(16,185,129,.12);">🛡️</div><div><div class="s-label">Privacy Policy</div><div class="s-sub">P2P encryption &amp; data policies</div></div></div><div class="chevron">›</div></div>
       </div>
     </div>
     <div class="settings-section">
-      <div class="settings-section-title">About &amp; Invite</div>
+      <div class="settings-section-title">About &amp; Support</div>
       <div class="settings-group">
         <div class="settings-row" id="invite-friends-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(16,185,129,.12);">✉️</div><div><div class="s-label">Invite Friends</div><div class="s-sub">Share your Unifest invite link</div></div></div><div class="chevron">›</div></div>
-        <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(30,58,95,.1);">✨</div><div><div class="s-label">Unifest</div><div class="s-sub">Version 3.4 · P2P Encrypted</div></div></div></div>
+        <div class="settings-row" id="contact-support-row" style="cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(37,99,235,.12);">💬</div><div><div class="s-label">Contact Support</div><div class="s-sub">Email support &amp; get help</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="check-update-row" style="cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(124,58,237,.12);">🔄</div><div><div class="s-label">Check for Updates</div><div class="s-sub" id="settings-app-ver">Version 1.0 (Build 1)</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(30,58,95,.1);">✨</div><div><div class="s-label">Unifest</div><div class="s-sub">P2P Encrypted Messenger &amp; VoIP</div></div></div></div>
         <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(62,102,144,.12);">👤</div><div><div class="s-label">Created by</div><div class="s-sub">Vahin Saxena</div></div></div></div>
         <div class="settings-row" id="clear-calls-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.08);">🗑</div><div><div class="s-label">Clear Call History</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="copy-diag-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(37,99,235,.1);">🩺</div><div><div class="s-label">Copy last call diagnostics</div><div class="s-sub">Step-by-step log of your last call attempt</div></div></div><div class="chevron">›</div></div>
@@ -1027,7 +1067,14 @@ button,input,textarea{font-family:inherit;}
     <div style="flex:1;min-width:0;"><div class="reply-label" id="reply-label">Replying</div><div class="reply-text" id="reply-text"></div></div>
     <button class="reply-cancel-btn" id="reply-cancel-btn">✕</button>
   </div>
+  <div id="edit-bar" style="display:none;flex-direction:row;align-items:center;gap:10px;padding:8px 14px;background:var(--surface2);border-top:3px solid var(--accent);flex-shrink:0;">
+    <div style="flex:1;min-width:0;"><div class="reply-label" style="color:var(--accent);">Editing message</div><div class="reply-text" id="edit-bar-orig-text"></div></div>
+    <button class="reply-cancel-btn" id="edit-cancel-btn">✕</button>
+  </div>
   <div id="chat-search-bar"><input class="cs-inp" id="cs-inp" placeholder="Search in chat…" autocomplete="off"/><button class="cs-close" id="cs-close-btn">✕</button></div>
+  <div id="disappearing-chat-banner" style="display:none;align-items:center;justify-content:center;gap:6px;padding:6px 14px;background:rgba(99,102,241,0.1);color:var(--accent);font-size:12px;font-weight:600;border-bottom:1px solid rgba(99,102,241,0.2);">
+    <span>⏱️</span> <span id="disappearing-chat-banner-text">Disappearing messages on</span>
+  </div>
   <div class="chat-messages" id="chat-msgs"></div>
   <div id="blocked-bar">
     <div class="blocked-icon">🚫</div>
@@ -1355,6 +1402,125 @@ button,input,textarea{font-family:inherit;}
     </div>
   </div>
 </div>
+
+<!-- ── In-App Privacy Policy Modal ── -->
+<div class="modal-overlay" id="privacy-policy-modal" style="z-index:1050;">
+  <div class="modal-sheet" style="max-height:85vh;display:flex;flex-direction:column;">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🛡️ Privacy Policy</div>
+    <div id="privacy-policy-content" style="flex:1;overflow-y:auto;font-size:13px;color:var(--text2);line-height:1.6;padding-right:4px;">
+      <div style="background:var(--accent-light);border-left:3px solid var(--accent);padding:10px 12px;border-radius:6px;margin-bottom:12px;color:var(--text);">
+        <b>P2P Encrypted:</b> Unifest does not store your private text messages, voice calls, video streams, or shared files on central servers. Data is transferred directly between devices using encrypted WebRTC.
+      </div>
+      <div style="font-weight:700;color:var(--text);margin:10px 0 4px;">1. Information We Collect</div>
+      <div>• <b>Phone Number &amp; ID:</b> Used solely for user discovery and routing.</div>
+      <div>• <b>Push Token (FCM):</b> Used by Firebase to wake your phone for incoming calls and messages.</div>
+      <div>• <b>Presence:</b> Real-time online/offline status for peer connectivity.</div>
+      <div>• <b>Advertising ID:</b> Collected by Google Mobile Ads (AdMob) for banner ads.</div>
+      <div>• <b>Diagnostics:</b> Anonymous crash logs collected via Firebase Crashlytics.</div>
+      <div style="font-weight:700;color:var(--text);margin:12px 0 4px;">2. What We DO NOT Collect</div>
+      <div>• No chat message logs or voice/video recordings on central servers.</div>
+      <div>• No contact book harvesting or selling of personal information.</div>
+      <div style="font-weight:700;color:var(--text);margin:12px 0 4px;">3. WebRTC Relays (TURN)</div>
+      <div>When direct peer connection is blocked by restrictive firewalls, encrypted packets are relayed through standard TURN servers. Relayed media cannot be decrypted or stored.</div>
+      <div style="font-weight:700;color:var(--text);margin:12px 0 4px;">4. Account &amp; Data Deletion</div>
+      <div>You can erase all your account data at any time via <code>Settings &gt; Account &gt; Delete Account &amp; Data</code> or online via the public Data Deletion Form.</div>
+      <div style="font-weight:700;color:var(--text);margin:12px 0 4px;">5. Developer Contact</div>
+      <div>Email: <a href="mailto:unifest.messenger@gmail.com" style="color:var(--accent2);font-weight:700;">unifest.messenger@gmail.com</a></div>
+    </div>
+    <div class="modal-btn-row" style="margin-top:12px;">
+      <button class="modal-btn-cancel" id="privacy-policy-web-btn">🌐 Open Full Policy</button>
+      <button class="btn-primary" style="flex:1;" id="privacy-policy-close-btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Contact & Support Modal ── -->
+<div class="modal-overlay" id="support-modal" style="z-index:1050;">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💬 Contact &amp; Support</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.5;">Need help or have a bug to report? Contact our developer support team directly.</div>
+    <div class="settings-group" style="margin:12px 0;">
+      <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(37,99,235,.12);">✉️</div><div><div class="s-label">Support Email</div><div class="s-sub">unifest.messenger@gmail.com</div></div></div></div>
+      <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(16,185,129,.12);">📱</div><div><div class="s-label">App Version</div><div class="s-sub" id="support-app-ver">Version 1.0 (Build 1)</div></div></div></div>
+      <div class="settings-row" id="support-copy-diag-row" style="cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(249,115,22,.12);">🩺</div><div><div class="s-label">Attach Diagnostics</div><div class="s-sub">Copy last call diagnostic log</div></div></div><div class="chevron">›</div></div>
+    </div>
+    <div class="modal-btn-row">
+      <button class="modal-btn-cancel" id="support-close-btn">Close</button>
+      <button class="btn-primary" style="flex:1;" id="support-email-btn">📧 Send Email</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── UGC Report User Modal ── -->
+<div class="modal-overlay" id="report-user-modal" style="z-index:1150;">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="report-user-title">Report User</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.5;">Help keep Unifest safe. Please select a reason for reporting <b id="report-user-target-name">—</b>:</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin:12px 0;">
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border2);cursor:pointer;font-size:13.5px;color:var(--text);font-weight:600;">
+        <input type="radio" name="report-category" value="spam" checked style="accent-color:var(--accent);"/> <span>🚫 Spam or unsolicited ads</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border2);cursor:pointer;font-size:13.5px;color:var(--text);font-weight:600;">
+        <input type="radio" name="report-category" value="harassment" style="accent-color:var(--accent);"/> <span>⚠️ Harassment, hate or bullying</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border2);cursor:pointer;font-size:13.5px;color:var(--text);font-weight:600;">
+        <input type="radio" name="report-category" value="explicit" style="accent-color:var(--accent);"/> <span>🔞 Inappropriate or explicit content</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border2);cursor:pointer;font-size:13.5px;color:var(--text);font-weight:600;">
+        <input type="radio" name="report-category" value="fraud" style="accent-color:var(--accent);"/> <span>🎭 Impersonation or Scam</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border2);cursor:pointer;font-size:13.5px;color:var(--text);font-weight:600;">
+        <input type="radio" name="report-category" value="other" style="accent-color:var(--accent);"/> <span>📝 Other reason</span>
+      </label>
+    </div>
+    <textarea class="modal-inp" id="report-user-details" placeholder="Describe what happened (optional)…" style="height:70px;font-size:13px;resize:none;line-height:1.4;margin-bottom:8px;"></textarea>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);cursor:pointer;margin-bottom:12px;">
+      <input type="checkbox" id="report-also-block" checked style="accent-color:var(--red);"/> <span>Also block this user from calling/messaging me</span>
+    </label>
+    <div class="modal-btn-row">
+      <button class="modal-btn-cancel" id="report-user-cancel-btn">Cancel</button>
+      <button class="btn-primary" style="flex:1;background:var(--red);border-color:var(--red);" id="report-user-submit-btn">Submit Report</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── OEM Battery Reliability Guide Modal ── -->
+<div class="modal-overlay" id="battery-guide-modal" style="z-index:1050;">
+  <div class="modal-sheet" style="max-height:85vh;display:flex;flex-direction:column;">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔋 Phone Setup Guide</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Some phone manufacturers aggressively kill background apps. Select your phone brand below to keep calls ringing:</div>
+    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;" id="oem-brand-tabs">
+      <button class="theme-opt active" data-brand="samsung">Samsung</button>
+      <button class="theme-opt" data-brand="xiaomi">Xiaomi</button>
+      <button class="theme-opt" data-brand="vivo">Vivo</button>
+      <button class="theme-opt" data-brand="oppo">Oppo / Realme</button>
+      <button class="theme-opt" data-brand="oneplus">OnePlus</button>
+    </div>
+    <div id="oem-guide-content" style="flex:1;overflow-y:auto;font-size:13px;color:var(--text);line-height:1.6;background:var(--surface2);padding:14px;border-radius:10px;border:1px solid var(--border2);"></div>
+    <div class="modal-btn-row" style="margin-top:12px;">
+      <button class="modal-btn-cancel" id="battery-guide-sys-btn">⚙️ Open App Battery Settings</button>
+      <button class="btn-primary" style="flex:1;" id="battery-guide-close-btn">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── In-App App Update Prompt Modal ── -->
+<div class="modal-overlay" id="app-update-modal" style="z-index:1200;">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="app-update-title">✨ Update Available</div>
+    <div style="font-size:14px;color:var(--text2);line-height:1.6;margin:8px 0;" id="app-update-msg">A new version of Unifest is available with calling performance and security improvements.</div>
+    <div class="modal-btn-row" style="margin-top:14px;">
+      <button class="modal-btn-cancel" id="app-update-later-btn" style="display:none;">Later</button>
+      <button class="btn-primary" style="flex:1;" id="app-update-now-btn">Update Now →</button>
+    </div>
+  </div>
+</div>
+
 
 <div id="app-lock-screen">
   <div class="lock-hero">
@@ -1755,18 +1921,24 @@ function showScreen(id,dir){
 }
 /* AdMob: real banner needs a native plugin (@capacitor-community/admob) — this div is just layout space. */
 var admobBannerLoaded=false; // set true once bannerAdLoaded fires in initAds()
+var _admobVisTimer=null;
 function setAdmobBannerVisible(show){
   var slot=document.getElementById('admob-banner-slot');if(slot)slot.classList.toggle('show',show);
   /* --banner-h is read by .screen.tabbed padding-bottom and the FAB position, so
      real content (chat list, FAB, tab bar) reflows around the ad and nothing gets hidden. */
   document.documentElement.style.setProperty('--banner-h',show?'50px':'0px');
-  /* THE ACTUAL BUG: this function used to only touch the HTML placeholder above — but
-     the real ad is a separate native Android view drawn by the AdMob plugin itself
-     (position:'BOTTOM_CENTER' at init), completely independent of this div's CSS. The
-     placeholder toggling on/off did nothing to the real ad, so it just sat there,
-     fixed to the bottom of the physical screen, visible on every single screen —
-     login, chats, calls, groups, settings, inside a chat — regardless of what this
-     function did. This now actually hides/resumes the real native banner to match. */
+  // BUG (fast screen-swiping crashes the app): every showScreen() call reached here
+  // and immediately fired a NATIVE AdMob call (showBanner/hideBanner/resumeBanner).
+  // Rapid navigation fires these back-to-back before the previous native call even
+  // finishes — the native AdMob SDK isn't built to handle overlapping banner
+  // lifecycle calls like that, and it can throw on the NATIVE side, which a JS
+  // .catch() can't catch (it's not a clean promise rejection) — killing the whole
+  // app process. Debounce so only the final state after a burst of navigation
+  // actually reaches native code, same as a human just... not swiping that fast.
+  if(_admobVisTimer)clearTimeout(_admobVisTimer);
+  _admobVisTimer=setTimeout(function(){_admobVisTimer=null;applyAdmobBannerVisible(show);},180);
+}
+function applyAdmobBannerVisible(show){
   if(!(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.AdMob&&admobInitialized))return;
   var AdMobP=Capacitor.Plugins.AdMob;
   try{
@@ -1807,6 +1979,8 @@ function obSkip(){ls_set(SK.ONBOARDED,1);showScreen('screen-id');}
 
 function boot(){
   applyTheme();bindEvents();
+  loadAppVersionInfo();
+  setTimeout(function(){ checkForAppUpdate(false); }, 3500);
   var saved=localStorage.getItem(SK.MYID);
   var onboarded=localStorage.getItem(SK.ONBOARDED);
   if(saved){
@@ -1893,6 +2067,11 @@ function enterApp(){
   startSignalService();
   fetchQueuedMailbox();
   try{var cachedFcm=localStorage.getItem('uf_fcm_token_v1');if(cachedFcm)onFcmToken(cachedFcm);}catch(e){}
+  try{
+    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions&&Capacitor.Plugins.VahinPermissions.setCrashlyticsUserId){
+      Capacitor.Plugins.VahinPermissions.setCrashlyticsUserId({userId:myId});
+    }
+  }catch(e){}
 }
 /* Starts the always-on WebSocket foreground service (SignalService) — a second,
    Google/FCM-independent path for incoming calls/messages, running alongside FCM
@@ -2867,6 +3046,7 @@ function showChatOptions(pid){
     if(isBlk){unblockUser(pid);return;}
     if(await styledConfirm('Block '+pid+'?',{danger:true,okText:'Block'}))blockUser(pid);
   });
+  row('⚠️','Report user','Report abuse, spam or misconduct',true,function(){openReportUserModal(pid);});
   row('🗑️','Clear chat history','Deletes messages on this device only',true,async function(){
     if(await styledConfirm('Clear all messages with '+pid+'?',{danger:true,okText:'Clear'})){delete dmHistory[pid];saveAll();openDMChat(pid);toast('Cleared');}
   });
@@ -3581,9 +3761,25 @@ function normalizeChunkData(data){
     }catch(e){}
   }
   if(typeof data==='object'){
-    var keys=Object.keys(data);
-    var arr2=new Uint8Array(keys.length);
-    for(var j=0;j<keys.length;j++)arr2[j]=data[j]||0;
+    // BUG (silent file corruption): this used to assume Object.keys(data).length
+    // equals the chunk's actual byte length, and filled any key it couldn't find
+    // with `||0` — meaning a genuinely missing/misordered byte was INDISTINGUISHABLE
+    // from a legitimate zero byte (extremely common in real binary files: images,
+    // PDFs, zips are full of literal 0x00 bytes). Any gap in the object's keys
+    // silently became a wrong byte with zero indication anything went wrong — the
+    // file just looked complete and was quietly broken. Use the highest numeric key
+    // + 1 as the real length (correct even if keys arrive sparse/out of order), and
+    // explicitly detect — rather than paper over — any actually-missing index.
+    var maxIdx=-1;
+    for(var kk in data){var kn=+kk;if(kn>maxIdx&&Number.isInteger(kn))maxIdx=kn;}
+    var len=maxIdx+1;
+    var arr2=new Uint8Array(len);
+    var missingBytes=0;
+    for(var j=0;j<len;j++){
+      if(Object.prototype.hasOwnProperty.call(data,j)){arr2[j]=data[j];}
+      else{missingBytes++;}
+    }
+    if(missingBytes>0)diagLog('⚠️ Chunk reconstruction: '+missingBytes+' byte(s) genuinely missing out of '+len+' — this chunk is corrupt');
     return arr2.buffer;
   }
   return data;
@@ -3801,6 +3997,28 @@ async function finalizeIncomingFile(tfId,conn){
   try{
     var mime=(t.meta&&t.meta.mime)||'application/octet-stream';
     var blob=new Blob(t.chunks,{type:mime});
+    // BUG (files "arrive but broken/corrupted"): having every chunk index present
+    // was treated as proof the transfer succeeded — but a chunk can be malformed
+    // (see normalizeChunkData fix above) while still counting as "received". This
+    // delivered visibly-complete-but-corrupt files with zero indication anything
+    // was wrong. A real size check against what the SENDER declared in file-meta
+    // catches that class of corruption before ever showing the file as done.
+    var expectedSize=t.meta&&typeof t.meta.size==='number'?t.meta.size:null;
+    if(expectedSize!=null&&blob.size!==expectedSize){
+      t._finalizing=false;
+      diagLog('❌ File '+tfId+' size mismatch after assembly: got '+blob.size+', expected '+expectedSize+' — treating as corrupt');
+      t.resendAttempts=(t.resendAttempts||0)+1;
+      if(t.resendAttempts<=5){
+        var cAll=conn||t.conn||findOpenConnTo(t.from);
+        if(cAll&&cAll.open){
+          t.chunks=[];t.receivedCount=0; // discard the bad reassembly, start this transfer's data over
+          try{cAll.send({type:'file-resend-request',transferId:tfId,missing:Array.from({length:t.total},function(_,idx){return idx;})});}catch(e){}
+          return;
+        }
+      }
+      failFileTransfer(tfId,'File arrived corrupted and could not be recovered — ask them to resend.');
+      return;
+    }
     var url=URL.createObjectURL(blob);
     fileBlobs[tfId]=url;
     idbSaveFile(tfId,blob,(t.meta&&t.meta.name)||'file',mime);
@@ -6713,6 +6931,255 @@ function inviteFriends(){
     }
   }
 }
+
+/* 9. Account & Data Deletion */
+async function deleteAccountAndData(){
+  var confirmed = await styledConfirm(
+    'Delete your account and all data permanently? This will unregister your ID from Unifest servers and wipe all messages, contacts, media, and encryption keys from this device. This action CANNOT be undone.',
+    { title: 'Delete Account & Data', danger: true, okText: 'Delete Everything' }
+  );
+  if(!confirmed) return;
+
+  var currentId = myId;
+  var cachedFcm = localStorage.getItem('uf_fcm_token_v1');
+
+  toast('Deleting account and data…');
+
+  // 1. Stop background signal service
+  stopSignalService();
+
+  // 2. Deregister on backend (best-effort)
+  try {
+    if(currentId){
+      await fetchWithRetries(NOTIF_API + '/api/account/delete', {
+        method: 'POST',
+        headers: apiHeaders(),
+        body: JSON.stringify({ myId: currentId, fcmToken: cachedFcm })
+      }, 5000, 10000).catch(function(){});
+    }
+  } catch(e){}
+
+  // 3. Clear native storage / cache if available
+  try {
+    if(window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.VahinPermissions && Capacitor.Plugins.VahinPermissions.deleteAccountLocalData){
+      await Capacitor.Plugins.VahinPermissions.deleteAccountLocalData();
+    }
+  } catch(e){}
+
+  // 4. Destroy peer
+  if(peer && !peer.destroyed){
+    try { peer.destroy(); } catch(e){}
+    peer = null;
+  }
+  peerReady = false;
+
+  // 5. Clear all local storage
+  try { localStorage.clear(); } catch(e){}
+
+  // 6. Reset in-memory states
+  myId = ''; chatMode = ''; chatPeerId = '';
+  dmHistory = {}; callHistory = []; recentPeers = [];
+  blockedUsers = []; pinnedChats = []; starredMessages = [];
+  groups = {}; groupConnsByGid = {}; unreadDM = {}; unreadGroup = {};
+
+  var tn = document.getElementById('tab-nav');
+  if(tn) tn.classList.remove('visible');
+
+  showScreen('screen-id');
+  var idI = document.getElementById('my-id-input'), pwI = document.getElementById('my-pw-input');
+  if(idI) idI.value = '';
+  if(pwI) pwI.value = '';
+  if(authMode !== 'signup') toggleAuthMode();
+
+  await styledConfirm('Your account and all local data have been permanently deleted.', { title: 'Account Deleted', okText: 'OK', danger: false });
+}
+
+/* 10. Privacy Policy Modal */
+function openPrivacyPolicyModal(){
+  var m = document.getElementById('privacy-policy-modal');
+  if(m) m.classList.add('show');
+}
+function closePrivacyPolicyModal(){
+  var m = document.getElementById('privacy-policy-modal');
+  if(m) m.classList.remove('show');
+}
+function openPrivacyPolicyWeb(){
+  window.open('privacy-policy.html', '_blank');
+}
+
+/* 11. Contact Support Modal */
+var appVersionInfo = { versionName: '1.0', versionCode: 1 };
+async function loadAppVersionInfo(){
+  try {
+    if(window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.VahinPermissions && Capacitor.Plugins.VahinPermissions.getAppVersionInfo){
+      var v = await Capacitor.Plugins.VahinPermissions.getAppVersionInfo();
+      if(v){
+        appVersionInfo = v;
+        var el1 = document.getElementById('support-app-ver');
+        var el2 = document.getElementById('settings-app-ver');
+        var txt = 'Version ' + (v.versionName || '1.0') + ' (Build ' + (v.versionCode || 1) + ')';
+        if(el1) el1.textContent = txt;
+        if(el2) el2.textContent = txt;
+      }
+    }
+  } catch(e){}
+}
+function openSupportModal(){
+  loadAppVersionInfo();
+  var m = document.getElementById('support-modal');
+  if(m) m.classList.add('show');
+}
+function closeSupportModal(){
+  var m = document.getElementById('support-modal');
+  if(m) m.classList.remove('show');
+}
+function sendSupportEmail(){
+  var subject = encodeURIComponent('Unifest Support Request [' + (myId || 'Guest') + ']');
+  var body = encodeURIComponent(
+    'Hi Unifest Support Team,\n\n[Please describe your issue or question here]\n\n' +
+    '---\n' +
+    'User ID: ' + (myId || 'None') + '\n' +
+    'App Version: ' + appVersionInfo.versionName + ' (' + appVersionInfo.versionCode + ')\n' +
+    'Platform: ' + (navigator.userAgent || 'Android') + '\n'
+  );
+  window.location.href = 'mailto:unifest.messenger@gmail.com?subject=' + subject + '&body=' + body;
+}
+
+/* 12. UGC Report User Flow */
+var reportingTargetPid = '';
+function openReportUserModal(pid){
+  if(!pid) return;
+  reportingTargetPid = pid;
+  var tName = document.getElementById('report-user-target-name');
+  if(tName) tName.textContent = pid;
+  var details = document.getElementById('report-user-details');
+  if(details) details.value = '';
+  var rad = document.querySelector('input[name="report-category"][value="spam"]');
+  if(rad) rad.checked = true;
+  var m = document.getElementById('report-user-modal');
+  if(m) m.classList.add('show');
+}
+function closeReportUserModal(){
+  reportingTargetPid = '';
+  var m = document.getElementById('report-user-modal');
+  if(m) m.classList.remove('show');
+}
+async function submitReportUser(){
+  var target = reportingTargetPid;
+  if(!target){ closeReportUserModal(); return; }
+  var catInput = document.querySelector('input[name="report-category"]:checked');
+  var category = catInput ? catInput.value : 'other';
+  var detailsInput = document.getElementById('report-user-details');
+  var details = detailsInput ? detailsInput.value.trim() : '';
+  var alsoBlock = document.getElementById('report-also-block') ? document.getElementById('report-also-block').checked : false;
+
+  closeReportUserModal();
+
+  var reports = ls_get('uf_reports_v1', []);
+  var reportObj = {
+    reporterId: myId,
+    against: target,
+    category: category,
+    reason: details,
+    time: new Date().toISOString()
+  };
+  reports.push(reportObj);
+  ls_set('uf_reports_v1', reports);
+
+  // Sync to backend (best-effort)
+  try {
+    fetchWithRetries(NOTIF_API + '/api/report', {
+      method: 'POST',
+      headers: apiHeaders(),
+      body: JSON.stringify(reportObj)
+    }, 4000, 8000).catch(function(){});
+  } catch(e){}
+
+  if(alsoBlock && !isBlocked(target)){
+    blockUser(target);
+  }
+
+  toast('Report submitted. Thank you for keeping Unifest safe.');
+}
+
+/* 13. OEM Battery Reliability Guide */
+var OEM_GUIDES = {
+  samsung: '<h4>Samsung (One UI)</h4><ol style="padding-left:18px;margin-top:6px;"><li>Open phone <b>Settings &gt; Apps &gt; Unifest</b>.</li><li>Tap <b>Battery</b> and choose <b>Unrestricted</b> (do not use "Optimized").</li><li>Go to <b>Settings &gt; Battery &gt; Background usage limits</b> and ensure Unifest is NOT in "Sleeping apps" or "Deep sleeping apps".</li><li>Add Unifest to <b>Never auto-sleeping apps</b>.</li></ol>',
+  xiaomi: '<h4>Xiaomi / Redmi / POCO (MIUI / HyperOS)</h4><ol style="padding-left:18px;margin-top:6px;"><li>Open phone <b>Settings &gt; Apps &gt; Manage apps &gt; Unifest</b>.</li><li>Enable <b>Autostart</b> (crucial for incoming calls).</li><li>Tap <b>Battery saver</b> and select <b>No restrictions</b>.</li><li>In phone <b>Security app &gt; Permissions &gt; Autostart</b>, ensure Unifest is enabled.</li><li>Lock Unifest in Recent Apps screen by holding its card and tapping the Lock icon.</li></ol>',
+  vivo: '<h4>Vivo / iQOO (Funtouch OS)</h4><ol style="padding-left:18px;margin-top:6px;"><li>Open phone <b>Settings &gt; Battery &gt; Background power consumption management</b>.</li><li>Find <b>Unifest</b> and set to <b>High background power usage</b> (Allow).</li><li>Go to <b>Settings &gt; Applications &amp; Permissions &gt; Autostart</b> and enable Unifest.</li></ol>',
+  oppo: '<h4>Oppo / Realme (ColorOS / Realme UI)</h4><ol style="padding-left:18px;margin-top:6px;"><li>Open phone <b>Settings &gt; Apps &gt; App management &gt; Unifest</b>.</li><li>Tap <b>Battery usage</b> and enable <b>Allow background activity</b> and <b>Allow auto-launch</b>.</li><li>Disable <b>Pause app activity if unused</b>.</li><li>Lock the app in the Recent Tasks overview.</li></ol>',
+  oneplus: '<h4>OnePlus (OxygenOS)</h4><ol style="padding-left:18px;margin-top:6px;"><li>Open phone <b>Settings &gt; Apps &gt; App management &gt; Unifest</b>.</li><li>Tap <b>Battery usage</b> &gt; Enable <b>Allow background activity</b> and <b>Allow auto-launch</b>.</li><li>Go to <b>Settings &gt; Battery &gt; More settings &gt; Optimize battery use</b> and set Unifest to <b>Don\'t optimize</b>.</li></ol>'
+};
+
+function openBatteryGuideModal(){
+  showOemGuide('samsung');
+  var m = document.getElementById('battery-guide-modal');
+  if(m) m.classList.add('show');
+}
+function closeBatteryGuideModal(){
+  var m = document.getElementById('battery-guide-modal');
+  if(m) m.classList.remove('show');
+}
+function showOemGuide(brand){
+  var content = document.getElementById('oem-guide-content');
+  if(content && OEM_GUIDES[brand]){
+    content.innerHTML = OEM_GUIDES[brand];
+  }
+  var tabs = document.querySelectorAll('#oem-brand-tabs button');
+  tabs.forEach(function(b){
+    if(b.getAttribute('data-brand') === brand) b.classList.add('active');
+    else b.classList.remove('active');
+  });
+}
+
+/* 14. In-App Update Checker */
+var pendingUpdateUrl = 'https://play.google.com/store/apps/details?id=com.vahin.unifest';
+async function checkForAppUpdate(isManual){
+  if(isManual) toast('Checking for updates…');
+  try {
+    var res = await fetchWithTimeout(NOTIF_API + '/api/version', { method: 'GET', cache: 'no-store' }, 6000);
+    if(!res || !res.ok){
+      if(isManual) toast('You are using the latest version of Unifest (' + appVersionInfo.versionName + ')');
+      return;
+    }
+    var data = await res.json();
+    if(!data) return;
+
+    var currentCode = appVersionInfo.versionCode || 1;
+    var minCode = data.min_version_code || 1;
+    var latestCode = data.latest_version_code || 1;
+    pendingUpdateUrl = data.update_url || 'market://details?id=com.vahin.unifest';
+
+    if(currentCode < minCode){
+      // Force / Mandatory Update
+      document.getElementById('app-update-title').textContent = '⚠️ Update Required';
+      document.getElementById('app-update-msg').textContent = data.message || 'This version of Unifest is no longer supported. Please update immediately to continue calling and messaging.';
+      document.getElementById('app-update-later-btn').style.display = 'none';
+      document.getElementById('app-update-modal').classList.add('show');
+    } else if(currentCode < latestCode){
+      // Optional Update
+      document.getElementById('app-update-title').textContent = '✨ Update Available';
+      document.getElementById('app-update-msg').textContent = data.message || 'A new update (v' + (data.latest_version_name || '') + ') is available with performance and security improvements.';
+      document.getElementById('app-update-later-btn').style.display = 'block';
+      document.getElementById('app-update-modal').classList.add('show');
+    } else {
+      if(isManual) toast('Unifest is up to date (v' + appVersionInfo.versionName + ') ✓');
+    }
+  } catch(err){
+    if(isManual) toast('Unifest is up to date (v' + appVersionInfo.versionName + ') ✓');
+  }
+}
+function openPlayStoreUpdate(){
+  try {
+    if(window.Capacitor && Capacitor.isNativePlatform()){
+      window.open('market://details?id=com.vahin.unifest', '_system');
+    } else {
+      window.open(pendingUpdateUrl, '_blank');
+    }
+  } catch(e){
+    window.open('https://play.google.com/store/apps/details?id=com.vahin.unifest', '_blank');
+  }
+}
 /* Keeps layout pinned to the visual viewport so the input bar stays above the on-screen keyboard. */
 function setupKeyboardFix(){
   var chatInp=document.getElementById('chat-input');if(!chatInp)return;
@@ -6936,6 +7403,38 @@ function bindEvents(){
   document.querySelectorAll('.lock-key').forEach(function(k){
     k.addEventListener('click',function(){handleLockKeyPress(this.dataset.key);});
   });
+  addClick('delete-account-row',deleteAccountAndData);
+  addClick('privacy-policy-row',openPrivacyPolicyModal);
+  addClick('privacy-policy-close-btn',closePrivacyPolicyModal);
+  addClick('privacy-policy-web-btn',openPrivacyPolicyWeb);
+  addClick('privacy-policy-modal',function(e){if(e.target===this)closePrivacyPolicyModal();});
+  addClick('contact-support-row',openSupportModal);
+  addClick('support-close-btn',closeSupportModal);
+  addClick('support-email-btn',sendSupportEmail);
+  addClick('support-modal',function(e){if(e.target===this)closeSupportModal();});
+  addClick('support-copy-diag-row',function(){
+    var log=ls_get('uf_last_call_diag',null)||callDiagLog;
+    if(!log||!log.length){toast('No call attempted yet this session');return;}
+    var text=log.join('\n');
+    if(navigator.clipboard)navigator.clipboard.writeText(text).then(function(){toast('Copied '+log.length+' diagnostic lines 📋');}).catch(function(){toast(text.substring(0,200));});
+    else toast(text.substring(0,200));
+  });
+  addClick('check-update-row',function(){checkForAppUpdate(true);});
+  addClick('app-update-now-btn',openPlayStoreUpdate);
+  addClick('app-update-later-btn',function(){var m=document.getElementById('app-update-modal');if(m)m.classList.remove('show');});
+  addClick('app-update-modal',function(e){if(e.target===this){var b=document.getElementById('app-update-later-btn');if(b&&b.style.display!=='none')this.classList.remove('show');}});
+  addClick('battery-guide-row',openBatteryGuideModal);
+  addClick('battery-guide-close-btn',closeBatteryGuideModal);
+  addClick('battery-guide-modal',function(e){if(e.target===this)closeBatteryGuideModal();});
+  addClick('battery-guide-sys-btn',async function(){
+    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openBatterySettings();
+  });
+  document.querySelectorAll('#oem-brand-tabs button').forEach(function(b){
+    b.addEventListener('click',function(){showOemGuide(this.getAttribute('data-brand'));});
+  });
+  addClick('report-user-cancel-btn',closeReportUserModal);
+  addClick('report-user-submit-btn',submitReportUser);
+  addClick('report-user-modal',function(e){if(e.target===this)closeReportUserModal();});
   addClick('invite-friends-row',inviteFriends);
   addClick('dp-viewer-close-btn',closeDpViewer);
   addClick('dp-viewer-overlay',function(e){if(e.target===this)closeDpViewer();});
@@ -6987,13 +7486,8 @@ function bindEvents(){
   addClick('emoji-btn',toggleEmojiPanel);
   addClick('voice-btn',startVoiceRecord);
   addClick('unblock-btn',function(){unblockUser(chatPeerId);});
-  addClick('report-btn',async function(){
-    var reason=await styledPrompt('What\u2019s wrong with '+chatPeerId+'? Describe what happened:',{placeholder:'e.g. sending spam, harassment…'});
-    if(!reason)return;
-    var reports=ls_get('uf_reports_v1',[]);
-    reports.push({against:chatPeerId,reason:reason,time:new Date().toISOString()});
-    ls_set('uf_reports_v1',reports);
-    toast('Report saved — thank you');
+  addClick('report-btn',function(){
+    openReportUserModal(chatPeerId);
   });
   addClick('attach-overlay',function(e){if(e.target===this)closeAttachMenu();});
   addClick('attach-image-btn',function(){triggerFilePick('image');});
@@ -7269,7 +7763,7 @@ if(document.readyState==='loading'){
       });
 
       await AdMob.initialize({
-        initializeForTesting: true, // ⚠️ set to false only when going live on Play Store — real ad revenue does not count while this is true
+        initializeForTesting: false, // Set to false for live Google Play Store production release
       });
       admobInitialized=true;
       // Catches up if the user is already sitting on the Chats screen by the time

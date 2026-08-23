@@ -4,6 +4,8 @@ import android.app.NotificationManager;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
@@ -349,5 +351,92 @@ public class VahinPermissionsPlugin extends Plugin {
     private boolean isIgnoringBatteryOptimizations() {
         PowerManager pm = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
         return pm != null && pm.isIgnoringBatteryOptimizations(getContext().getPackageName());
+    }
+
+    @PluginMethod
+    public void getAppVersionInfo(PluginCall call) {
+        try {
+            PackageManager pm = getContext().getPackageManager();
+            PackageInfo pInfo = pm.getPackageInfo(getContext().getPackageName(), 0);
+            long versionCode = 0;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                versionCode = pInfo.getLongVersionCode();
+            } else {
+                versionCode = pInfo.versionCode;
+            }
+            JSObject ret = new JSObject();
+            ret.put("versionName", pInfo.versionName != null ? pInfo.versionName : "1.0");
+            ret.put("versionCode", versionCode);
+            ret.put("packageName", getContext().getPackageName());
+            call.resolve(ret);
+        } catch (Exception e) {
+            JSObject fallback = new JSObject();
+            fallback.put("versionName", "1.0");
+            fallback.put("versionCode", 1);
+            fallback.put("packageName", getContext().getPackageName());
+            call.resolve(fallback);
+        }
+    }
+
+    @PluginMethod
+    public void logCrashlytics(PluginCall call) {
+        String message = call.getString("message", "");
+        if (!message.isEmpty()) {
+            try {
+                com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().log(message);
+            } catch (Exception ignored) {}
+        }
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void recordException(PluginCall call) {
+        String message = call.getString("message", "");
+        if (!message.isEmpty()) {
+            try {
+                com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().recordException(new Exception(message));
+            } catch (Exception ignored) {}
+        }
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void setCrashlyticsUserId(PluginCall call) {
+        String userId = call.getString("userId", "");
+        try {
+            if (userId != null && !userId.isEmpty()) {
+                com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().setUserId(userId);
+            }
+        } catch (Exception ignored) {}
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void deleteAccountLocalData(PluginCall call) {
+        try {
+            // Stop active signal service session data
+            getContext().getSharedPreferences("vahin_prefs", Context.MODE_PRIVATE)
+                .edit()
+                .clear()
+                .apply();
+
+            // Clear custom ringtone
+            File ringFile = getCustomRingtoneFile(getContext());
+            if (ringFile.exists()) ringFile.delete();
+
+            // Clear shared files cache
+            File cacheDir = new File(getContext().getCacheDir(), "shared_files");
+            if (cacheDir.exists() && cacheDir.isDirectory()) {
+                File[] files = cacheDir.listFiles();
+                if (files != null) {
+                    for (File f : files) {
+                        try { f.delete(); } catch (Exception ignored) {}
+                    }
+                }
+            }
+            call.resolve(new JSObject().put("success", true));
+        } catch (Exception e) {
+            call.resolve(new JSObject().put("success", false).put("error", e.getMessage()));
+        }
     }
 }
