@@ -51,7 +51,13 @@ public class MainActivity extends BridgeActivity {
         activeInstance = this;
 
         try {
-            com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().log("MainActivity onCreate");
+            com.google.firebase.crashlytics.FirebaseCrashlytics crashlytics =
+                com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance();
+            crashlytics.setCustomKey("manufacturer", Build.MANUFACTURER != null ? Build.MANUFACTURER : "unknown");
+            crashlytics.setCustomKey("model", Build.MODEL != null ? Build.MODEL : "unknown");
+            crashlytics.setCustomKey("sdk_int", Build.VERSION.SDK_INT);
+            crashlytics.setCustomKey("brand", Build.BRAND != null ? Build.BRAND : "unknown");
+            crashlytics.log("MainActivity onCreate");
         } catch (Exception ignored) {}
 
         Log.d(TAG, "onCreate: registering Telecom PhoneAccount");
@@ -256,25 +262,45 @@ public class MainActivity extends BridgeActivity {
     static void requestOemAutoStartPermissionStatic(android.app.Activity activity) {
         if (activity == null) return;
         String manufacturer = Build.MANUFACTURER == null ? "" : Build.MANUFACTURER.toLowerCase();
+        String brand = Build.BRAND == null ? "" : Build.BRAND.toLowerCase();
         String[][] candidates;
-        if (manufacturer.contains("xiaomi")) {
+        if (manufacturer.contains("xiaomi") || brand.contains("redmi") || brand.contains("poco")) {
             candidates = new String[][]{
-                {"com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"}
+                {"com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"},
+                {"com.miui.securitycenter", "com.miui.powercenter.PowerSettings"}
             };
-        } else if (manufacturer.contains("oppo")) {
+        } else if (manufacturer.contains("oppo") || brand.contains("realme")) {
             candidates = new String[][]{
                 {"com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"},
                 {"com.coloros.safecenter", "com.coloros.safecenter.startupapp.StartupAppListActivity"},
                 {"com.oppo.safe", "com.oppo.safe.permission.startup.StartupAppListActivity"}
             };
-        } else if (manufacturer.contains("vivo")) {
+        } else if (manufacturer.contains("vivo") || brand.contains("iqoo")) {
             candidates = new String[][]{
                 {"com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"},
-                {"com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity"}
+                {"com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity"},
+                {"com.vivo.abe", "com.vivo.applicationbehaviorengine.ui.ExcessivePowerManagerActivity"}
             };
         } else if (manufacturer.contains("samsung")) {
             candidates = new String[][]{
-                {"com.samsung.android.lool", "com.samsung.android.sm.ui.battery.BatteryActivity"}
+                {"com.samsung.android.lool", "com.samsung.android.sm.ui.battery.BatteryActivity"},
+                {"com.samsung.android.sm", "com.samsung.android.sm.ui.battery.BatteryActivity"},
+                {"com.samsung.android.sm", "com.samsung.android.sm.ui.cstyleboard.SmartManagerDashBoardActivity"}
+            };
+        } else if (manufacturer.contains("oneplus")) {
+            candidates = new String[][]{
+                {"com.oneplus.security", "com.oneplus.security.chainlaunch.view.ChainLaunchAppListActivity"},
+                {"com.oneplus.security", "com.oneplus.security.battery.BatteryOptimizationActivity"}
+            };
+        } else if (manufacturer.contains("huawei") || brand.contains("honor")) {
+            candidates = new String[][]{
+                {"com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity"},
+                {"com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"},
+                {"com.huawei.systemmanager", "com.huawei.systemmanager.appcontrol.activity.StartupAppControlActivity"}
+            };
+        } else if (manufacturer.contains("asus")) {
+            candidates = new String[][]{
+                {"com.asus.mobilemanager", "com.asus.mobilemanager.autostart.AutoStartActivity"}
             };
         } else {
             candidates = new String[0][];

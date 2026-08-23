@@ -57,7 +57,16 @@ public class VahinPermissionsPlugin extends Plugin {
         ret.put("notificationsGranted", isNotificationsGranted());
         ret.put("notificationsApplicable", Build.VERSION.SDK_INT >= 33);
         ret.put("manufacturer", Build.MANUFACTURER == null ? "" : Build.MANUFACTURER);
+        ret.put("brand", Build.BRAND == null ? "" : Build.BRAND);
+        ret.put("model", Build.MODEL == null ? "" : Build.MODEL);
+        ret.put("sdkInt", Build.VERSION.SDK_INT);
         call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void openOemAutoStartSettings(PluginCall call) {
+        MainActivity.requestOemAutoStartPermissionStatic(getActivity());
+        call.resolve();
     }
 
     @PluginMethod
@@ -408,6 +417,18 @@ public class VahinPermissionsPlugin extends Plugin {
                 com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().setUserId(userId);
             }
         } catch (Exception ignored) {}
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void setCrashlyticsCustomKey(PluginCall call) {
+        String key = call.getString("key", "");
+        String value = call.getString("value", "");
+        if (!key.isEmpty()) {
+            try {
+                com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().setCustomKey(key, value);
+            } catch (Exception ignored) {}
+        }
         call.resolve();
     }
 

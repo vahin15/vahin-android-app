@@ -7,20 +7,8 @@ import java.util.Date;
 import java.util.Locale;
 
 /**
- * A tiny in-memory ring buffer of the key call-flow checkpoints, so the ringing/
- * notification pipeline can be diagnosed FROM INSIDE THE APP — no PC, no USB
- * debugging, no adb required.
- *
- * This is not a replacement for full logcat — it only records the specific
- * checkpoints added at call sites below (see log() calls in CallNotifier,
- * IncomingCallActivity, VahinConnection, VahinTelecom, SignalService, and
- * VahinMessagingService), chosen to answer exactly the question "what actually
- * happened during this call, in order" — enough to see e.g. whether
- * IncomingCallActivity ever launched, when the ring timeout fired, and when/why
- * the notification got cancelled.
- *
- * Read from JS via VahinPermissionsPlugin.getDiagnosticLog(), which the in-app
- * "Copy debug log" button in Settings uses.
+ * In-memory ring buffer of the key call-flow checkpoints and bridge to
+ * Firebase Crashlytics so crashes and call events are visible in production.
  */
 public class DebugLog {
     private static final int MAX_LINES = 300;
@@ -32,7 +20,17 @@ public class DebugLog {
         String line = FMT.format(new Date()) + "  [" + tag + "]  " + msg;
         lines.addLast(line);
         while (lines.size() > MAX_LINES) lines.removeFirst();
-        Log.d(tag, msg); // still goes to normal logcat too, for anyone who does have adb
+        Log.d(tag, msg);
+        try {
+            com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().log("[" + tag + "] " + msg);
+        } catch (Exception ignored) {}
+    }
+
+    public static void recordException(Throwable throwable) {
+        if (throwable == null) return;
+        try {
+            com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().recordException(throwable);
+        } catch (Exception ignored) {}
     }
 
     public static synchronized String getAll() {
