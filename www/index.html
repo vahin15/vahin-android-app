@@ -435,7 +435,7 @@ button,input,textarea{font-family:inherit;}
 .out-phase-timer{font-size:13px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.5px;
   background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:6px 16px;font-variant-numeric:tabular-nums;}
 .call-controls{position:absolute;bottom:0;left:0;right:0;z-index:10;padding:0 20px calc(32px + var(--safe-bottom));padding-top:40px;
-  display:flex;justify-content:center;gap:14px;flex-wrap:wrap;background:linear-gradient(transparent,rgba(4,5,8,.96) 35%);}
+  display:flex;justify-content:center;gap:14px;flex-wrap:wrap;}
 .ctrl-btn{width:56px;height:56px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;
   touch-action:manipulation;transition:all .18s cubic-bezier(.34,1.56,.64,1);outline:none;}
 .ctrl-btn:active{transform:scale(.88);}
@@ -1690,13 +1690,28 @@ function setTheme(t){
 }
 window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',applyTheme);
 
+var _screenCleanupTimer=null,_screenCleanupFn=null,_lastActiveScreen=null;
 function showScreen(id,dir){
   dir=dir||'forward';
   var next=document.getElementById(id);if(!next)return;
   if(id==='screen-settings')refreshReliabilityUI();
+  // BUG (fast-tap black/stuck screen): a pending setTimeout below does the actual
+  // cleanup (remove .active, reset transform) of the OUTGOING screen 320ms later.
+  // Tapping again before that fires used to make showScreen() re-derive "current"
+  // by scanning for *any* element still carrying .active — but by then TWO screens
+  // had it (the real previous one, mid-fade-out, plus this one). The scan could
+  // pick the wrong one, so the real previous screen's cleanup never ran and it sat
+  // there permanently with leftover transform/z-index from a half-finished
+  // animation — visually a stuck/black screen. Tracking the current screen in a
+  // variable (instead of re-scanning the DOM) and force-finishing any pending
+  // cleanup synchronously before starting a new transition makes this safe no
+  // matter how fast screens are tapped through.
+  if(_screenCleanupTimer){clearTimeout(_screenCleanupTimer);_screenCleanupTimer=null;if(_screenCleanupFn)_screenCleanupFn();_screenCleanupFn=null;}
   var screens=document.querySelectorAll('.screen');
-  var current=null;
-  for(var i=0;i<screens.length;i++){if(screens[i].classList.contains('active')&&screens[i]!==next){current=screens[i];break;}}
+  var current=_lastActiveScreen&&_lastActiveScreen!==next?_lastActiveScreen:null;
+  if(!current){
+    for(var i=0;i<screens.length;i++){if(screens[i].classList.contains('active')&&screens[i]!==next){current=screens[i];break;}}
+  }
   var isTabbed=!!(next.classList.contains('tabbed'));
   setAdmobBannerVisible(id==='screen-chats');
   /* screen-chat/call/conf/search are full-screen overlays; the fixed bottom tab bar
@@ -1708,6 +1723,7 @@ function showScreen(id,dir){
   if(!current||current===next||next.classList.contains('active')){
     for(var j=0;j<screens.length;j++)screens[j].classList.remove('active');
     next.classList.add('active');
+    _lastActiveScreen=next;
     return;
   }
   /* WhatsApp-style page slide: the incoming screen slides in from the right on a
@@ -1721,14 +1737,20 @@ function showScreen(id,dir){
   void next.offsetWidth; /* force reflow so the start position is registered before animating */
   next.style.transition='';
   current.style.zIndex='5';next.style.zIndex='6';
+  _lastActiveScreen=next;
   requestAnimationFrame(function(){
     next.style.transform='translateX(0)';
     current.style.transform='translateX('+exitTo+')';
   });
-  setTimeout(function(){
+  _screenCleanupFn=function(){
     current.classList.remove('active');
     current.style.transform='';current.style.transition='';current.style.zIndex='';
     next.style.zIndex='';
+  };
+  _screenCleanupTimer=setTimeout(function(){
+    _screenCleanupTimer=null;
+    var fn=_screenCleanupFn;_screenCleanupFn=null;
+    if(fn)fn();
   },320);
 }
 /* AdMob: real banner needs a native plugin (@capacitor-community/admob) — this div is just layout space. */
@@ -4678,6 +4700,13 @@ function handleRemoteStream(rs,mc,isCaller,pid){
     rv.srcObject=rs;
     try{rv.play().catch(function(){});}catch(e){}
   }
+  // Engage the actual native audio route to match the speaker button's default
+  // (speakerOn=true) — without this, the button LOOKS like speaker is already on
+  // but the phone is still routing through the earpiece until the button is tapped.
+  speakerOn=true;
+  if(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions&&Capacitor.Plugins.VahinPermissions.setSpeakerphoneOn){
+    Capacitor.Plugins.VahinPermissions.setSpeakerphoneOn({on:true}).catch(function(){});
+  }
   startCallTimer();startQual();
   if(mc)monitorCallConnection(mc);
 }
@@ -4734,6 +4763,42 @@ function monitorCallConnection(mc){
   if(mc._monitorAttached)return; // already watching this call's ICE — avoid double listeners
   mc._monitorAttached=true;
   var pc=mc.peerConnection;
+  // FIX (relay error still happens intermittently even with retry logic in place):
+  // PeerJS's OWN internal oniceconnectionstatechange handler (inside peerjs.min.js)
+  // calls mc.close() the instant iceConnectionState hits 'failed' — and that close()
+  // actually tears down the real RTCPeerConnection. It runs before our own retry
+  // logic below gets a chance to do anything, so restartIce()/forceRelayRestart()
+  // end up running on an already-dead connection. This is why it "sometimes works" —
+  // whenever ICE only ever sits in 'disconnected'/'checking' (never technically
+  // 'failed'), our recovery below is never raced and works fine; the moment ICE
+  // genuinely reaches 'failed' even once, PeerJS silently kills the call regardless
+  // of anything we do. Guard mc.close() so it's a no-op while we're actively
+  // retrying, and let it through immediately for a real user-initiated hangup
+  // (marked via _userInitiatedClose in endCall()) or once we've genuinely given up.
+  // FIX (relay recovery still lost the race sometimes): PeerJS registers its OWN
+  // internal oniceconnectionstatechange handler (a plain property assignment) the
+  // moment the call is created — BEFORE monitorCallConnection() ever runs. Our
+  // equivalent handler below is attached later via addEventListener. Per spec, both
+  // fire on every state change in registration order, so PeerJS's always runs FIRST.
+  // On 'failed', PeerJS's handler calls this.connection.close() (= our overridden
+  // mc.close) immediately. The old code only set recoverySuppressingClose=true
+  // reactively, INSIDE our own 'failed'/'disconnected' handler — which fires SECOND,
+  // after PeerJS's handler already tried to close it. Any ICE transition that jumps
+  // straight to 'failed' without passing through 'disconnected' first (which absolutely
+  // happens when relay allocation fails outright) was never actually protected — the
+  // guard was false at the exact instant it needed to be true. That's the real reason
+  // this "sometimes worked, sometimes didn't": pure luck of which state path ICE took.
+  // Arming this true from the start of monitoring (instead of reactively) closes the
+  // race regardless of listener order or which state path ICE takes.
+  var recoverySuppressingClose=true;
+  var realClose=mc.close.bind(mc);
+  mc.close=function(){
+    if(recoverySuppressingClose&&!mc._userInitiatedClose){
+      diagLog('🛡️ Suppressed PeerJS auto-close during active ICE/relay recovery');
+      return;
+    }
+    return realClose();
+  };
   var reconnectAttempted=false,forcedRelayAttempted=false;
   var disconnectRetryTimer=null,relayRetryTimer=null,disconnectGiveUpTimer=null,periodicRetryTimer=null,checkingFallbackTimer=null;
   var iceEverConnected=false;
@@ -4771,12 +4836,34 @@ function monitorCallConnection(mc){
     },RETRY_INTERVAL_MS);
   }
 
-  // If ICE stays in checking/new for >3.5s without connecting (common on strict mobile CGNAT), kickstart relay immediately
+  // BUG (the intermittent "relay error"): if ICE stays in checking/new and never
+  // formally transitions to 'disconnected' or 'failed' — exactly what a slow/flaky
+  // TURN allocation looks like — NONE of the retry logic below ever engaged, because
+  // schedulePeriodicRetry() and the give-up timer only ever got wired up inside the
+  // disconnected/failed branches of iceconnectionstatechange. A stuck 'checking' call
+  // got exactly one relay kickstart at 3.5s and then silence forever: no further
+  // retries, no give-up, no clean failure — it just hung until something unrelated
+  // eventually killed it. Give 'checking/new' the same ongoing recovery treatment as
+  // disconnected/failed instead of a single one-shot attempt.
   checkingFallbackTimer=setTimeout(function(){
-    if(!iceEverConnected&&(pc.iceConnectionState==='checking'||pc.iceConnectionState==='new')){
-      diagLog('⚡ ICE initial check taking >3.5s — kickstarting TURN relay candidate pairing');
-      forceRelayRestart();
-    }
+    if(iceEverConnected)return;
+    var st0=pc.iceConnectionState;
+    if(st0!=='checking'&&st0!=='new')return;
+    diagLog('⚡ ICE initial check taking >3.5s — kickstarting TURN relay candidate pairing');
+    recoverySuppressingClose=true;
+    if(!recoveryStartedAt)recoveryStartedAt=Date.now();
+    forceRelayRestart();
+    forcedRelayAttempted=true;
+    schedulePeriodicRetry(false);
+    disconnectGiveUpTimer=setTimeout(function(){
+      if(iceEverConnected)return;
+      var stNow=pc.iceConnectionState;
+      if(stNow==='checking'||stNow==='new'||stNow==='disconnected'||stNow==='failed'){
+        diagLog('❌ still stuck ('+stNow+') after '+Math.round(RECOVERY_BUDGET_MS/1000)+'s — ending call');
+        recoverySuppressingClose=false;
+        toast('Call connection lost');endCall();
+      }
+    },RECOVERY_BUDGET_MS-(Date.now()-recoveryStartedAt));
   },3500);
 
   try{
@@ -4805,6 +4892,7 @@ function monitorCallConnection(mc){
   function handleConnectionSuccess(){
     iceEverConnected=true;recoveryStartedAt=0;
     reconnectAttempted=false;forcedRelayAttempted=false;clearRecoveryTimers();
+    recoverySuppressingClose=false;
     stopOutTone();markOutCallConnected();
     var statusEl=document.getElementById('call-status');
     if(statusEl)statusEl.textContent='Connected ✓';
@@ -4818,6 +4906,7 @@ function monitorCallConnection(mc){
     if(st==='connected'||st==='completed'){
       handleConnectionSuccess();
     }else if(st==='disconnected'){
+      recoverySuppressingClose=true;
       if(statusEl)statusEl.textContent=statusText();
       if(!recoveryStartedAt)recoveryStartedAt=Date.now();
       clearRecoveryTimers();
@@ -4840,10 +4929,12 @@ function monitorCallConnection(mc){
       disconnectGiveUpTimer=setTimeout(function(){
         if(pc.iceConnectionState==='disconnected'||pc.iceConnectionState==='failed'){
           diagLog('❌ still disconnected after '+Math.round(RECOVERY_BUDGET_MS/1000)+'s — ending call');
+          recoverySuppressingClose=false;
           toast('Call connection lost');endCall();
         }
       },RECOVERY_BUDGET_MS-(Date.now()-recoveryStartedAt));
     }else if(st==='failed'){
+      recoverySuppressingClose=true;
       if(!recoveryStartedAt)recoveryStartedAt=Date.now();
       clearRecoveryTimers();
       if(statusEl)statusEl.textContent=statusText();
@@ -4860,6 +4951,7 @@ function monitorCallConnection(mc){
       disconnectGiveUpTimer=setTimeout(function(){
         if(pc.iceConnectionState==='failed'||pc.iceConnectionState==='disconnected'){
           diagLog('❌ still failed after '+Math.round(RECOVERY_BUDGET_MS/1000)+'s — ending call');
+          recoverySuppressingClose=false;
           toast('Call connection lost');endCall();
         }
       },RECOVERY_BUDGET_MS-(Date.now()-recoveryStartedAt));
@@ -5089,7 +5181,7 @@ function endCall(){
     var endConn=weAreCaller?(callConn):(chatConn&&chatConn.peer===callPeerId?chatConn:null);
     if(endConn&&endConn.open){try{endConn.send({type:'call-end'});}catch(e){}}
   }
-  try{if(currentCall)currentCall.close();}catch(e){}
+  try{if(currentCall){currentCall._userInitiatedClose=true;currentCall.close();}}catch(e){}
   try{if(callConn)callConn.close();}catch(e){}
   currentCall=null;callConn=null;weAreCaller=false;outCallConnected=false;
   if(localStream){localStream.getTracks().forEach(function(t){try{t.stop();}catch(e){}});localStream=null;}
@@ -5140,14 +5232,23 @@ function toggleCam(){
 }
 function toggleSpeaker(){
   speakerOn=!speakerOn;
-  document.getElementById('video-remote').muted=!speakerOn;
+  // BUG (speaker button "just stops speaker from working"): this used to only flip
+  // video-remote.muted — that silences the entire call, it doesn't switch which
+  // physical output the audio plays from. Real earpiece↔loudspeaker routing is a
+  // phone-OS-level thing, not something a WebView can do on its own — route it
+  // through the native plugin. video-remote must stay unmuted; the audio output
+  // itself moves between earpiece and loudspeaker underneath it.
+  document.getElementById('video-remote').muted=false;
+  if(window.Capacitor&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions&&Capacitor.Plugins.VahinPermissions.setSpeakerphoneOn){
+    Capacitor.Plugins.VahinPermissions.setSpeakerphoneOn({on:speakerOn}).catch(function(){});
+  }
   var bs=document.getElementById('btn-speaker');
   if(bs){
     bs.style.background=speakerOn?'':'var(--yellow)';
     bs.style.color=speakerOn?'#fff':'#18181B';
     bs.innerHTML=speakerOn?SVG_ICONS.speaker:SVG_ICONS.speakerOff;
   }
-  toast(speakerOn?'Speaker on':'Speaker muted');
+  toast(speakerOn?'Speaker on':'Speaker off (earpiece)');
 }
 function toggleCallChat(){document.getElementById('call-chat-panel').classList.toggle('show');}
 function hideCallChat(){
@@ -6580,6 +6681,11 @@ function tryBiometricUnlock(){
 }
 document.addEventListener('visibilitychange',function(){
   if(document.visibilityState==='visible'){
+    // BUG: this used to fire unconditionally, including when the app is woken up
+    // by an incoming call — the PIN screen was covering the ringing UI and blocking
+    // the user from ever answering. Skip the lock while a call is ringing or live;
+    // it'll still lock normally the next time the app is opened with no call active.
+    if(incomingCall||currentCall)return;
     if(appLock.enabled&&appLock.pin&&!appUnlocked){
       showAppLockScreen();
     }
