@@ -20,6 +20,7 @@
 <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
 <link rel="manifest" href="/manifest.json"/>
 <script src="/qrcode.js"></script>
+<script src="/vendor/jsqr.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -6280,12 +6281,20 @@ function stopScreenSharing(isConf,showToast){
   if(showToast&&wasSharing)toast('Screen sharing stopped');
 }
 
-/* ── Call UI Tap Toggle (Unobstructed View) ── */
+/* ── Call UI Tap Toggle (Unobstructed View) ──
+   FIX (call UI disappearing / "call UI not showing"): tapping the remote video
+   during a call — which is most of the screen, and very easy to tap by accident —
+   hid the ENTIRE call header and call-controls bar, including Mute/Speaker/End
+   Call, with no visible affordance telling the person how to bring it back. That's
+   exactly what "the call UI is not showing while it's calling" looks like from the
+   outside. Disabling the toggle entirely so the call controls always stay visible;
+   the function is kept (now a no-op passthrough) in case a future safer version of
+   this is wanted, but it's no longer wired to any tap.*/
 function toggleCallControlsOverlay(){
   var hdr=document.querySelector('.call-header');
   var ctrl=document.querySelector('.call-controls');
-  if(hdr)hdr.classList.toggle('hidden');
-  if(ctrl)ctrl.classList.toggle('hidden');
+  if(hdr)hdr.classList.remove('hidden');
+  if(ctrl)ctrl.classList.remove('hidden');
 }
 
 /* ── QR Code & Scanner Logic ── */
@@ -6373,6 +6382,28 @@ function stopQRScanner(){
   if(video)video.srcObject=null;
 }
 
+/* FIX (QR scanning didn't work): the scanner only ever tried the browser's native
+   BarcodeDetector API. That API is NOT guaranteed to exist in Android's system WebView
+   (which is what a Capacitor app actually runs in) — it depends on Google's separate
+   ML Kit module being installed on the device, which many phones/OEMs/Android
+   versions simply don't have. When it's missing, 'BarcodeDetector' in window is false
+   and the old code silently fell straight through to "just try again next frame"
+   forever — the camera opened, the "Scanning…" text showed, but nothing could ever
+   actually be detected. Added jsQR (a pure-JS decoder bundled locally in
+   vendor/jsqr.min.js, no native API needed) as a fallback so scanning works
+   everywhere, and reused it as the primary path when BarcodeDetector isn't there. */
+var _qrScanCanvas=null,_qrScanCtx=null;
+function decodeFrameWithJsQR(video){
+  if(typeof jsQR!=='function')return null;
+  if(!video.videoWidth||!video.videoHeight)return null;
+  if(!_qrScanCanvas){_qrScanCanvas=document.createElement('canvas');_qrScanCtx=_qrScanCanvas.getContext('2d',{willReadFrequently:true});}
+  _qrScanCanvas.width=video.videoWidth;_qrScanCanvas.height=video.videoHeight;
+  _qrScanCtx.drawImage(video,0,0,_qrScanCanvas.width,_qrScanCanvas.height);
+  var imgData;
+  try{imgData=_qrScanCtx.getImageData(0,0,_qrScanCanvas.width,_qrScanCanvas.height);}catch(e){return null;}
+  var result=jsQR(imgData.data,imgData.width,imgData.height,{inversionAttempts:'attemptBoth'});
+  return result&&result.data?result.data:null;
+}
 async function scanQRVideoFrame(){
   var video=document.getElementById('qr-scanner-video');
   var modal=document.getElementById('qr-modal');
@@ -6386,6 +6417,11 @@ async function scanQRVideoFrame(){
         var raw=barcodes[0].rawValue;
         if(raw){handleScannedQR(raw);return;}
       }
+    }catch(e){}
+  }else{
+    try{
+      var decoded=decodeFrameWithJsQR(video);
+      if(decoded){handleScannedQR(decoded);return;}
     }catch(e){}
   }
   qrScanAnimationTimer=requestAnimationFrame(scanQRVideoFrame);
@@ -6450,6 +6486,12 @@ async function uploadQRImage(file){
         handleScannedQR(barcodes[0].rawValue);
         return;
       }
+    }else if(typeof jsQR==='function'){
+      var c=document.createElement('canvas');c.width=bitmap.width;c.height=bitmap.height;
+      var ctx=c.getContext('2d');ctx.drawImage(bitmap,0,0);
+      var imgData=ctx.getImageData(0,0,c.width,c.height);
+      var result=jsQR(imgData.data,imgData.width,imgData.height,{inversionAttempts:'attemptBoth'});
+      if(result&&result.data){handleScannedQR(result.data);return;}
     }
     toast('No QR code detected in this image');
     if(overlayStatus)overlayStatus.textContent='No QR detected. Try another photo.';
@@ -8515,7 +8557,9 @@ function bindEvents(){
   addClick('conf-screenshare-btn',function(){toggleScreenShare(true);});
   addClick('call-screenshare-stop-btn',function(){stopScreenSharing(false,true);});
   addClick('conf-screenshare-stop-btn',function(){stopScreenSharing(true,true);});
-  addClick('video-remote',toggleCallControlsOverlay);
+  /* FIX: no longer wired to tapping the video — see toggleCallControlsOverlay comment
+     above. Tapping the remote video during a call now does nothing, so the call UI
+     (including the End Call button) can never be accidentally hidden. */
 
   addClick('btn-mute',toggleMute);
   addClick('btn-cam',toggleCam);
@@ -9266,8 +9310,12 @@ function maybeTriggerSmartReview(source){
 function handleReviewStarSelect(stars){
   userStarRating = stars;
   var starBtns = document.querySelectorAll('.star-btn');
+  // FIX (star rating value not working): this toggled a class named 'active', but the
+  // CSS that actually colors a star in (.star-btn.filled) only ever looks for 'filled'.
+  // 'active' matched nothing, so tapping a star silently updated userStarRating in JS
+  // with zero visible feedback — from the user's side it looked completely broken.
   starBtns.forEach(function(b, idx){
-    b.classList.toggle('active', idx < stars);
+    b.classList.toggle('filled', idx < stars);
   });
 
   var box = document.getElementById('review-feedback-box');
