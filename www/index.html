@@ -5446,12 +5446,12 @@ async function startCall(pid,voiceOnly){
   if(currentCall){toast('Already in a call');return;}
   if(isBlocked(pid)){toast('You have blocked this user');return;}
   if(!peer||!peerReady){
-    diagLog('⏳ startCall: peer not ready ('+(peer?'disconnected':'null')+') — kicking reconnect and waiting up to 6s before giving up');
+    diagLog('⏳ startCall: peer not ready ('+(peer?'disconnected':'null')+') — kicking reconnect and waiting up to 15s before giving up');
     toast('Reconnecting…');
     try{ensurePeerConnected();}catch(e){}
-    var ready=await waitForPeerReady(6000);
+    var ready=await waitForPeerReady(15000);
     if(!ready){
-      diagLog('❌ startCall: still not connected after 6s — aborting call');
+      diagLog('❌ startCall: still not connected after 15s — aborting call');
       toast('Not connected — check your internet and try again');
       return;
     }
