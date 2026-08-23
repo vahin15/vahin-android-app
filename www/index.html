@@ -398,7 +398,22 @@ button,input,textarea{font-family:inherit;}
   color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(30,58,95,.4);}
 .rec-cancel-btn{background:var(--surface2);border:1.5px solid var(--border2);border-radius:14px;padding:14px 22px;font-size:14px;font-weight:600;
   color:var(--text2);cursor:pointer;}
-#screen-call{background:#000000;z-index:60;position:relative;overflow:hidden;}
+/* FIX (root cause of "call UI not showing" — CSS specificity bug): every other
+   screen div gets its full-viewport sizing from the shared .screen class rule
+   (position:absolute;inset:0). This ID rule ALSO set position:relative — and
+   because an ID selector always beats a class selector in CSS specificity, that
+   silently overrode position:absolute just for this one screen. Since every
+   direct child of #screen-call (video, avatar, header, controls, incoming
+   overlay…) is itself position:absolute, a position:relative parent with no
+   normal-flow content collapses to zero height — and with overflow:hidden on
+   top of that, the entire call UI was being clipped away to nothing the instant
+   the call screen activated. The WebRTC call itself connected fine underneath
+   (confirmed via the debug log), which is exactly why audio worked with no
+   visible UI and no way to hang up except closing the app. Removing
+   position:relative lets it inherit position:absolute from .screen, same as
+   every other screen (screen-conf, screen-chat, etc.) — it still works fine as
+   the containing block for its absolutely-positioned children either way. */
+#screen-call{background:#000000;z-index:60;overflow:hidden;}
 #video-remote{width:100%;height:100%;object-fit:cover;background:#000000;position:absolute;inset:0;z-index:1;cursor:pointer;}
 #video-local{position:absolute;bottom:calc(96px + var(--safe-bottom));right:16px;width:96px;height:144px;object-fit:cover;border-radius:18px;
   border:2px solid rgba(255,255,255,.5);background:#12151B;z-index:15;box-shadow:0 12px 36px rgba(0,0,0,.75);transition:transform .2s ease,right .2s ease,bottom .2s ease;cursor:pointer;}
