@@ -50,14 +50,12 @@ public class ScreenCaptureService extends Service {
     private static final String CHANNEL_ID = "vahin_screenshare";
     private static final int NOTIF_ID = 4271;
 
-    /** Target capture cadence. Kept modest — this rides the same JS<->native
-        bridge as everything else (base64 JSON messages), so higher isn't free.
-        8fps is plenty to read text/share a slide deck/demo an app; it is not
-        meant to carry fast motion/video smoothly. */
-    private static final int TARGET_FPS = 8;
+    /** Target capture cadence. Constrained to match WebRTC encoder limits
+        (12 fps) for smooth transmission without buffer overflow or frame dropping. */
+    private static final int TARGET_FPS = 12;
     private static final long FRAME_INTERVAL_MS = 1000L / TARGET_FPS;
-    /** Downscale capture to this max longest-side to keep each JPEG small
-        enough to push over the bridge at TARGET_FPS without falling behind. */
+    /** Downscale capture to max 1280 longest-side, with 16-pixel alignment
+        to strictly respect WebRTC H.264/VP8 hardware encoder macroblock requirements. */
     private static final int MAX_DIMENSION = 1280;
 
     public static final String EXTRA_RESULT_CODE = "resultCode";
@@ -120,16 +118,19 @@ public class ScreenCaptureService extends Service {
     private void setupCapture() {
         DisplayMetrics dm = getResources().getDisplayMetrics();
         int rawW = dm.widthPixels, rawH = dm.heightPixels;
-        densityDpi = dm.densityDpi;
+        int rawDensity = dm.densityDpi;
         float scale = Math.min(1f, ((float) MAX_DIMENSION) / Math.max(rawW, rawH));
-        width = Math.max(2, Math.round(rawW * scale) / 2 * 2);   // keep even dimensions
-        height = Math.max(2, Math.round(rawH * scale) / 2 * 2);
+        // Align to 16-pixel macroblock boundary for WebRTC hardware encoder optimization
+        width = Math.max(16, (Math.round(rawW * scale) / 16) * 16);
+        height = Math.max(16, (Math.round(rawH * scale) / 16) * 16);
+        densityDpi = Math.max(120, Math.round(rawDensity * scale));
 
         captureThread = new HandlerThread("VahinScreenCapture");
         captureThread.start();
         captureHandler = new Handler(captureThread.getLooper());
 
-        imageReader = ImageReader.newInstance(width, height, android.graphics.PixelFormat.RGBA_8888, 2);
+        // Triple-buffering to prevent frame-drop during JPEG encode and WebRTC transmission
+        imageReader = ImageReader.newInstance(width, height, android.graphics.PixelFormat.RGBA_8888, 3);
         imageReader.setOnImageAvailableListener(this::onImageAvailable, captureHandler);
 
         try {

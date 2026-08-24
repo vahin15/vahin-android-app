@@ -330,7 +330,11 @@ public class IncomingCallActivity extends AppCompatActivity {
             try {
                 ringtonePlayer.setOnPreparedListener(null);
                 ringtonePlayer.setOnErrorListener(null);
-                if (ringtonePlayer.isPlaying()) ringtonePlayer.stop();
+                ringtonePlayer.setOnCompletionListener(null);
+                if (ringtonePlayer.isPlaying()) {
+                    ringtonePlayer.stop();
+                }
+                ringtonePlayer.reset();
                 ringtonePlayer.release();
             } catch (Exception e) {
                 Log.w(TAG, "releasePlayer: exception during release — " + e.getMessage());
@@ -438,6 +442,22 @@ public class IncomingCallActivity extends AppCompatActivity {
         } catch (Exception e) {
             Log.w(TAG, "onNewIntent: exception — " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d(TAG, "onPause");
+        if (isFinishing()) {
+            stopRingAndVibrate();
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "onStop");
+        stopRingAndVibrate();
     }
 
     @Override

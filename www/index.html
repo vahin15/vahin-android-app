@@ -1504,6 +1504,10 @@ img,video,canvas{max-width:100%;}
     <span>You are sharing your screen</span>
     <button type="button" class="pill-stop-btn" id="call-screenshare-stop-btn">Stop</button>
   </div>
+  <div class="call-screenshare-pill" id="call-screenshare-remote-pill" style="background:rgba(30,58,138,.9);border-color:rgba(96,165,250,.5);color:#EFF6FF;">
+    <span class="pulse-dot" style="background:#60A5FA;box-shadow:0 0 8px #60A5FA;"></span>
+    <span>Peer is sharing their screen</span>
+  </div>
   <div class="lowdata-call-pill" id="call-lowdata-pill">
     <span>📉</span>
     <span>Low-Data Mode Active</span>
@@ -2418,6 +2422,35 @@ var enteredPin='';
 var settings={ringtone:true,vibrate:true,backcam:false,confLimit:6,theme:'auto',lowData:false,ghostMode:false};
 var customRingtoneDataUrl='';
 var incomingCall=null;
+/* ICE candidate buffer: queues remote ICE candidates arriving before the call answer/remote description state */
+var iceCandidateBuffer={}; // peerId -> [candidates]
+function queueIceCandidate(from,candidate){
+  if(!candidate)return;
+  if(!iceCandidateBuffer[from])iceCandidateBuffer[from]=[];
+  iceCandidateBuffer[from].push(candidate);
+  diagLog('🧊 Queued early ICE candidate from '+from+' (total buffered: '+iceCandidateBuffer[from].length+')');
+}
+function flushIceCandidateBuffer(pid,pc){
+  if(!pc)return;
+  var list=iceCandidateBuffer[pid];
+  if(!list||!list.length)return;
+  delete iceCandidateBuffer[pid];
+  diagLog('🧊 Flushing '+list.length+' buffered ICE candidates for '+pid);
+  list.forEach(function(cand){
+    try{
+      var rtcCand=new RTCIceCandidate(cand);
+      pc.addIceCandidate(rtcCand).catch(function(err){
+        diagLog('⚠️ Error adding buffered ICE candidate: '+(err&&err.message));
+      });
+    }catch(e){
+      diagLog('⚠️ Failed creating RTCIceCandidate from buffered candidate: '+(e&&e.message));
+    }
+  });
+}
+function clearIceCandidateBuffer(pid){
+  if(pid){delete iceCandidateBuffer[pid];}
+  else{iceCandidateBuffer={};}
+}
 /* FIX (rapid accept/decline race): acceptCall() is async and only clears `incomingCall`
    after its first await resolves (getUserMedia/takePreWarmedStream) — a second tap of
    Accept (double-tap, or a HUN "Accept" tap racing a native-action replay) landing before
@@ -3426,6 +3459,28 @@ function handleData(from,data,conn){
       var d2=document.createElement('div');d2.className='msg-row them';
       var b2=document.createElement('div');b2.className='msg-bubble';b2.textContent=data.text;
       d2.appendChild(b2);ms.appendChild(d2);ms.scrollTop=ms.scrollHeight;
+      break;
+    case 'screen-share-state':
+      diagLog('🖥️ Received screen-share-state from '+from+': '+(data.active?'active':'inactive'));
+      handleRemoteScreenShareState(from, !!data.active);
+      break;
+    case 'ice-candidate':
+      var cand=data.candidate;
+      if(cand){
+        var activePc=(currentCall&&currentCall.peerConnection)||((incomingCall&&incomingCall.peerConnection)||(incomingCall&&incomingCall.mc&&incomingCall.mc.peerConnection));
+        var isAnswered=!!(currentCall&&currentCall.peerConnection&&(currentCall.open||(currentCall.peerConnection.remoteDescription&&currentCall.peerConnection.remoteDescription.type==='answer')||(currentCall.peerConnection.signalingState==='stable')));
+        if(activePc&&isAnswered){
+          try{
+            activePc.addIceCandidate(new RTCIceCandidate(cand)).catch(function(err){
+              diagLog('⚠️ Direct addIceCandidate error from '+from+': '+(err&&err.message));
+            });
+          }catch(e){
+            queueIceCandidate(from,cand);
+          }
+        }else{
+          queueIceCandidate(from,cand);
+        }
+      }
       break;
     case 'call-end':
       /* FIX 7: Explicit hangup signal sent over the data channel when the connected call
@@ -4544,13 +4599,39 @@ var STATUS_TTL_MS=24*60*60*1000;
 var myStatuses=ls_get(SK.MYSTATUS,[]); // [{id,type:'text'|'image',text,bg,dataUrl,time,expiresAt}]
 var peerStatuses=ls_get(SK.PEERSTATUS,{}); // pid -> [status,...] (same shape + viewed:bool)
 var FILE_BUFFER_HIGH=64*1024; /* 64 KB threshold for ultra-smooth SCTP flow without buffer overflows */
-async function waitForBufferDrain(conn){
+function waitForBufferDrain(conn){
   var dc=conn&&(conn.dataChannel||conn._dc);
-  if(!dc)return;
-  var waited=0;
-  while(dc.bufferedAmount>FILE_BUFFER_HIGH&&waited<25000){
-    await new Promise(function(r){setTimeout(r,15);});waited+=15;
-  }
+  if(!dc)return Promise.resolve();
+  if(dc.bufferedAmount<=FILE_BUFFER_HIGH)return Promise.resolve();
+  return new Promise(function(resolve){
+    var done=false;
+    var timer=setTimeout(function(){
+      if(!done){
+        done=true;
+        try{if(dc.onbufferedamountlow===onLow)dc.onbufferedamountlow=null;}catch(e){}
+        resolve();
+      }
+    },15000);
+    function onLow(){
+      if(!done){
+        done=true;
+        clearTimeout(timer);
+        try{dc.onbufferedamountlow=null;}catch(e){}
+        resolve();
+      }
+    }
+    try{
+      dc.bufferedAmountLowThreshold=FILE_BUFFER_HIGH;
+      dc.onbufferedamountlow=onLow;
+    }catch(e){
+      var pollInterval=setInterval(function(){
+        if(dc.bufferedAmount<=FILE_BUFFER_HIGH||done){
+          clearInterval(pollInterval);
+          onLow();
+        }
+      },20);
+    }
+  });
 }
 async function sendFile(file,caption){
   if(!file)return;
@@ -5751,6 +5832,19 @@ function setupMediaConnectionEvents(mc,pid,voiceOnly,isCaller){
           onStream(rs);
         });
       }catch(e){}
+      try{
+        pc.addEventListener('icecandidate',function(evt){
+          if(evt&&evt.candidate){
+            var candJson=evt.candidate.toJSON?evt.candidate.toJSON():evt.candidate;
+            var targetPid=pid||(mc&&mc.peer);
+            var sigConn=(callConn&&callConn.open)?callConn:findOpenConnTo(targetPid);
+            if(sigConn&&sigConn.open){
+              try{sigConn.send({type:'ice-candidate',candidate:candJson});}catch(e){}
+            }
+          }
+        });
+      }catch(e){}
+      flushIceCandidateBuffer(pid||(mc&&mc.peer),pc);
       monitorCallConnection(mc);
       return;
     }
@@ -5763,6 +5857,7 @@ function setupMediaConnectionEvents(mc,pid,voiceOnly,isCaller){
   })();
   mc.on('close',function(){
     diagLog('ℹ️ '+(isCaller?'placeCallAttempt':'acceptCall')+': MediaConnection closed');
+    clearIceCandidateBuffer(pid||(mc&&mc.peer));
     endCall();
   });
   mc.on('error',function(err){
@@ -6110,6 +6205,9 @@ async function acceptCall(){
   try{
   document.getElementById('incoming-overlay').classList.remove('show');
   hideHUN();stopRing();
+  try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.VahinPermissions){
+    window.Capacitor.Plugins.VahinPermissions.dismissCallNotification({from:(incomingCall&&(incomingCall.peer||(incomingCall.mc&&incomingCall.mc.peer)))||''});
+  }}catch(e){}
   if(!incomingCall)return;
   if(incomingCall.isConf){
     try{
@@ -6201,6 +6299,7 @@ function declineCall(){
       }
     }
     try{incomingCall.close();}catch(e){}
+    clearIceCandidateBuffer(incomingCall.peer);
     /* FIX: same native dismiss as the call-cancel handler — covers the case where a
        native notification for this call is also showing and only this in-app button
        gets tapped. */
@@ -6208,6 +6307,7 @@ function declineCall(){
       window.Capacitor.Plugins.VahinPermissions.dismissCallNotification({from:incomingCall.peer});
     }}catch(e){}
   }
+  if(incomingCall&&incomingCall.peerId)clearIceCandidateBuffer(incomingCall.peerId);
   incomingCall=null;showScreen('screen-chats','back');
   callActionInFlight=false;
 }
@@ -6246,6 +6346,8 @@ function endCall(){
   }
   try{if(currentCall){currentCall._userInitiatedClose=true;currentCall.close();}}catch(e){}
   try{if(callConn)callConn.close();}catch(e){}
+  if(callPeerId)clearIceCandidateBuffer(callPeerId);
+  if(currentCall&&currentCall.peer)clearIceCandidateBuffer(currentCall.peer);
   currentCall=null;callConn=null;weAreCaller=false;outCallConnected=false;
   stopScreenSharing(false);
   if(localStream){localStream.getTracks().forEach(function(t){try{t.stop();}catch(e){}});localStream=null;}
@@ -6508,7 +6610,7 @@ var screenStream=null,isScreenSharing=false;
    which then flows into the exact same replaceTrack() logic already used
    below — from WebRTC's point of view this is indistinguishable from a real
    getDisplayMedia() track. */
-var _screenCanvas=null,_screenCanvasCtx=null,_screenCanvasImg=null,_screenFrameListener=null,_screenEndListener=null;
+var _screenCanvas=null,_screenCanvasCtx=null,_screenFrameListener=null,_screenEndListener=null;
 function nativeScreenShareAvailable(){
   return !!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()
     &&Capacitor.Plugins&&Capacitor.Plugins.VahinScreenShare);
@@ -6518,24 +6620,58 @@ function startNativeScreenCapture(){
     var plugin=Capacitor.Plugins.VahinScreenShare;
     _screenCanvas=document.createElement('canvas');
     _screenCanvasCtx=_screenCanvas.getContext('2d');
-    _screenCanvasImg=new Image();
     var gotFirstFrame=false;
-    _screenFrameListener=plugin.addListener('frame',function(data){
-      if(!data||!data.jpeg)return;
-      if(_screenCanvas.width!==data.width||_screenCanvas.height!==data.height){
-        _screenCanvas.width=data.width;_screenCanvas.height=data.height;
-      }
-      _screenCanvasImg.onload=function(){
-        try{_screenCanvasCtx.drawImage(_screenCanvasImg,0,0,data.width,data.height);}catch(e){}
+    var drawPending=false;
+    var latestData=null;
+
+    async function processNextFrame(){
+      if(!latestData||drawPending)return;
+      drawPending=true;
+      var data=latestData;
+      latestData=null;
+      try{
+        if(_screenCanvas.width!==data.width||_screenCanvas.height!==data.height){
+          _screenCanvas.width=data.width;_screenCanvas.height=data.height;
+        }
+        if(typeof createImageBitmap==='function'){
+          var binary=atob(data.jpeg);
+          var len=binary.length;
+          var bytes=new Uint8Array(len);
+          for(var i=0;i<len;i++)bytes[i]=binary.charCodeAt(i);
+          var blob=new Blob([bytes],{type:'image/jpeg'});
+          var bmp=await createImageBitmap(blob);
+          if(_screenCanvasCtx)_screenCanvasCtx.drawImage(bmp,0,0,data.width,data.height);
+          if(bmp.close)bmp.close();
+        }else{
+          await new Promise(function(res){
+            var img=new Image();
+            img.onload=function(){
+              if(_screenCanvasCtx)try{_screenCanvasCtx.drawImage(img,0,0,data.width,data.height);}catch(e){}
+              res();
+            };
+            img.onerror=res;
+            img.src='data:image/jpeg;base64,'+data.jpeg;
+          });
+        }
         if(!gotFirstFrame){
           gotFirstFrame=true;
           try{
-            var stream=_screenCanvas.captureStream(8);
+            var stream=_screenCanvas.captureStream(12);
             resolve(stream);
           }catch(e){reject(e);}
         }
-      };
-      _screenCanvasImg.src='data:image/jpeg;base64,'+data.jpeg;
+      }catch(e){
+        diagLog('Screen frame draw error: '+(e&&e.message));
+      }finally{
+        drawPending=false;
+        if(latestData)processNextFrame();
+      }
+    }
+
+    _screenFrameListener=plugin.addListener('frame',function(data){
+      if(!data||!data.jpeg)return;
+      latestData=data;
+      processNextFrame();
     });
     _screenEndListener=plugin.addListener('captureEnded',function(data){
       diagLog('🖥️ Native screen capture ended: '+(data&&data.reason));
@@ -6546,15 +6682,13 @@ function startNativeScreenCapture(){
         cleanupNativeScreenCapture();
         reject(new Error(res&&res.reason==='permission-denied'?'Permission denied':'Could not start screen sharing'));
       }
-      // else: resolve() happens once the first frame actually arrives, above —
-      // that's the earliest point a real MediaStreamTrack exists to hand back.
     }).catch(function(e){cleanupNativeScreenCapture();reject(e);});
   });
 }
 function cleanupNativeScreenCapture(){
   try{if(_screenFrameListener)_screenFrameListener.remove();}catch(e){}
   try{if(_screenEndListener)_screenEndListener.remove();}catch(e){}
-  _screenFrameListener=null;_screenEndListener=null;_screenCanvas=null;_screenCanvasCtx=null;_screenCanvasImg=null;
+  _screenFrameListener=null;_screenEndListener=null;_screenCanvas=null;_screenCanvasCtx=null;
   if(nativeScreenShareAvailable()){try{Capacitor.Plugins.VahinScreenShare.stop();}catch(e){}}
 }
 async function toggleScreenShare(isConf){
@@ -6583,8 +6717,13 @@ async function toggleScreenShare(isConf){
     if(isConf){
       Object.values(confCalls).forEach(function(mc){
         if(mc&&mc.peerConnection){
-          var s=mc.peerConnection.getSenders().find(function(s){return s.track&&s.track.kind==='video';});
-          if(s&&screenTrack)s.replaceTrack(screenTrack);
+          var senders=mc.peerConnection.getSenders?mc.peerConnection.getSenders():[];
+          var s=senders.find(function(s){return (s.track&&s.track.kind==='video')||s.kind==='video';});
+          if(s&&s.replaceTrack&&screenTrack){
+            s.replaceTrack(screenTrack).catch(function(err){diagLog('⚠️ conf replaceTrack error: '+(err&&err.message));});
+          }else if(screenTrack){
+            try{mc.peerConnection.addTrack(screenTrack,screenStream);}catch(e){}
+          }
         }
       });
       var le=document.getElementById('conf-video-local');
@@ -6594,10 +6733,19 @@ async function toggleScreenShare(isConf){
       var pill=document.getElementById('conf-screenshare-pill');
       if(pill)pill.classList.add('show');
     }else{
+      var sc=document.getElementById('screen-call');
+      if(sc)sc.classList.remove('voice-mode');
       if(currentCall&&currentCall.peerConnection){
-        var s=currentCall.peerConnection.getSenders().find(function(s){return s.track&&s.track.kind==='video';});
-        if(s&&screenTrack)s.replaceTrack(screenTrack);
+        var senders=currentCall.peerConnection.getSenders?currentCall.peerConnection.getSenders():[];
+        var s=senders.find(function(s){return (s.track&&s.track.kind==='video')||s.kind==='video';});
+        if(s&&s.replaceTrack&&screenTrack){
+          s.replaceTrack(screenTrack).catch(function(err){diagLog('⚠️ replaceTrack error: '+(err&&err.message));});
+        }else if(screenTrack){
+          try{currentCall.peerConnection.addTrack(screenTrack,screenStream);}catch(e){}
+        }
       }
+      var sConn=(callConn&&callConn.open)?callConn:findOpenConnTo(callPeerId);
+      if(sConn&&sConn.open){try{sConn.send({type:'screen-share-state',active:true});}catch(e){}}
       var lv=document.getElementById('video-local');
       if(lv){lv.srcObject=screenStream;lv.classList.remove('mirror');}
       var b=document.getElementById('btn-screenshare');
@@ -6626,8 +6774,9 @@ function stopScreenSharing(isConf,showToast){
       var vt=confStream.getVideoTracks()[0];
       Object.values(confCalls).forEach(function(mc){
         if(mc&&mc.peerConnection){
-          var s=mc.peerConnection.getSenders().find(function(s){return s.track&&s.track.kind==='video';});
-          if(s&&vt)s.replaceTrack(vt);
+          var senders=mc.peerConnection.getSenders?mc.peerConnection.getSenders():[];
+          var s=senders.find(function(s){return (s.track&&s.track.kind==='video')||s.kind==='video';});
+          if(s&&s.replaceTrack)s.replaceTrack(vt||null).catch(function(){});
         }
       });
       var le=document.getElementById('conf-video-local');
@@ -6638,14 +6787,25 @@ function stopScreenSharing(isConf,showToast){
     var pill=document.getElementById('conf-screenshare-pill');
     if(pill)pill.classList.remove('show');
   }else{
+    var sConn=(callConn&&callConn.open)?callConn:findOpenConnTo(callPeerId);
+    if(sConn&&sConn.open){try{sConn.send({type:'screen-share-state',active:false});}catch(e){}}
     if(localStream){
       var vt=localStream.getVideoTracks()[0];
       if(currentCall&&currentCall.peerConnection){
-        var s=currentCall.peerConnection.getSenders().find(function(s){return s.track&&s.track.kind==='video';});
-        if(s&&vt)s.replaceTrack(vt);
+        var senders=currentCall.peerConnection.getSenders?currentCall.peerConnection.getSenders():[];
+        var s=senders.find(function(s){return (s.track&&s.track.kind==='video')||s.kind==='video';});
+        if(s&&s.replaceTrack)s.replaceTrack(vt||null).catch(function(){});
       }
       var lv=document.getElementById('video-local');
       if(lv){lv.srcObject=localStream;applyMirror(lv,facingMode);}
+    }else if(currentCall&&currentCall.peerConnection){
+      var senders=currentCall.peerConnection.getSenders?currentCall.peerConnection.getSenders():[];
+      var s=senders.find(function(s){return (s.track&&s.track.kind==='video')||s.kind==='video';});
+      if(s&&s.replaceTrack)s.replaceTrack(null).catch(function(){});
+    }
+    if(callIsVoiceOnly){
+      var sc=document.getElementById('screen-call');
+      if(sc)sc.classList.add('voice-mode');
     }
     var b=document.getElementById('btn-screenshare');
     if(b){b.classList.remove('active');b.style.background='';b.style.color='';b.title='Share Screen';}
@@ -6653,6 +6813,31 @@ function stopScreenSharing(isConf,showToast){
     if(pill)pill.classList.remove('show');
   }
   if(showToast&&wasSharing)toast('Screen sharing stopped');
+}
+
+function handleRemoteScreenShareState(from, active){
+  var rv=document.getElementById('video-remote');
+  var sc=document.getElementById('screen-call');
+  var pill=document.getElementById('call-screenshare-remote-pill');
+  if(active){
+    if(sc)sc.classList.remove('voice-mode');
+    if(rv){
+      rv.style.display='block';
+      rv.style.objectFit='contain';
+      try{rv.play().catch(function(){});}catch(e){}
+    }
+    if(pill)pill.classList.add('show');
+    toast(from+' started sharing screen 🖥️');
+  }else{
+    if(rv){
+      rv.style.objectFit='cover';
+    }
+    if(callIsVoiceOnly&&sc){
+      sc.classList.add('voice-mode');
+    }
+    if(pill)pill.classList.remove('show');
+    toast(from+' stopped sharing screen');
+  }
 }
 
 /* ── Call UI Tap Toggle (Unobstructed View) ──
@@ -7406,6 +7591,12 @@ function handleNativeCallAction(action,from,groupId){
      left covering the call/chats screen. */
   try{if(document.getElementById('screen-permsetup').classList.contains('active'))closePermSetup(false);}catch(e){}
   diagLog('📲 Native action received: '+action+' (from='+from+')');
+  if(action==='accept'||action==='decline'||action==='missed'||action==='end'){
+    stopRing();hideHUN();
+    try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.VahinPermissions){
+      window.Capacitor.Plugins.VahinPermissions.dismissCallNotification({from:from||''});
+    }}catch(e){}
+  }
   if(action==='message'){if(from&&myId)openDMChat(from);return;}
   if(action==='group'||action==='group-invite'||action==='group-msg'){
     if(myId){
