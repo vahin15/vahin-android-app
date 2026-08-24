@@ -422,7 +422,8 @@ button,input,textarea{font-family:inherit;}
 #video-local{position:absolute;bottom:calc(96px + var(--safe-bottom));right:16px;width:96px;height:144px;object-fit:cover;border-radius:18px;
   border:2px solid rgba(255,255,255,.5);background:#12151B;z-index:15;box-shadow:0 12px 36px rgba(0,0,0,.75);transition:transform .2s ease,right .2s ease,bottom .2s ease;cursor:pointer;}
 #video-local.mirror{transform:scaleX(-1);}
-#screen-call.voice-mode #video-remote,#screen-call.voice-mode #video-local{display:none;}
+#screen-call.voice-mode #video-remote{position:absolute;width:1px;height:1px;opacity:0.001;pointer-events:none;}
+#screen-call.voice-mode #video-local{display:none;}
 #voice-call-avatar{display:none;position:absolute;inset:0;z-index:2;flex-direction:column;align-items:center;justify-content:center;gap:20px;
   background:radial-gradient(ellipse at 50% 30%,rgba(79,70,229,.18),transparent 55%),radial-gradient(ellipse at 50% 65%,rgba(124,58,237,.15),transparent 65%),linear-gradient(180deg,#090B10 0%,#040508 100%);}
 #screen-call.voice-mode #voice-call-avatar{display:flex;}
@@ -5694,12 +5695,27 @@ function startQual(){
 }
 function stopQual(){clearInterval(callQualTimer);callQualTimer=null;document.getElementById('call-quality').classList.remove('show');}
 async function getStream(facing){
-  var tries=[{video:{facingMode:{exact:facing}},audio:true},{video:{facingMode:facing},audio:true},{video:true,audio:true}];
+  var audioCfg={echoCancellation:true,noiseSuppression:true,autoGainControl:true};
+  var tries=[
+    {video:{facingMode:{exact:facing}},audio:audioCfg},
+    {video:{facingMode:facing},audio:audioCfg},
+    {video:true,audio:audioCfg},
+    {video:{facingMode:{exact:facing}},audio:true},
+    {video:{facingMode:facing},audio:true},
+    {video:true,audio:true}
+  ];
   var lastErr;
   for(var i=0;i<tries.length;i++){try{return await navigator.mediaDevices.getUserMedia(tries[i]);}catch(e){lastErr=e;}}
   throw lastErr||new Error('No camera');
 }
-async function getAudioOnlyStream(){return navigator.mediaDevices.getUserMedia({audio:true,video:false});}
+async function getAudioOnlyStream(){
+  var audioCfg={echoCancellation:true,noiseSuppression:true,autoGainControl:true};
+  try{
+    return await navigator.mediaDevices.getUserMedia({audio:audioCfg,video:false});
+  }catch(e){
+    return await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+  }
+}
 var callIsVoiceOnly=false;
 function setVoiceMode(on,pid){
   var sc=document.getElementById('screen-call');sc.classList.toggle('voice-mode',!!on);
@@ -5974,7 +5990,6 @@ function monitorCallConnection(mc){
     clearTimeout(relayRetryTimer);relayRetryTimer=null;
     clearTimeout(disconnectGiveUpTimer);disconnectGiveUpTimer=null;
     clearTimeout(periodicRetryTimer);periodicRetryTimer=null;
-    clearTimeout(checkingFallbackTimer);checkingFallbackTimer=null;
   }
   function statusText(){return iceEverConnected?'Reconnecting…':'Connecting…';}
   function forceRelayRestart(){
@@ -5982,7 +5997,6 @@ function monitorCallConnection(mc){
       var cfg=(typeof pc.getConfiguration==='function')?pc.getConfiguration():{};
       cfg.iceTransportPolicy='relay';
       pc.setConfiguration(cfg);
-      if(typeof pc.restartIce==='function')pc.restartIce();
       var statusEl=document.getElementById('call-status');
       if(statusEl)statusEl.textContent=iceEverConnected?'Reconnecting (Relay)…':'Connecting (Relay)…';
     }catch(e){}
@@ -5994,26 +6008,11 @@ function monitorCallConnection(mc){
       if(st!=='disconnected'&&st!=='failed')return;
       var elapsed=Date.now()-recoveryStartedAt;
       if(elapsed>=RECOVERY_BUDGET_MS)return;
-      diagLog('🔄 still reconnecting at '+Math.round(elapsed/1000)+'s — retrying ('+(useRelay?'forced relay':'restartIce')+')');
-      if(useRelay){forceRelayRestart();}else{try{pc.restartIce();}catch(e){forceRelayRestart();}}
+      diagLog('🔄 still reconnecting at '+Math.round(elapsed/1000)+'s — retrying relay path');
+      forceRelayRestart();
       schedulePeriodicRetry(!useRelay);
     },RETRY_INTERVAL_MS);
   }
-
-  // Only run fallback checking recovery after the call has been answered (not while waiting for ringing)
-  checkingFallbackTimer=setTimeout(function(){
-    if(iceEverConnected)return;
-    if(!outCallConnected)return; // still ringing — do not restart ICE while waiting for answer
-    var st0=pc.iceConnectionState;
-    if(st0!=='checking'&&st0!=='new'&&st0!=='disconnected')return;
-    diagLog('⚡ ICE check taking long after answer — attempting relay configuration');
-    recoverySuppressingClose=true;
-    if(!recoveryStartedAt)recoveryStartedAt=Date.now();
-    forceRelayRestart();
-    forcedRelayAttempted=true;
-    schedulePeriodicRetry(false);
-    armGiveUpCheck();
-  },15000);
 
   try{
     pc.addEventListener('icecandidate',function(e){
@@ -6071,21 +6070,13 @@ function monitorCallConnection(mc){
       if(statusEl)statusEl.textContent=statusText();
       if(!recoveryStartedAt)recoveryStartedAt=Date.now();
       clearRecoveryTimers();
-      disconnectRetryTimer=setTimeout(function(){
-        if(pc.iceConnectionState!=='disconnected')return;
-        if(!reconnectAttempted&&typeof pc.restartIce==='function'){
-          reconnectAttempted=true;
-          diagLog('🔄 disconnected at 2.5s — fast restartIce()');
-          try{pc.restartIce();}catch(e){diagLog('⚠️ restartIce() threw: '+(e&&e.message?e.message:e));}
-        }
-      },2500);
       relayRetryTimer=setTimeout(function(){
         if((pc.iceConnectionState==='disconnected'||pc.iceConnectionState==='failed')&&!forcedRelayAttempted){
           forcedRelayAttempted=true;
-          diagLog('🔄 still disconnected at 6s — forcing TURN relay');
+          diagLog('🔄 still disconnected at 5s — switching to TURN relay');
           forceRelayRestart();
         }
-      },6000);
+      },5000);
       schedulePeriodicRetry(true);
       armGiveUpCheck();
     }else if(st==='failed'){
@@ -6093,11 +6084,7 @@ function monitorCallConnection(mc){
       if(!recoveryStartedAt)recoveryStartedAt=Date.now();
       clearRecoveryTimers();
       if(statusEl)statusEl.textContent=statusText();
-      if(!reconnectAttempted&&typeof pc.restartIce==='function'){
-        reconnectAttempted=true;
-        diagLog('🔄 ICE failed — fast restartIce()');
-        try{pc.restartIce();}catch(e){diagLog('⚠️ restartIce() threw: '+(e&&e.message?e.message:e));forceRelayRestart();}
-      }else if(!forcedRelayAttempted){
+      if(!forcedRelayAttempted){
         forcedRelayAttempted=true;
         diagLog('🔄 ICE failed — forcing TURN relay immediately');
         forceRelayRestart();
@@ -6121,6 +6108,9 @@ function monitorCallConnection(mc){
 }
 function placeCallAttempt(pid,voiceOnly){
   if(!localStream)return;
+  if(currentCall&&currentCall.peerConnection){
+    try{currentCall._userInitiatedClose=true;currentCall.close();}catch(e){}
+  }
   try{
     currentCall=peer.call(pid,localStream,{metadata:{facing:facingMode,voiceOnly:!!voiceOnly}});
     if(!currentCall){toast('Could not initiate call');endCall();return;}
@@ -6543,9 +6533,17 @@ function inviteToConf(){
 }
 function addConfSlot(pid,stream){
   var existing=document.getElementById('cslot_'+pid);
-  if(existing){var v=existing.querySelector('video');if(v)v.srcObject=stream;return;}
+  if(existing){
+    var vExisting=existing.querySelector('video');
+    if(vExisting){
+      vExisting.srcObject=stream;
+      try{vExisting.play().catch(function(){});}catch(e){}
+    }
+    return;
+  }
   var slot=document.createElement('div');slot.className='conf-slot';slot.id='cslot_'+pid;
   var v=document.createElement('video');v.autoplay=true;v.playsInline=true;v.setAttribute('webkit-playsinline','');v.srcObject=stream;
+  try{v.play().catch(function(){});}catch(e){}
   var lbl=document.createElement('div');lbl.className='slot-label';lbl.textContent=pid;
   slot.appendChild(v);slot.appendChild(lbl);document.getElementById('conf-grid').appendChild(slot);
   updateConfGrid();
@@ -9141,7 +9139,7 @@ function ensureDMMessageSaved(fromId, text, ts, msgType){
 /* ── 2. Synthesized Contact Alert Sounds ─────────────────────────────── */
 var TONE_PRESETS = {
   classic: { name: 'Unifest Classic', icon: '🎵', desc: 'Crisp dual-tone chime' },
-  crystal: { name: 'Crystal Chime', icon: '💎', desc: 'Bright bell resonance' },
+  crystal: { name: 'Crystal Chime', icon: '������', desc: 'Bright bell resonance' },
   marimba: { name: 'Marimba Drop', icon: '🪵', desc: 'Warm acoustic marimba melody' },
   cyber: { name: 'Cyber Surge', icon: '⚡', desc: 'Futuristic electronic chirp' },
   bell: { name: 'Zen Bell', icon: '🔔', desc: 'Deep soothing temple chime' },
