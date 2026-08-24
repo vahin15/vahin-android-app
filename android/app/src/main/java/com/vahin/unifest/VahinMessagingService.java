@@ -122,11 +122,30 @@ public class VahinMessagingService extends FirebaseMessagingService {
 
                 boolean isConf = "conf".equals(type);
 
-                // 1. Immediately post the high-priority full-screen notification (bypasses lock screen)
-                CallNotifier.showIncomingCall(this, type, from);
-                
-                // 2. Hand to Telecom for system-level audio routing and Bluetooth/Auto integration
-                VahinTelecom.addIncomingCall(this, from, isConf);
+                // BUG FIX (ring flicker / double-vibrate / occasional silent ring on the
+                // FCM path specifically): this used to call CallNotifier.showIncomingCall()
+                // directly AND VahinTelecom.addIncomingCall() unconditionally, every time.
+                // But when Telecom accepts the call, it calls back into
+                // VahinConnection.onShowIncomingCallUi() (see VahinConnectionService ->
+                // VahinConnection), which ALSO calls CallNotifier.showIncomingCall() for the
+                // exact same "from". That posted the same notification/full-screen-intent
+                // TWICE in quick succession on every FCM-delivered call — a second
+                // MediaPlayer/ringtone getting created while the first was still starting,
+                // a second full-screen-intent PendingIntent firing right as the first
+                // IncomingCallActivity was still constructing itself. That race is exactly
+                // what "the ring plays for a moment, cuts out, stutters, or the screen
+                // flickers/doesn't come up" looks like from the outside — pure luck of
+                // timing, not a fundamentally broken ring. SignalService.java's WebSocket
+                // ring path already got this right: hand to Telecom FIRST, and only call
+                // CallNotifier directly as the fallback if Telecom refuses. Mirror that
+                // exact pattern here so both delivery paths (WS and FCM) behave identically
+                // and never double-post.
+                boolean handedToTelecom = VahinTelecom.addIncomingCall(this, from, isConf);
+                if (!handedToTelecom) {
+                    Log.w(TAG, "onMessageReceived: VahinTelecom refused call — "
+                        + "falling back to CallNotifier for from=" + from);
+                    CallNotifier.showIncomingCall(this, type, from);
+                }
             } else if ("group-invite".equals(type)) {
                 String groupId = data.get("groupId");
                 String groupName = data.get("groupName");

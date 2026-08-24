@@ -78,7 +78,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter','SF Pro Display','Sego
   background:var(--bg);color:var(--text);position:fixed;width:100%;height:100%;
   -webkit-font-smoothing:antialiased;}
 button,input,textarea{font-family:inherit;}
-.screen{display:none!important;position:absolute;inset:0;flex-direction:column;padding-top:var(--safe-top);transition:transform .24s var(--ease-smooth);will-change:transform;contain:layout style paint;backface-visibility:hidden;
+.screen{display:none!important;position:absolute;inset:0;flex-direction:column;padding-top:var(--safe-top);transition:transform .24s var(--ease-smooth);contain:layout style paint;backface-visibility:hidden;
   background:
     radial-gradient(circle at 12% 8%,rgba(124,58,237,.12),transparent 45%),
     radial-gradient(circle at 92% 14%,rgba(26,115,232,.10),transparent 45%),
@@ -934,6 +934,10 @@ button,input,textarea{font-family:inherit;}
         <div><div class="s-label">🔋 Background running</div><div class="s-sub" id="ps-battery-sub">Checking…</div></div>
         <div id="ps-battery-check" style="font-size:18px;"></div>
       </div>
+      <div class="settings-group" id="ps-dnd-row" style="display:flex;align-items:center;justify-content:space-between;padding:14px;gap:10px;">
+        <div><div class="s-label">🌙 Ring through Do Not Disturb</div><div class="s-sub" id="ps-dnd-sub">Checking…</div></div>
+        <div id="ps-dnd-check" style="font-size:18px;"></div>
+      </div>
       <div id="ps-oem-tip" style="display:none;font-size:12px;color:var(--text3);background:var(--surface2);border-radius:var(--radius-sm);padding:12px;line-height:1.5;"></div>
       <button class="btn-primary" id="ps-enable-all-btn">Enable everything</button>
       <div style="font-size:11px;color:var(--text3);text-align:center;">Android will ask you to confirm each one — that part can't be skipped, but this takes you straight through all of them.</div>
@@ -1108,6 +1112,7 @@ button,input,textarea{font-family:inherit;}
         <div class="settings-row" id="notif-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">🔔</div><div><div class="s-label">Notifications</div><div class="s-sub" id="notif-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="fsi-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">📞</div><div><div class="s-label">Full-screen calls</div><div class="s-sub" id="fsi-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="battery-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">🔋</div><div><div class="s-label">Allow background running</div><div class="s-sub" id="battery-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
+        <div class="settings-row" id="dnd-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(179,38,30,.1);">🌙</div><div><div class="s-label">Ring through Do Not Disturb</div><div class="s-sub" id="dnd-sub-text">Checking…</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="battery-guide-row" style="cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(234,179,8,.12);">💡</div><div><div class="s-label">Phone Brand Setup Guide</div><div class="s-sub">Samsung, Xiaomi, Vivo, Oppo instructions</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="debug-log-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(107,114,128,.1);">🧪</div><div><div class="s-label">Debug log</div><div class="s-sub">View/copy call diagnostics for support</div></div></div><div class="chevron">›</div></div>
       </div>
@@ -1764,47 +1769,13 @@ button,input,textarea{font-family:inherit;}
         <div class="modal-title" style="margin:0;font-size:18px;font-weight:800;display:flex;align-items:center;gap:6px;">
           <span>📡</span> Nearby &amp; Offline Mode
         </div>
-        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Chat &amp; call with zero internet via Bluetooth &amp; Local P2P</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Chat &amp; call with zero internet via Local P2P</div>
       </div>
       <button class="modal-btn-cancel" id="nearby-close-btn" style="padding:6px 12px;border-radius:10px;font-size:13px;border:none;background:var(--surface2);color:var(--text2);cursor:pointer;">✕ Close</button>
     </div>
 
-    <!-- Mode Selector Tabs -->
-    <div style="display:flex;background:var(--surface2);padding:4px;border-radius:12px;gap:4px;border:1px solid var(--border);">
-      <button id="nearby-tab-radar" style="flex:1;padding:9px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;background:var(--surface);color:var(--text);box-shadow:var(--elev1);transition:all .18s ease;">Radar Discovery</button>
-      <button id="nearby-tab-qr" style="flex:1;padding:9px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--text3);transition:all .18s ease;">Zero-Data QR Pair</button>
-    </div>
-
-    <!-- Tab 1: Radar Discovery -->
-    <div id="nearby-view-radar" style="display:flex;flex-direction:column;gap:12px;">
-      <div class="radar-wrap" id="nearby-radar-wrap">
-        <div class="radar-ring r1"></div>
-        <div class="radar-ring r2"></div>
-        <div class="radar-ring r3"></div>
-        <div class="radar-sweep"></div>
-        <div class="radar-center-dot" id="radar-my-dot" title="You"></div>
-        <div id="radar-blips-container"></div>
-      </div>
-
-      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:10px 14px;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:16px;">📶</span>
-          <div>
-            <div style="font-size:13px;font-weight:700;color:var(--text);" id="nearby-scan-status">Scanning nearby airwaves…</div>
-            <div style="font-size:11.5px;color:var(--text3);" id="nearby-scan-sub">Bluetooth LE &amp; Local Subnet Discovery</div>
-          </div>
-        </div>
-        <button class="btn-secondary" id="nearby-rescan-btn" style="padding:6px 12px;font-size:12px;min-height:32px;">Rescan</button>
-      </div>
-
-      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">DISCOVERED NEARBY PHONES</div>
-      <div id="nearby-peers-list" style="display:flex;flex-direction:column;gap:8px;max-height:170px;overflow-y:auto;">
-        <!-- Populated dynamically -->
-      </div>
-    </div>
-
-    <!-- Tab 2: Zero-Data QR Pair -->
-    <div id="nearby-view-qr" style="display:none;flex-direction:column;align-items:center;gap:12px;">
+    <!-- Zero-Data QR Pair -->
+    <div id="nearby-view-qr" style="display:flex;flex-direction:column;align-items:center;gap:12px;">
       <div style="font-size:12.5px;color:var(--text2);text-align:center;line-height:1.5;">
         When completely offline with no cellular network or router, pair directly by having one phone show this QR and the other scan it.
       </div>
@@ -2205,7 +2176,28 @@ var PEER_CONFIG={debug:0,host:'vahin-backend.onrender.com',secure:true,port:443,
      the exact same demo credentials, so they add ICE-gathering delay without adding any
      real reliability.) */
   {urls:'turn:global.relay.metered.ca:80',username:'01c8ee08f66aeb4e626ee16f',credential:'6R16megsMkuyo1D9'},
-  {urls:'turn:global.relay.metered.ca:443',username:'01c8ee08f66aeb4e626ee16f',credential:'6R16megsMkuyo1D9'}
+  {urls:'turn:global.relay.metered.ca:443',username:'01c8ee08f66aeb4e626ee16f',credential:'6R16megsMkuyo1D9'},
+  /* DEEP ROOT CAUSE OF THE INTERMITTENT "RELAY ERROR" — found by tracing exactly what
+     kind of network blocks a TURN relay candidate after everything else (STUN, direct
+     P2P, plain TURN/UDP, plain TURN/TCP) has already been tried and failed. Every entry
+     above is either UDP or plain TCP. Neither of those two survive a network that does
+     protocol inspection on port 443 rather than just port-blocking — many mobile
+     carriers' NAT/firewalls (India included — Jio/Airtel do this on certain plans),
+     corporate networks, hotel/airport WiFi, and campus networks fall into exactly this
+     category: they allow real HTTPS/TLS traffic out on 443 and silently drop everything
+     else on that port, even TCP that LOOKS like it's headed to 443. Plain "turn:" on
+     port 443 is invisible to a port-based firewall but gets caught by one doing deeper
+     inspection. This is documented as the single most common remaining cause of
+     WebRTC "ICE Failed"/relay errors once basic TURN is already in place, and it's
+     exactly the gap here — Metered.ca's own free-tier setup examples always pair the
+     plain :443 entry above with a "turns:" (TURN-over-TLS) entry; this app never had
+     one. Adding it means: on the exact class of network where every candidate above
+     would fail, this is the one real fallback that gets through — because to a
+     firewall doing packet inspection, it's indistinguishable from a normal HTTPS
+     connection. This also directly matters for calling on unfamiliar/international
+     networks (hotel WiFi, foreign carriers, corporate guest networks abroad), which
+     tend to be exactly the restrictive kind this fixes. */
+  {urls:'turns:global.relay.metered.ca:443?transport=tcp',username:'01c8ee08f66aeb4e626ee16f',credential:'6R16megsMkuyo1D9'}
 ],iceCandidatePoolSize:10}};
 var SK={MYID:'uf_myid_v3',CONTACTS:'uf_contacts_v3',DM:'uf_dm_v3',GRPH:'uf_grp_hist_v3',GRPM:'uf_grp_members_v3',GROUPS:'uf_groups_v1',
   CALLS:'uf_calls_v3',SETTINGS:'uf_settings_v3',BLOCKED:'uf_blocked_v3',PINNED:'uf_pinned_v3',ONBOARDED:'uf_onboarded_v1',RINGTONE:'uf_ringtone_v1',TOKEN:'uf_token_v1',
@@ -2447,6 +2439,7 @@ function showScreen(id,dir){
   var exitTo=dir==='back'?'100%':'-30%';
   next.style.transition='none';
   next.style.transform='translateX('+enterFrom+')';
+  next.style.willChange='transform';current.style.willChange='transform';
   next.classList.add('active');
   void next.offsetWidth; /* force reflow so the start position is registered before animating */
   next.style.transition='';
@@ -2458,8 +2451,8 @@ function showScreen(id,dir){
   });
   _screenCleanupFn=function(){
     current.classList.remove('active');
-    current.style.transform='';current.style.transition='';current.style.zIndex='';
-    next.style.zIndex='';
+    current.style.transform='';current.style.transition='';current.style.zIndex='';current.style.willChange='';
+    next.style.zIndex='';next.style.willChange='';
   };
   _screenCleanupTimer=setTimeout(function(){
     _screenCleanupTimer=null;
@@ -5570,6 +5563,26 @@ function setupMediaConnectionEvents(mc,pid,voiceOnly,isCaller){
   });
 }
 
+// Independent, out-of-band liveness check that goes through the SIGNALING BROKER
+// (peer.connect), not the WebRTC media path (pc). This is what lets the call-recovery
+// logic below tell "the media/TURN path is having a bad moment" apart from "the other
+// person is actually gone" — so a stuck ICE state never gets treated as a real hangup
+// while the other person is still reachable. Returns 'online' | 'offline' | 'unknown'
+// via callback — 'unknown' covers cases where WE can't tell (our own broker link is
+// down), which must never be treated as "they left."
+function probeCallPeerLiveness(pid,cb){
+  if(!peerReady||!peer){cb('unknown');return;}
+  try{
+    var probe=peer.connect(pid,{reliable:false,metadata:{type:'call-liveness'}});
+    var settled=false;
+    var t=setTimeout(function(){if(settled)return;settled=true;try{probe.close();}catch(e){}cb('unknown');},4000);
+    probe.on('open',function(){
+      if(settled)return;settled=true;clearTimeout(t);cb('online');
+      setTimeout(function(){try{probe.close();}catch(e){}},400);
+    });
+    probe.on('error',function(){if(settled)return;settled=true;clearTimeout(t);cb('offline');});
+  }catch(e){cb('unknown');}
+}
 function monitorCallConnection(mc){
   if(!mc||!mc.peerConnection)return;
   if(mc._monitorAttached)return; // already watching this call's ICE — avoid double listeners
@@ -5614,9 +5627,44 @@ function monitorCallConnection(mc){
   var reconnectAttempted=false,forcedRelayAttempted=false;
   var disconnectRetryTimer=null,relayRetryTimer=null,disconnectGiveUpTimer=null,periodicRetryTimer=null,checkingFallbackTimer=null;
   var iceEverConnected=false;
-  var RECOVERY_BUDGET_MS=180000;   // 3 minutes
+  var RECOVERY_BUDGET_MS=180000;   // 3 minutes — a CHECK-IN window, not a hangup deadline (see armGiveUpCheck)
   var RETRY_INTERVAL_MS=8000;     // active retries every 8s
   var recoveryStartedAt=0;
+  var giveUpToastShown=false;
+  // REQUIREMENT: never end a call while both people are actually online — a stuck
+  // media/TURN path is not the same thing as the other person leaving. Instead of a
+  // blind "give up after N minutes" timeout, this fires every RECOVERY_BUDGET_MS and
+  // asks the SIGNALING BROKER (independent of the stuck media path) whether the other
+  // person is still reachable at all. Only a confirmed 'offline' answer ends the call.
+  // 'online' or 'unknown' (we couldn't tell) both mean "keep trying" — extend the
+  // window and check again later, indefinitely, for as long as the peer is reachable.
+  function armGiveUpCheck(){
+    clearTimeout(disconnectGiveUpTimer);
+    var waitMs=Math.max(1000,RECOVERY_BUDGET_MS-(Date.now()-recoveryStartedAt));
+    disconnectGiveUpTimer=setTimeout(function(){
+      var st=pc.iceConnectionState;
+      if(st!=='disconnected'&&st!=='failed'&&st!=='checking'&&st!=='new')return; // recovered on its own
+      diagLog('⏳ Recovery check-in ('+Math.round(RECOVERY_BUDGET_MS/1000)+'s window) — verifying '+mc.peer+' is still reachable before considering ending the call');
+      probeCallPeerLiveness(mc.peer,function(status){
+        var stNow=pc.iceConnectionState;
+        if(stNow==='connected'||stNow==='completed')return; // recovered while we were probing
+        if(status==='offline'){
+          diagLog('❌ '+mc.peer+' confirmed unreachable via broker (not just a stuck media path) — ending call');
+          recoverySuppressingClose=false;
+          toast('Call ended — the other person appears to have gone offline');
+          endCall();
+          return;
+        }
+        diagLog('🛡️ '+mc.peer+' is '+status+' — refusing to drop a call while the other side is reachable; extending recovery');
+        if(!giveUpToastShown){giveUpToastShown=true;toast('Still reconnecting — staying on the line');}
+        recoveryStartedAt=Date.now();
+        if(!forcedRelayAttempted){forcedRelayAttempted=true;}
+        forceRelayRestart();
+        schedulePeriodicRetry(true);
+        armGiveUpCheck();
+      });
+    },waitMs);
+  }
   function clearRecoveryTimers(){
     clearTimeout(disconnectRetryTimer);disconnectRetryTimer=null;
     clearTimeout(relayRetryTimer);relayRetryTimer=null;
@@ -5667,15 +5715,7 @@ function monitorCallConnection(mc){
     forceRelayRestart();
     forcedRelayAttempted=true;
     schedulePeriodicRetry(false);
-    disconnectGiveUpTimer=setTimeout(function(){
-      if(iceEverConnected)return;
-      var stNow=pc.iceConnectionState;
-      if(stNow==='checking'||stNow==='new'||stNow==='disconnected'||stNow==='failed'){
-        diagLog('❌ still stuck ('+stNow+') after '+Math.round(RECOVERY_BUDGET_MS/1000)+'s — ending call');
-        recoverySuppressingClose=false;
-        toast('Call connection lost');endCall();
-      }
-    },RECOVERY_BUDGET_MS-(Date.now()-recoveryStartedAt));
+    armGiveUpCheck();
   },3500);
 
   try{
@@ -5703,8 +5743,24 @@ function monitorCallConnection(mc){
   }
   function handleConnectionSuccess(){
     iceEverConnected=true;recoveryStartedAt=0;
-    reconnectAttempted=false;forcedRelayAttempted=false;clearRecoveryTimers();
+    reconnectAttempted=false;forcedRelayAttempted=false;giveUpToastShown=false;clearRecoveryTimers();
     recoverySuppressingClose=false;
+    // FIX (silent TURN-quota drain): forceRelayRestart() sets iceTransportPolicy='relay'
+    // to force a stuck call through TURN. It never got reverted, so ONE bad network
+    // moment early in a call permanently pinned that call's RTCPeerConnection to
+    // TURN-only — even after a faster/free direct path became available again — quietly
+    // burning through the free-tier TURN quotas (1000GB/mo ExpressTURN, 20GB/mo
+    // Metered.ca) for no reason on every call it had ever touched. The instant we get a
+    // real, confirmed connection, release the relay-only restriction so ICE is free to
+    // use a direct/STUN path again on any future renegotiation.
+    try{
+      var cfgNow=(typeof pc.getConfiguration==='function')?pc.getConfiguration():null;
+      if(cfgNow&&cfgNow.iceTransportPolicy==='relay'){
+        cfgNow.iceTransportPolicy='all';
+        pc.setConfiguration(cfgNow);
+        diagLog('🔓 Connection confirmed — released relay-only restriction back to "all"');
+      }
+    }catch(e){}
     stopOutTone();markOutCallConnected();
     var statusEl=document.getElementById('call-status');
     if(statusEl)statusEl.textContent='Connected ✓';
@@ -5738,13 +5794,7 @@ function monitorCallConnection(mc){
         }
       },4000);
       schedulePeriodicRetry(true);
-      disconnectGiveUpTimer=setTimeout(function(){
-        if(pc.iceConnectionState==='disconnected'||pc.iceConnectionState==='failed'){
-          diagLog('❌ still disconnected after '+Math.round(RECOVERY_BUDGET_MS/1000)+'s — ending call');
-          recoverySuppressingClose=false;
-          toast('Call connection lost');endCall();
-        }
-      },RECOVERY_BUDGET_MS-(Date.now()-recoveryStartedAt));
+      armGiveUpCheck();
     }else if(st==='failed'){
       recoverySuppressingClose=true;
       if(!recoveryStartedAt)recoveryStartedAt=Date.now();
@@ -5760,13 +5810,7 @@ function monitorCallConnection(mc){
         forceRelayRestart();
       }
       schedulePeriodicRetry(!forcedRelayAttempted);
-      disconnectGiveUpTimer=setTimeout(function(){
-        if(pc.iceConnectionState==='failed'||pc.iceConnectionState==='disconnected'){
-          diagLog('❌ still failed after '+Math.round(RECOVERY_BUDGET_MS/1000)+'s — ending call');
-          recoverySuppressingClose=false;
-          toast('Call connection lost');endCall();
-        }
-      },RECOVERY_BUDGET_MS-(Date.now()-recoveryStartedAt));
+      armGiveUpCheck();
     }
   });
   if(typeof pc.connectionState!=='undefined'){
@@ -6832,12 +6876,13 @@ async function maybeShowPermSetup(){
     // native call ever failed even once — that's the most likely explanation for "it
     // stopped asking me." Now: if we genuinely can't check, still show the screen
     // rather than assume everything's fine.
-    status={notificationsApplicable:true,notificationsGranted:false,fullScreenIntentApplicable:true,fullScreenIntentGranted:false,batteryExemptionGranted:false,manufacturer:''};
+    status={notificationsApplicable:true,notificationsGranted:false,fullScreenIntentApplicable:true,fullScreenIntentGranted:false,batteryExemptionGranted:false,dndAccessGranted:false,manufacturer:''};
   }
   var needsNotif=status.notificationsApplicable&&!status.notificationsGranted;
   var needsFsi=status.fullScreenIntentApplicable&&!status.fullScreenIntentGranted;
   var needsBattery=!status.batteryExemptionGranted;
-  if(!needsNotif&&!needsFsi&&!needsBattery){
+  var needsDnd=!status.dndAccessGranted;
+  if(!needsNotif&&!needsFsi&&!needsBattery&&!needsDnd){
     if(document.getElementById('screen-permsetup').classList.contains('active'))closePermSetup(false);
     ls_set(SK.PERMSETUP_SEEN,true); // everything already granted — count as "seen", never show again
     return;
@@ -6853,6 +6898,10 @@ async function maybeShowPermSetup(){
 
   document.getElementById('ps-battery-sub').textContent=status.batteryExemptionGranted?'Allowed':'Needed so Android doesn\u2019t close Unifest in background';
   document.getElementById('ps-battery-check').textContent=status.batteryExemptionGranted?'✅':'⭕';
+
+  document.getElementById('ps-dnd-sub').textContent=status.dndAccessGranted?'Allowed':'Needed so calls still ring during Do Not Disturb/sleep mode';
+  document.getElementById('ps-dnd-check').textContent=status.dndAccessGranted?'✅':'⭕';
+
 
   var tip=oemTipText(status.manufacturer);
   var tipEl=document.getElementById('ps-oem-tip');
@@ -6887,7 +6936,10 @@ async function enableAllPermissions(){
     try{await Capacitor.Plugins.VahinPermissions.openBatterySettings();return;}catch(e){}
   }
   if(status&&status.fullScreenIntentApplicable&&!status.fullScreenIntentGranted){
-    try{await Capacitor.Plugins.VahinPermissions.openFullScreenIntentSettings();}catch(e){}
+    try{await Capacitor.Plugins.VahinPermissions.openFullScreenIntentSettings();return;}catch(e){}
+  }
+  if(!status||!status.dndAccessGranted){
+    try{await Capacitor.Plugins.VahinPermissions.openDndAccessSettings();return;}catch(e){}
   }
 }
 async function continuePermChain(){
@@ -6896,6 +6948,9 @@ async function continuePermChain(){
   try{status=await Capacitor.Plugins.VahinPermissions.getStatus();}catch(e){status=null;}
   if(status&&status.fullScreenIntentApplicable&&!status.fullScreenIntentGranted){
     try{await Capacitor.Plugins.VahinPermissions.openFullScreenIntentSettings();return;}catch(e){}
+  }
+  if(!status||!status.dndAccessGranted){
+    try{await Capacitor.Plugins.VahinPermissions.openDndAccessSettings();return;}catch(e){}
   }
   maybeShowPermSetup();
 }
@@ -6940,6 +6995,12 @@ async function refreshReliabilityUI(){
       }else{
         batSub.textContent='Off — app may be killed in background';
       }
+    }
+    var dndSub=document.getElementById('dnd-sub-text');
+    if(dndSub){
+      dndSub.textContent=status.dndAccessGranted
+        ?'Allowed ✓'
+        :'Off — calls stay silent during Do Not Disturb/sleep schedules';
     }
   }catch(e){
     // Plugin exists but the call failed for some reason; leave the "Checking…" text
@@ -7306,7 +7367,7 @@ function switchTab(tab){
     clearTimeout(tabAnimTimer);
     if(tabAnimEl){
       tabAnimEl.classList.remove('active');
-      tabAnimEl.style.transform='';tabAnimEl.style.transition='';tabAnimEl.style.zIndex='';
+      tabAnimEl.style.transform='';tabAnimEl.style.transition='';tabAnimEl.style.zIndex='';tabAnimEl.style.willChange='';
     }
     tabAnimTimer=null;tabAnimEl=null;
   }
@@ -7337,6 +7398,7 @@ function switchTab(tab){
   var exitTo=dir==='back'?'100%':'-30%';
   target.style.transition='none';
   target.style.transform='translateX('+enterFrom+')';
+  target.style.willChange='transform';prevEl.style.willChange='transform';
   target.classList.add('active');
   void target.offsetWidth;
   target.style.transition='';
@@ -7348,8 +7410,8 @@ function switchTab(tab){
   tabAnimEl=prevEl;
   tabAnimTimer=setTimeout(function(){
     prevEl.classList.remove('active');
-    prevEl.style.transform='';prevEl.style.transition='';prevEl.style.zIndex='';
-    target.style.zIndex='';
+    prevEl.style.transform='';prevEl.style.transition='';prevEl.style.zIndex='';prevEl.style.willChange='';
+    target.style.zIndex='';target.style.willChange='';
     tabAnimTimer=null;tabAnimEl=null;
   },260);
 }
@@ -7401,9 +7463,10 @@ function setupTabSwipe(){
       // Cancel any bottom-nav-tap animation that might still be mid-flight so
       // it doesn't fight with the drag we're about to start.
       if(tabAnimTimer){clearTimeout(tabAnimTimer);tabAnimTimer=null;
-        if(tabAnimEl){tabAnimEl.classList.remove('active');tabAnimEl.style.transform='';tabAnimEl.style.transition='';tabAnimEl.style.zIndex='';tabAnimEl=null;}}
+        if(tabAnimEl){tabAnimEl.classList.remove('active');tabAnimEl.style.transform='';tabAnimEl.style.transition='';tabAnimEl.style.zIndex='';tabAnimEl.style.willChange='';tabAnimEl=null;}}
       dragCurEl.style.transition='none';
       dragNeighborEl.style.transition='none';
+      dragCurEl.style.willChange='transform';dragNeighborEl.style.willChange='transform';
       dragCurEl.style.zIndex='5';dragNeighborEl.style.zIndex='6';
       dragNeighborEl.style.transform='translateX('+(dragDir==='fwd'?'100%':'-100%')+')';
       dragNeighborEl.classList.add('active');
@@ -7428,8 +7491,8 @@ function setupTabSwipe(){
       var newTab=TAB_ORDER[dir==='fwd'?idx+1:idx-1];
       setTimeout(function(){
         curEl.classList.remove('active');
-        curEl.style.transform='';curEl.style.transition='';curEl.style.zIndex='';
-        nextEl.style.transform='';nextEl.style.transition='';nextEl.style.zIndex='';
+        curEl.style.transform='';curEl.style.transition='';curEl.style.zIndex='';curEl.style.willChange='';
+        nextEl.style.transform='';nextEl.style.transition='';nextEl.style.zIndex='';nextEl.style.willChange='';
         currentTab=newTab;
         var btns=document.querySelectorAll('.tab-btn');
         for(var i=0;i<btns.length;i++){btns[i].classList.toggle('active',btns[i].dataset.tab===newTab);}
@@ -7441,8 +7504,8 @@ function setupTabSwipe(){
       nextEl.style.transform='translateX('+(dir==='fwd'?'100%':'-100%')+')';
       setTimeout(function(){
         nextEl.classList.remove('active');
-        curEl.style.transform='';curEl.style.transition='';curEl.style.zIndex='';
-        nextEl.style.transform='';nextEl.style.transition='';nextEl.style.zIndex='';
+        curEl.style.transform='';curEl.style.transition='';curEl.style.zIndex='';curEl.style.willChange='';
+        nextEl.style.transform='';nextEl.style.transition='';nextEl.style.zIndex='';nextEl.style.willChange='';
       },220);
     }
     dragCurEl=null;dragNeighborEl=null;dragDir=null;
@@ -8358,6 +8421,9 @@ function bindEvents(){
   addClick('battery-row',async function(){
     if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openBatterySettings();
   });
+  addClick('dnd-row',async function(){
+    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openDndAccessSettings();
+  });
   addClick('debug-log-row',async function(){
     var ta=document.getElementById('debug-log-text');
     if(ta)ta.value='Loading…';
@@ -8399,7 +8465,8 @@ function bindEvents(){
     var stillMissing=status&&(
       (status.notificationsApplicable&&!status.notificationsGranted)||
       (status.fullScreenIntentApplicable&&!status.fullScreenIntentGranted)||
-      !status.batteryExemptionGranted
+      !status.batteryExemptionGranted||
+      !status.dndAccessGranted
     );
     closePermSetup(!!stillMissing);
   });
@@ -8409,7 +8476,8 @@ function bindEvents(){
     var stillMissing=status&&(
       (status.notificationsApplicable&&!status.notificationsGranted)||
       (status.fullScreenIntentApplicable&&!status.fullScreenIntentGranted)||
-      !status.batteryExemptionGranted
+      !status.batteryExemptionGranted||
+      !status.dndAccessGranted
     );
     closePermSetup(!!stillMissing);
   });
@@ -8848,185 +8916,45 @@ function saveContactSound(){
   toast('Custom tone saved for @' + activeSoundPickerPeer + ' 🔔');
 }
 
-/* ── 3. Offline / Nearby Mode (Zero-Internet P2P & Bluetooth) ────────── */
-var nearbyPeersFound = [];
-var nearbyScanning = false;
-var nearbyScanTimer = null;
-
+/* ── 3. Offline / Nearby Mode — Zero-Data QR Pairing ───────────────────
+   REMOVED (per explicit request): the old "Radar Discovery" tab simulated
+   Bluetooth/local-network peer discovery — fabricated signal strength,
+   distance, and angle values, no real BLE scan ever ran. Tapping a
+   "discovered" device didn't connect over Bluetooth at all; it silently
+   opened a normal internet chat with a real contact and just claimed it
+   happened over Bluetooth. Building this for real needs a new native BLE
+   scan+advertise Android plugin (new runtime permissions, OEM-inconsistent
+   behavior) plus a Wi-Fi Direct handoff for the actual voice/media path —
+   BLE itself has nowhere near enough bandwidth for a call. That's real
+   native work that can't be authored and trusted without a physical device
+   to test on, so rather than ship something that only pretends to work,
+   it's removed outright. The QR-pairing tab below was genuine
+   functionality all along — it just drew a fake, non-scannable QR image;
+   see the real fix in renderOfflineQR(). */
 function openNearbyModal(){
   document.getElementById('nearby-modal').classList.add('show');
-  switchNearbyTab('radar');
-  startNearbyScan();
+  renderOfflineQR();
 }
 
 function closeNearbyModal(){
   document.getElementById('nearby-modal').classList.remove('show');
-  clearInterval(nearbyScanTimer);
-  nearbyScanning = false;
-}
-
-function switchNearbyTab(tab){
-  var tabR = document.getElementById('nearby-tab-radar');
-  var tabQ = document.getElementById('nearby-tab-qr');
-  var viewR = document.getElementById('nearby-view-radar');
-  var viewQ = document.getElementById('nearby-view-qr');
-  if(!tabR || !viewR) return;
-
-  if(tab === 'radar'){
-    tabR.style.background = 'var(--surface)'; tabR.style.color = 'var(--text)'; tabR.style.boxShadow = 'var(--elev1)';
-    tabQ.style.background = 'transparent'; tabQ.style.color = 'var(--text3)'; tabQ.style.boxShadow = 'none';
-    viewR.style.display = 'flex'; viewQ.style.display = 'none';
-  } else {
-    tabQ.style.background = 'var(--surface)'; tabQ.style.color = 'var(--text)'; tabQ.style.boxShadow = 'var(--elev1)';
-    tabR.style.background = 'transparent'; tabR.style.color = 'var(--text3)'; tabR.style.boxShadow = 'none';
-    viewQ.style.display = 'flex'; viewR.style.display = 'none';
-    renderOfflineQR();
-  }
-}
-
-function startNearbyScan(){
-  nearbyScanning = true;
-  var statusEl = document.getElementById('nearby-scan-status');
-  var subEl = document.getElementById('nearby-scan-sub');
-  if(statusEl) statusEl.textContent = 'Scanning airwaves (Bluetooth LE / Local P2P)…';
-  if(subEl) subEl.textContent = 'Zero-data broadcast active';
-
-  // Seed with nearby active devices & real local peers
-  nearbyPeersFound = [];
-  var candidateIds = recentPeers.filter(function(p){ return p && p !== myId && !isBlocked(p); });
-  if(!candidateIds.length) candidateIds = ['nearby_phone_' + Math.random().toString(36).slice(2,6), 'pixel_direct_' + Math.random().toString(36).slice(2,5)];
-
-  candidateIds.slice(0, 3).forEach(function(pid, idx){
-    nearbyPeersFound.push({
-      id: pid,
-      name: (contacts[pid] && contacts[pid].name) || pid,
-      rssi: -45 - Math.floor(Math.random() * 35),
-      dist: (1.2 + idx * 2.4).toFixed(1) + 'm',
-      angle: (idx * 120 + 35) % 360,
-      radius: 35 + idx * 28
-    });
-  });
-
-  renderNearbyRadarBlips();
-  renderNearbyPeersList();
-
-  clearInterval(nearbyScanTimer);
-  nearbyScanTimer = setInterval(function(){
-    if(!nearbyScanning) return;
-    nearbyPeersFound.forEach(function(p){
-      p.rssi = Math.max(-90, Math.min(-35, p.rssi + (Math.random() * 6 - 3)));
-    });
-    renderNearbyRadarBlips();
-    renderNearbyPeersList();
-  }, 4000);
-
-  // Web Bluetooth API probe if supported
-  if(navigator.bluetooth && navigator.bluetooth.requestLEScan){
-    try { navigator.bluetooth.requestLEScan({ acceptAllAdvertisements: true }).catch(function(){}); } catch(e){}
-  }
-}
-
-function renderNearbyRadarBlips(){
-  var container = document.getElementById('radar-blips-container');
-  if(!container) return;
-  container.innerHTML = '';
-  var w = 220, h = 220, cx = w / 2, cy = h / 2;
-
-  nearbyPeersFound.forEach(function(p){
-    var rad = (p.angle * Math.PI) / 180;
-    var distPx = (p.radius / 100) * (cx - 16);
-    var bx = cx + Math.cos(rad) * distPx;
-    var by = cy + Math.sin(rad) * distPx;
-
-    var blip = document.createElement('div');
-    blip.className = 'radar-blip';
-    blip.style.left = bx + 'px';
-    blip.style.top = by + 'px';
-    blip.title = p.name + ' (' + p.dist + ')';
-    blip.onclick = function(){
-      connectNearbyPeer(p.id, false);
-    };
-    container.appendChild(blip);
-  });
-}
-
-function renderNearbyPeersList(){
-  var list = document.getElementById('nearby-peers-list');
-  if(!list) return;
-  list.innerHTML = '';
-
-  if(!nearbyPeersFound.length){
-    list.innerHTML = '<div style="padding:14px;text-align:center;font-size:12px;color:var(--text3);">No nearby devices discovered yet</div>';
-    return;
-  }
-
-  nearbyPeersFound.forEach(function(p){
-    var signalBars = p.rssi > -60 ? '📶 Strong' : p.rssi > -75 ? '📶 Medium' : '📶 Fair';
-    var item = document.createElement('div');
-    item.className = 'nearby-peer-item';
-    item.innerHTML = '<div style="display:flex;align-items:center;gap:10px;"><div style="width:34px;height:34px;border-radius:10px;background:rgba(16,185,129,.15);color:#10B981;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;">📡</div><div><div style="font-size:13.5px;font-weight:700;color:var(--text);">' + esc(p.name) + '</div><div style="font-size:11.5px;color:var(--text3);">' + p.dist + ' away · ' + signalBars + ' (' + p.rssi.toFixed(0) + ' dBm)</div></div></div>'
-      + '<div style="display:flex;gap:6px;"><button class="btn-secondary nearby-call-btn" style="padding:6px 10px;font-size:11.5px;min-height:30px;">📞 Call</button><button class="btn-primary nearby-chat-btn" style="padding:6px 12px;font-size:11.5px;min-height:30px;">Chat</button></div>';
-
-    item.querySelector('.nearby-chat-btn').onclick = function(){
-      connectNearbyPeer(p.id, false);
-    };
-    item.querySelector('.nearby-call-btn').onclick = function(){
-      connectNearbyPeer(p.id, true);
-    };
-    list.appendChild(item);
-  });
-}
-
-function connectNearbyPeer(pid, isVoice){
-  closeNearbyModal();
-  toast('Connected to nearby peer @' + pid + ' via Zero-Internet P2P 📡');
-  if(isVoice){
-    startCall(pid, true);
-  } else {
-    openDMChat(pid);
-  }
 }
 
 function renderOfflineQR(){
+  // BUG (fake, non-scannable QR): this used to hand-draw finder-pattern squares plus
+  // a "pseudo-random data modules seeded by payload hash" grid — that produces
+  // something that LOOKS like a QR code but has no real Reed-Solomon error correction
+  // or standards-compliant data encoding, so no QR decoder (this app's own jsQR /
+  // BarcodeDetector included) could ever actually read it. The scan side was always
+  // real; this generation side never was. QRCodeGen (loaded from /qrcode.js) is a
+  // real, standards-compliant encoder already used successfully for the main "My QR
+  // Code" pairing flow — reuse the exact same one here instead of a fake drawing, so
+  // this tab actually produces something scannable.
   var canvas = document.getElementById('offline-qr-canvas');
-  if(!canvas) return;
-  var ctx = canvas.getContext('2d');
-  var w = canvas.width, h = canvas.height;
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, w, h);
-
-  // Generate deterministic QR grid pattern from myId token
-  var payload = 'UF_P2P:' + (myId || 'anon') + ':' + Date.now().toString(36);
-  var size = 25;
-  var cellSize = Math.floor((w - 24) / size);
-  var offset = Math.floor((w - cellSize * size) / 2);
-
-  ctx.fillStyle = '#0F172A';
-  // Standard 3 Finder patterns
-  function drawFinder(fx, fy){
-    ctx.fillRect(fx, fy, cellSize * 7, cellSize * 7);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(fx + cellSize, fy + cellSize, cellSize * 5, cellSize * 5);
-    ctx.fillStyle = '#0F172A';
-    ctx.fillRect(fx + cellSize * 2, fy + cellSize * 2, cellSize * 3, cellSize * 3);
-  }
-  drawFinder(offset, offset);
-  drawFinder(offset + cellSize * (size - 7), offset);
-  drawFinder(offset, offset + cellSize * (size - 7));
-
-  // Pseudo-random data modules seeded by payload hash
-  var hash = 0;
-  for(var i = 0; i < payload.length; i++){ hash = ((hash << 5) - hash) + payload.charCodeAt(i); hash |= 0; }
-
-  for(var r = 0; r < size; r++){
-    for(var c = 0; c < size; c++){
-      if((r < 8 && c < 8) || (r < 8 && c >= size - 8) || (r >= size - 8 && c < 8)) continue;
-      var bit = ((hash ^ (r * 31 + c * 17)) & 1) === 1;
-      if(bit){
-        ctx.fillRect(offset + c * cellSize, offset + r * cellSize, cellSize, cellSize);
-      }
-    }
-  }
+  if(!canvas||!window.QRCodeGen||!myId) return;
+  try{
+    QRCodeGen.draw(myId,canvas,{size:190,margin:3,colorDark:'#0F172A',colorLight:'#FFFFFF'});
+  }catch(e){}
 }
 
 /* ── 4. Export My Data Controller ────────────────────────────────────── */
@@ -9406,9 +9334,6 @@ function setupFeatureHandlers(){
   // Nearby mode
   addClick('nearby-btn', openNearbyModal);
   addClick('nearby-close-btn', closeNearbyModal);
-  addClick('nearby-tab-radar', function(){ switchNearbyTab('radar'); });
-  addClick('nearby-tab-qr', function(){ switchNearbyTab('qr'); });
-  addClick('nearby-rescan-btn', startNearbyScan);
   addClick('offline-scan-peer-btn', function(){ closeNearbyModal(); openQRModal('scan'); });
 
   // Low data & Ghost mode settings switches

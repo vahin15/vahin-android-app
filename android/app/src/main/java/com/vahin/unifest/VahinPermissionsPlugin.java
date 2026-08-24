@@ -56,11 +56,42 @@ public class VahinPermissionsPlugin extends Plugin {
         ret.put("batteryExemptionGranted", isIgnoringBatteryOptimizations());
         ret.put("notificationsGranted", isNotificationsGranted());
         ret.put("notificationsApplicable", Build.VERSION.SDK_INT >= 33);
+        // BULLETPROOF RINGING: CallNotifier's calls channel sets setBypassDnd(true), but
+        // that flag is silently IGNORED by Android unless the user has separately granted
+        // this app "Do Not Disturb access" (a totally different permission from
+        // notifications/battery — there is no public API to request it directly, only to
+        // open the settings screen for it, same restriction as Samsung's battery sleep
+        // toggle below). Without it, any DND/Focus/Sleep mode the user has active — which
+        // is extremely common (bedtime schedules, meeting-time auto-DND) — silently
+        // suppresses the incoming-call notification entirely: the code runs, the
+        // notification posts, and the OS just never surfaces it. This was previously never
+        // checked or requested anywhere, so it was a silent, undiagnosable "sometimes it
+        // just doesn't ring" gap on any phone with a DND schedule.
+        ret.put("dndAccessGranted", isDndAccessGranted());
         ret.put("manufacturer", Build.MANUFACTURER == null ? "" : Build.MANUFACTURER);
         ret.put("brand", Build.BRAND == null ? "" : Build.BRAND);
         ret.put("model", Build.MODEL == null ? "" : Build.MODEL);
         ret.put("sdkInt", Build.VERSION.SDK_INT);
         call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void openDndAccessSettings(PluginCall call) {
+        try {
+            Intent intent = new Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+        } catch (Exception ignored) {}
+        call.resolve();
+    }
+
+    private boolean isDndAccessGranted() {
+        try {
+            NotificationManager nm = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+            return nm != null && nm.isNotificationPolicyAccessGranted();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     @PluginMethod
