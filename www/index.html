@@ -815,17 +815,7 @@ button,input,textarea{font-family:inherit;}
 .lowdata-call-pill{display:none;align-items:center;gap:6px;background:rgba(14,165,233,.22);backdrop-filter:blur(10px);border:1px solid rgba(56,189,248,.4);color:#BAE6FD;padding:4px 10px;border-radius:14px;font-size:11px;font-weight:700;position:absolute;top:calc(110px + var(--safe-top));left:50%;transform:translateX(-50%);z-index:22;}
 .lowdata-call-pill.show{display:flex;}
 
-/* ── Nearby & Offline Radar Styling ── */
-.radar-wrap{position:relative;width:240px;height:240px;margin:10px auto;border-radius:50%;background:radial-gradient(circle at center, rgba(14,165,233,.15) 0%, rgba(15,23,42,.95) 75%);border:2px solid rgba(56,189,248,.35);display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 40px rgba(14,165,233,.2);}
-.radar-ring{position:absolute;border-radius:50%;border:1px dashed rgba(56,189,248,.3);pointer-events:none;}
-.radar-ring.r1{width:80px;height:80px;}.radar-ring.r2{width:150px;height:150px;}.radar-ring.r3{width:215px;height:215px;}
-.radar-sweep{position:absolute;inset:0;background:conic-gradient(from 0deg at 50% 50%, rgba(56,189,248,0.45) 0deg, rgba(56,189,248,0) 65deg, transparent 65deg);animation:radarSpin 2.6s linear infinite;border-radius:50%;pointer-events:none;}
-@keyframes radarSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
-.radar-center-dot{width:18px;height:18px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 0 14px var(--accent);z-index:3;}
-.radar-blip{position:absolute;width:14px;height:14px;border-radius:50%;background:#10B981;border:2px solid #fff;box-shadow:0 0 12px #10B981;cursor:pointer;animation:blipPulse 1.8s infinite ease-out;z-index:4;}
-@keyframes blipPulse{0%{transform:scale(.9);box-shadow:0 0 4px #10B981;}50%{transform:scale(1.2);box-shadow:0 0 16px #10B981;}100%{transform:scale(.9);box-shadow:0 0 4px #10B981;}}
-.nearby-peer-item{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:14px;transition:background .15s;}
-.nearby-peer-item:hover{background:var(--surface3);}
+
 .rssi-bars{display:flex;align-items:flex-end;gap:2px;height:12px;}
 .rssi-bar{width:3px;background:var(--text3);border-radius:1px;}
 .rssi-bar.active{background:#10B981;}
@@ -949,9 +939,7 @@ button,input,textarea{font-family:inherit;}
   <div class="top-header">
     <div class="header-brand"><div class="header-title">Unifest</div><div class="ghost-pill" id="ghost-pill" style="display:none;" title="Ghost Mode Active — appearing offline"><span style="font-size:12px;">👻</span><span>Ghost</span></div></div>
     <div class="header-actions">
-      <button class="hdr-btn" id="nearby-btn" title="Nearby / Offline Mode (Zero Internet)"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0 0-7.07 17.07"/><path d="M12 6a6 6 0 0 0-4.24 10.24"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2a10 10 0 0 1 7.07 17.07"/><path d="M12 6a6 6 0 0 1 4.24 10.24"/></svg></button>
       <button class="hdr-btn" id="qr-scan-btn" title="QR Code &amp; Scanner"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="6" height="6" x="3" y="3" rx="1"/><rect width="6" height="6" x="15" y="3" rx="1"/><rect width="6" height="6" x="3" y="15" rx="1"/><path d="M15 15h2v2h-2z"/><path d="M19 15h2v2h-2z"/><path d="M15 19h2v2h-2z"/><path d="M19 19h2v2h-2z"/></svg></button>
-      <button class="hdr-btn" id="broadcast-btn" title="New Broadcast"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/></svg></button>
       <button class="hdr-btn" id="gs-btn" title="Search"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg></button>
       <div class="online-pill" id="online-pill"><div class="online-dot off" id="online-dot"></div><span class="online-name" id="topbar-myid">—</span></div>
     </div>
@@ -1548,54 +1536,6 @@ button,input,textarea{font-family:inherit;}
   </div>
 </div>
 
-<!-- ── Broadcast Message Modal ── -->
-<div class="modal-overlay" id="broadcast-modal" style="z-index:1100;">
-  <div class="modal-sheet" style="max-height:92vh;display:flex;flex-direction:column;gap:14px;padding:20px 18px 24px;">
-    <div class="modal-handle"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div>
-        <div class="modal-title" style="margin:0;font-size:18px;font-weight:800;display:flex;align-items:center;gap:6px;">
-          <span>📢</span> New Broadcast
-        </div>
-        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Send an announcement to multiple contacts directly</div>
-      </div>
-      <button class="modal-btn-cancel" id="broadcast-modal-close-btn" style="padding:6px 12px;border-radius:10px;font-size:13px;border:none;background:var(--surface2);color:var(--text2);cursor:pointer;">✕ Close</button>
-    </div>
-
-    <!-- Search / Filter & Select All -->
-    <div style="display:flex;gap:8px;align-items:center;">
-      <div style="flex:1;position:relative;">
-        <input id="broadcast-search-inp" class="cs-inp" placeholder="Search contacts…" style="width:100%;padding:8px 12px;font-size:13px;border-radius:10px;" autocomplete="off"/>
-      </div>
-      <button id="broadcast-select-all-btn" style="padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Select All</button>
-    </div>
-
-    <!-- Selected count badge -->
-    <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text3);font-weight:600;">
-      <span>RECIPIENTS</span>
-      <span id="broadcast-selected-count" style="color:var(--accent);font-weight:800;">0 selected</span>
-    </div>
-
-    <!-- Contacts list -->
-    <div id="broadcast-contacts-list" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:4px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;">
-      <!-- Populated dynamically -->
-    </div>
-
-    <!-- Message Input -->
-    <div style="display:flex;flex-direction:column;gap:6px;">
-      <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Broadcast Message</label>
-      <textarea id="broadcast-msg-inp" placeholder="Type your broadcast announcement…" style="width:100%;min-height:76px;padding:12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;font-size:14px;color:var(--text);outline:none;resize:none;font-family:inherit;"></textarea>
-    </div>
-
-    <!-- Action buttons -->
-    <div style="display:flex;gap:10px;">
-      <button id="broadcast-cancel-btn" class="btn-secondary" style="flex:1;min-height:46px;padding:10px;font-size:14px;">Cancel</button>
-      <button id="broadcast-send-btn" class="btn-primary" style="flex:2;min-height:46px;padding:10px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px;">
-        <span>🚀</span> Send Broadcast
-      </button>
-    </div>
-  </div>
-</div>
 
 <!-- ── Account Recovery & Backup Modals ── -->
 <div class="modal-overlay" id="recovery-modal">
@@ -1756,39 +1696,6 @@ button,input,textarea{font-family:inherit;}
       <button class="modal-btn-cancel" id="app-update-later-btn" style="display:none;">Later</button>
       <button class="btn-primary" style="flex:1;" id="app-update-now-btn">Update Now →</button>
     </div>
-  </div>
-</div>
-
-
-<!-- ── Offline / Nearby Mode Modal ── -->
-<div class="modal-overlay" id="nearby-modal" style="z-index:1150;">
-  <div class="modal-sheet" style="max-height:92vh;display:flex;flex-direction:column;gap:14px;padding:20px 18px 24px;">
-    <div class="modal-handle"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div>
-        <div class="modal-title" style="margin:0;font-size:18px;font-weight:800;display:flex;align-items:center;gap:6px;">
-          <span>📡</span> Nearby &amp; Offline Mode
-        </div>
-        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Chat &amp; call with zero internet via Local P2P</div>
-      </div>
-      <button class="modal-btn-cancel" id="nearby-close-btn" style="padding:6px 12px;border-radius:10px;font-size:13px;border:none;background:var(--surface2);color:var(--text2);cursor:pointer;">✕ Close</button>
-    </div>
-
-    <!-- Zero-Data QR Pair -->
-    <div id="nearby-view-qr" style="display:flex;flex-direction:column;align-items:center;gap:12px;">
-      <div style="font-size:12.5px;color:var(--text2);text-align:center;line-height:1.5;">
-        When completely offline with no cellular network or router, pair directly by having one phone show this QR and the other scan it.
-      </div>
-      <div style="position:relative;background:#FFFFFF;padding:14px;border-radius:16px;border:2px solid var(--border2);">
-        <canvas id="offline-qr-canvas" width="190" height="190" style="display:block;border-radius:8px;"></canvas>
-      </div>
-      <div style="display:flex;gap:10px;width:100%;">
-        <button id="offline-scan-peer-btn" class="btn-primary" style="flex:1;min-height:44px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px;">
-          <span>📷</span> Scan Partner's QR
-        </button>
-      </div>
-    </div>
-
   </div>
 </div>
 
@@ -3206,6 +3113,22 @@ function handleData(from,data,conn){
     case 'call-ringing':
       diagLog('🔔 Received call-ringing signal from '+from);
       markServerWoke();
+      break;
+    case 'call-redeliver-request':
+      /* The callee just came back online while expecting our call offer and is
+         asking us to resend it — see requestCallRedeliver(). Only act if we're
+         actually still trying to reach exactly this person and haven't
+         connected yet; ignore anything stale/unrelated. Debounced against the
+         existing peer-unavailable retry loop via the same 1600ms guard so the
+         two mechanisms never both fire a redundant placeCallAttempt() at once. */
+      if(weAreCaller&&callPeerId===from&&!outCallConnected&&localStream){
+        var _now2=Date.now();
+        if(_now2-_lastPeerUnavailRetry>1600){
+          _lastPeerUnavailRetry=_now2;
+          diagLog('📨 '+from+' asked us to redeliver the call — resending offer now');
+          placeCallAttempt(callPeerId,callIsVoiceOnly);
+        }
+      }
       break;
     case 'call-accept':
       diagLog('📲 Received call-accept signal from '+from);
@@ -6290,17 +6213,84 @@ async function confFlipCamera(){
 
 /* ── Screen Sharing Logic ── */
 var screenStream=null,isScreenSharing=false;
+/* ── Native screen-share bridge ─────────────────────────────────────────
+   Android's WebView (unlike Chrome) has never implemented
+   navigator.mediaDevices.getDisplayMedia() — that's the actual reason "Share
+   Screen" did nothing before, on every Android build, regardless of anything
+   in this file. There's no browser-API fix for that; the real fix is native
+   capture. VahinScreenSharePlugin (MediaProjection, see ScreenCaptureService)
+   streams JPEG frames over the bridge; we draw each one onto an offscreen
+   <canvas> and use canvas.captureStream() to get a genuine MediaStreamTrack,
+   which then flows into the exact same replaceTrack() logic already used
+   below — from WebRTC's point of view this is indistinguishable from a real
+   getDisplayMedia() track. */
+var _screenCanvas=null,_screenCanvasCtx=null,_screenCanvasImg=null,_screenFrameListener=null,_screenEndListener=null;
+function nativeScreenShareAvailable(){
+  return !!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()
+    &&Capacitor.Plugins&&Capacitor.Plugins.VahinScreenShare);
+}
+function startNativeScreenCapture(){
+  return new Promise(function(resolve,reject){
+    var plugin=Capacitor.Plugins.VahinScreenShare;
+    _screenCanvas=document.createElement('canvas');
+    _screenCanvasCtx=_screenCanvas.getContext('2d');
+    _screenCanvasImg=new Image();
+    var gotFirstFrame=false;
+    _screenFrameListener=plugin.addListener('frame',function(data){
+      if(!data||!data.jpeg)return;
+      if(_screenCanvas.width!==data.width||_screenCanvas.height!==data.height){
+        _screenCanvas.width=data.width;_screenCanvas.height=data.height;
+      }
+      _screenCanvasImg.onload=function(){
+        try{_screenCanvasCtx.drawImage(_screenCanvasImg,0,0,data.width,data.height);}catch(e){}
+        if(!gotFirstFrame){
+          gotFirstFrame=true;
+          try{
+            var stream=_screenCanvas.captureStream(8);
+            resolve(stream);
+          }catch(e){reject(e);}
+        }
+      };
+      _screenCanvasImg.src='data:image/jpeg;base64,'+data.jpeg;
+    });
+    _screenEndListener=plugin.addListener('captureEnded',function(data){
+      diagLog('🖥️ Native screen capture ended: '+(data&&data.reason));
+      stopScreenSharing(!!confStream,true);
+    });
+    plugin.start().then(function(res){
+      if(!res||!res.started){
+        cleanupNativeScreenCapture();
+        reject(new Error(res&&res.reason==='permission-denied'?'Permission denied':'Could not start screen sharing'));
+      }
+      // else: resolve() happens once the first frame actually arrives, above —
+      // that's the earliest point a real MediaStreamTrack exists to hand back.
+    }).catch(function(e){cleanupNativeScreenCapture();reject(e);});
+  });
+}
+function cleanupNativeScreenCapture(){
+  try{if(_screenFrameListener)_screenFrameListener.remove();}catch(e){}
+  try{if(_screenEndListener)_screenEndListener.remove();}catch(e){}
+  _screenFrameListener=null;_screenEndListener=null;_screenCanvas=null;_screenCanvasCtx=null;_screenCanvasImg=null;
+  if(nativeScreenShareAvailable()){try{Capacitor.Plugins.VahinScreenShare.stop();}catch(e){}}
+}
 async function toggleScreenShare(isConf){
   if(isScreenSharing&&screenStream){
     stopScreenSharing(isConf,true);
     return;
   }
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){
+  var useNative=nativeScreenShareAvailable();
+  if(!useNative&&(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia)){
     toast('Screen sharing is not supported on this device/browser');
     return;
   }
   try{
-    var stream=await navigator.mediaDevices.getDisplayMedia({video:{cursor:'always'},audio:false});
+    var stream;
+    if(useNative){
+      toast('Choose what to share…');
+      stream=await startNativeScreenCapture();
+    }else{
+      stream=await navigator.mediaDevices.getDisplayMedia({video:{cursor:'always'},audio:false});
+    }
     screenStream=stream;
     isScreenSharing=true;
     var screenTrack=stream.getVideoTracks()[0];
@@ -6334,11 +6324,13 @@ async function toggleScreenShare(isConf){
     toast('Screen sharing is now active — your screen is visible 🖥️');
   }catch(e){
     isScreenSharing=false;screenStream=null;
+    cleanupNativeScreenCapture();
     if(e&&e.name!=='NotAllowedError')toast('Could not share screen: '+(e&&e.message?e.message:e));
   }
 }
 
 function stopScreenSharing(isConf,showToast){
+  cleanupNativeScreenCapture();
   if(screenStream){
     screenStream.getTracks().forEach(function(t){try{t.stop();}catch(e){}});
     screenStream=null;
@@ -6596,130 +6588,6 @@ async function uploadQRImage(file){
   }catch(e){
     toast('Could not parse image: '+(e&&e.message?e.message:e));
   }
-}
-
-/* ── Broadcast Feature Logic ── */
-var broadcastSelected=new Set();
-function openBroadcastModal(){
-  broadcastSelected.clear();
-  var msgInp=document.getElementById('broadcast-msg-inp');
-  if(msgInp)msgInp.value='';
-  var searchInp=document.getElementById('broadcast-search-inp');
-  if(searchInp)searchInp.value='';
-  renderBroadcastRecipients();
-  document.getElementById('broadcast-modal').classList.add('show');
-}
-
-function closeBroadcastModal(){
-  document.getElementById('broadcast-modal').classList.remove('show');
-}
-
-function renderBroadcastRecipients(filter){
-  filter=(filter||'').toLowerCase();
-  var listEl=document.getElementById('broadcast-contacts-list');
-  if(!listEl)return;
-  listEl.innerHTML='';
-
-  var allIds=new Set();
-  (recentChats||[]).forEach(function(r){if(r&&r.id&&!r.isGroup)allIds.add(r.id);});
-  Object.keys(contacts||{}).forEach(function(id){allIds.add(id);});
-  Object.keys(dmHistory||{}).forEach(function(id){if(id!==myId)allIds.add(id);});
-
-  var idList=Array.from(allIds).filter(function(id){
-    if(!id||id===myId)return false;
-    if(!filter)return true;
-    var name=(contacts[id]&&contacts[id].name)||id;
-    return id.toLowerCase().includes(filter)||name.toLowerCase().includes(filter);
-  });
-
-  if(idList.length===0){
-    listEl.innerHTML='<div style="padding:14px;text-align:center;font-size:12px;color:var(--text3);">No contacts found</div>';
-    updateBroadcastCount();
-    return;
-  }
-
-  idList.forEach(function(id){
-    var name=(contacts[id]&&contacts[id].name)||id;
-    var isSel=broadcastSelected.has(id);
-    var item=document.createElement('div');
-    item.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--surface);border-radius:8px;border:1px solid '+(isSel?'var(--accent)':'var(--border)')+';cursor:pointer;transition:background .15s ease;';
-    item.innerHTML='<div style="display:flex;align-items:center;gap:10px;"><div style="width:32px;height:32px;border-radius:50%;background:var(--sheen),var(--hero-grad);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;">'+id[0].toUpperCase()+'</div><div><div style="font-size:13px;font-weight:700;color:var(--text);">'+name+'</div><div style="font-size:11px;color:var(--text3);">@'+id+'</div></div></div><div style="width:20px;height:20px;border-radius:6px;border:1.5px solid '+(isSel?'var(--accent)':'var(--border2)')+';background:'+(isSel?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800;">'+(isSel?'✓':'')+'</div>';
-    
-    item.onclick=function(){
-      if(broadcastSelected.has(id))broadcastSelected.delete(id);
-      else broadcastSelected.add(id);
-      renderBroadcastRecipients(document.getElementById('broadcast-search-inp').value);
-    };
-    listEl.appendChild(item);
-  });
-
-  updateBroadcastCount();
-}
-
-function updateBroadcastCount(){
-  var countEl=document.getElementById('broadcast-selected-count');
-  if(countEl)countEl.textContent=broadcastSelected.size+' selected';
-  var selAllBtn=document.getElementById('broadcast-select-all-btn');
-  if(selAllBtn){
-    selAllBtn.textContent=broadcastSelected.size>0?'Clear All':'Select All';
-  }
-}
-
-function toggleSelectAllBroadcast(){
-  var allIds=new Set();
-  (recentChats||[]).forEach(function(r){if(r&&r.id&&!r.isGroup)allIds.add(r.id);});
-  Object.keys(contacts||{}).forEach(function(id){allIds.add(id);});
-  Object.keys(dmHistory||{}).forEach(function(id){if(id!==myId)allIds.add(id);});
-
-  if(broadcastSelected.size>0){
-    broadcastSelected.clear();
-  }else{
-    allIds.forEach(function(id){if(id&&id!==myId)broadcastSelected.add(id);});
-  }
-  renderBroadcastRecipients(document.getElementById('broadcast-search-inp').value);
-}
-
-async function sendBroadcast(){
-  if(broadcastSelected.size===0){
-    toast('Select at least one recipient');
-    return;
-  }
-  var msgInp=document.getElementById('broadcast-msg-inp');
-  var text=(msgInp&&msgInp.value||'').trim();
-  if(!text){
-    toast('Type a broadcast message');
-    return;
-  }
-  var count=broadcastSelected.size;
-  var broadcastText='📢 [Broadcast]: '+text;
-  var now=Date.now();
-
-  broadcastSelected.forEach(function(recId){
-    if(!dmHistory[recId])dmHistory[recId]=[];
-    var msgObj={
-      id:now+'_'+Math.random().toString(36).substr(2,6),
-      from:myId,
-      to:recId,
-      text:broadcastText,
-      time:now,
-      me:true,
-      read:true
-    };
-    dmHistory[recId].push(msgObj);
-    addRecentSilent(recId,broadcastText,now);
-
-    var openConn=findOpenConnTo(recId);
-    if(openConn&&openConn.open){
-      try{openConn.send({type:'dm',msg:msgObj});}catch(e){}
-    }else{
-      notifyPeer(recId,'dm');
-    }
-  });
-
-  saveAll();
-  renderChats();
-  closeBroadcastModal();
-  toast('Broadcast sent to '+count+' contacts 🚀');
 }
 
 /* Returns true when the DM chat screen is open and showing messages for 'pid'.
@@ -7193,6 +7061,40 @@ function getIncomingCallPeer(){if(!incomingCall)return null;return incomingCall.
    Cleared after use or after 60 s (stale call). */
 var pendingNativeAction=null;
 var pendingNativeTimer=null;
+/* Sends {type:'call-redeliver-request'} to `from` over the peer.connect() data
+   channel, asking their client to immediately re-issue the WebRTC call offer
+   (see handleData's 'call-redeliver-request' case). Retries a few times with
+   backoff — the very first attempt can land before our own broker link is
+   fully up — and stops as soon as the real call arrives (incomingCall gets
+   set) or after ~10s, whichever comes first. Safe to call repeatedly; only
+   one retry chain runs per callee ID at a time. */
+var _redeliverActiveFor=null,_redeliverTimer=null,_redeliverAttempts=0;
+function requestCallRedeliver(from){
+  if(_redeliverActiveFor===from)return; // already nudging this same caller
+  _redeliverActiveFor=from;_redeliverAttempts=0;
+  clearTimeout(_redeliverTimer);
+  (function attempt(){
+    if(getIncomingCallPeer()===from||incomingCall){ // real call arrived — stop nudging
+      _redeliverActiveFor=null;return;
+    }
+    _redeliverAttempts++;
+    if(_redeliverAttempts>5||!peer){_redeliverActiveFor=null;return;}
+    if(peerReady){
+      try{
+        var rc=peer.connect(from,{reliable:true,metadata:{type:'redeliver'}});
+        if(rc){
+          rc.on('open',function(){
+            try{rc.send({type:'call-redeliver-request'});}catch(e){}
+            diagLog('📨 Asked '+from+' to redeliver the call (attempt #'+_redeliverAttempts+')');
+            setTimeout(function(){try{rc.close();}catch(e){}},1500);
+          });
+          rc.on('error',function(){});
+        }
+      }catch(e){}
+    }
+    if(_redeliverActiveFor===from)_redeliverTimer=setTimeout(attempt,2000);
+  })();
+}
 /* FIX (dedupe): the native side can now deliver the same tap through two independent
    paths — an early "raw mailbox" write (window.__vahinPendingNativeAction, drained by
    drainPendingNativeAction() below right after boot()) and the original probe-and-push
@@ -7282,6 +7184,18 @@ function handleNativeCallAction(action,from,groupId){
     toast('Connecting call\u2026');
     diagLog('⏳ PeerJS call not arrived yet (peer='+(peer?(peerReady?'ready':'not ready'):'null')+') — kicking ensurePeerConnected() and waiting');
     try{ensurePeerConnected();}catch(e){}
+    /* FIX (root cause of "Answer connects to the app but the call never comes
+       through"): getting OUR OWN broker link back up (ensurePeerConnected above)
+       is necessary but not sufficient — it only guarantees WE can now receive.
+       It does nothing about a media offer the caller already tried to send while
+       we were unreachable and which the caller has no way of knowing needs a
+       resend, if their own peer-unavailable retry loop already gave up, was
+       debounced, or the offer was dropped with no error on either side (all
+       observed in the field — the broker link comes up fine, then nothing
+       further ever happens). Rather than staying passive and hoping the caller's
+       side eventually retries on its own, actively ask them to redeliver the
+       call the moment we're able to hear them. */
+    if(from)requestCallRedeliver(from);
   }
   clearTimeout(pendingNativeTimer);
   pendingNativeAction={action:action,from:from};
@@ -8642,7 +8556,6 @@ function bindEvents(){
   addClick('rec-stop-btn',stopVoiceRecord);
   addClick('rec-cancel-btn',cancelVoiceRecord);
   addClick('qr-scan-btn',function(){openQRModal('my');});
-  addClick('broadcast-btn',openBroadcastModal);
   addClick('qr-modal',function(e){if(e.target===this)closeQRModal();});
   addClick('qr-modal-close-btn',closeQRModal);
   addClick('qr-tab-my',function(){switchQRTab('my');});
@@ -8668,12 +8581,6 @@ function bindEvents(){
       }
     }
   });
-  addClick('broadcast-modal',function(e){if(e.target===this)closeBroadcastModal();});
-  addClick('broadcast-modal-close-btn',closeBroadcastModal);
-  addClick('broadcast-cancel-btn',closeBroadcastModal);
-  addClick('broadcast-select-all-btn',toggleSelectAllBroadcast);
-  addClick('broadcast-send-btn',sendBroadcast);
-  addEvt('broadcast-search-inp','input',function(){renderBroadcastRecipients(this.value);});
 
   addClick('btn-screenshare',function(){toggleScreenShare(false);});
   addClick('conf-screenshare-btn',function(){toggleScreenShare(true);});
@@ -8916,46 +8823,13 @@ function saveContactSound(){
   toast('Custom tone saved for @' + activeSoundPickerPeer + ' 🔔');
 }
 
-/* ── 3. Offline / Nearby Mode — Zero-Data QR Pairing ───────────────────
-   REMOVED (per explicit request): the old "Radar Discovery" tab simulated
-   Bluetooth/local-network peer discovery — fabricated signal strength,
-   distance, and angle values, no real BLE scan ever ran. Tapping a
-   "discovered" device didn't connect over Bluetooth at all; it silently
-   opened a normal internet chat with a real contact and just claimed it
-   happened over Bluetooth. Building this for real needs a new native BLE
-   scan+advertise Android plugin (new runtime permissions, OEM-inconsistent
-   behavior) plus a Wi-Fi Direct handoff for the actual voice/media path —
-   BLE itself has nowhere near enough bandwidth for a call. That's real
-   native work that can't be authored and trusted without a physical device
-   to test on, so rather than ship something that only pretends to work,
-   it's removed outright. The QR-pairing tab below was genuine
-   functionality all along — it just drew a fake, non-scannable QR image;
-   see the real fix in renderOfflineQR(). */
-function openNearbyModal(){
-  document.getElementById('nearby-modal').classList.add('show');
-  renderOfflineQR();
-}
-
-function closeNearbyModal(){
-  document.getElementById('nearby-modal').classList.remove('show');
-}
-
-function renderOfflineQR(){
-  // BUG (fake, non-scannable QR): this used to hand-draw finder-pattern squares plus
-  // a "pseudo-random data modules seeded by payload hash" grid — that produces
-  // something that LOOKS like a QR code but has no real Reed-Solomon error correction
-  // or standards-compliant data encoding, so no QR decoder (this app's own jsQR /
-  // BarcodeDetector included) could ever actually read it. The scan side was always
-  // real; this generation side never was. QRCodeGen (loaded from /qrcode.js) is a
-  // real, standards-compliant encoder already used successfully for the main "My QR
-  // Code" pairing flow — reuse the exact same one here instead of a fake drawing, so
-  // this tab actually produces something scannable.
-  var canvas = document.getElementById('offline-qr-canvas');
-  if(!canvas||!window.QRCodeGen||!myId) return;
-  try{
-    QRCodeGen.draw(myId,canvas,{size:190,margin:3,colorDark:'#0F172A',colorLight:'#FFFFFF'});
-  }catch(e){}
-}
+/* ── 3. Nearby / Offline Mode — REMOVED per explicit request. The feature
+   never did real Bluetooth/local-network discovery to begin with (it was a
+   QR-pairing flow that reused the same real pairing as "My QR Code"), but
+   since it was presented as a Bluetooth-flavored "sharing" feature and
+   wasn't wanted, it's removed outright — button, modal, and controller
+   functions. Regular QR pairing/scanning ("My QR Code" / qr-scan-btn) is
+   untouched and still works exactly as before. */
 
 /* ── 4. Export My Data Controller ────────────────────────────────────── */
 var exportTargetPeer = null;
@@ -9331,11 +9205,6 @@ function dismissReviewModal(){
 
 /* ── 8. Wire All Event Handlers for Feature Additions ────────────────── */
 function setupFeatureHandlers(){
-  // Nearby mode
-  addClick('nearby-btn', openNearbyModal);
-  addClick('nearby-close-btn', closeNearbyModal);
-  addClick('offline-scan-peer-btn', function(){ closeNearbyModal(); openQRModal('scan'); });
-
   // Low data & Ghost mode settings switches
   addClick('lowdata-sw', function(){ toggleSetting('lowData'); });
   addClick('ghost-sw', function(){ toggleSetting('ghostMode'); });
@@ -9452,9 +9321,6 @@ function handleAppBackButton(e){
   if(ctx&&ctx.classList.contains('show')){closeCtx();return;}
 
   // 5. Active sheets and modals
-  var nearModal=document.getElementById('nearby-modal');
-  if(nearModal&&nearModal.classList.contains('show')){closeNearbyModal();return;}
-
   var expModal=document.getElementById('export-data-modal');
   if(expModal&&expModal.classList.contains('show')){closeExportModal();return;}
 
@@ -9473,8 +9339,6 @@ function handleAppBackButton(e){
   var qrModal=document.getElementById('qr-modal');
   if(qrModal&&qrModal.classList.contains('show')){closeQRModal();return;}
 
-  var bcModal=document.getElementById('broadcast-modal');
-  if(bcModal&&bcModal.classList.contains('show')){closeBroadcastModal();return;}
 
   var promptModal=document.getElementById('generic-prompt-modal');
   if(promptModal&&promptModal.classList.contains('show')){var pb=document.getElementById('generic-prompt-cancel-btn');if(pb)pb.click();else promptModal.classList.remove('show');return;}

@@ -47,6 +47,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(VahinPermissionsPlugin.class);
+        registerPlugin(VahinScreenSharePlugin.class);
         super.onCreate(savedInstanceState);
         activeInstance = this;
 

@@ -84,6 +84,19 @@
                 <action android:name="android.telecom.ConnectionService" />
             </intent-filter>
         </service>
+
+        <!-- Screen-share capture: Android WebView has no native getDisplayMedia()
+             support (unlike Chrome), so real screen sharing needs MediaProjection
+             run from a genuine foreground service. This service owns the
+             MediaProjection/VirtualDisplay/ImageReader capture loop and streams
+             frames back to VahinScreenSharePlugin, which feeds them into the call's
+             WebRTC video track from the JS side. Must run in-call only, started
+             directly by the user tapping "Share Screen" (system permission dialog
+             is shown first), never in the background unprompted. -->
+        <service
+            android:name=".ScreenCaptureService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
     </application>
 
     <!-- Permissions -->
@@ -100,6 +113,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
