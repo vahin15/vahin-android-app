@@ -5801,6 +5801,12 @@ function handleRemoteStream(rs,mc,isCaller,pid){
     Capacitor.Plugins.VahinPermissions.setSpeakerphoneOn({on:true}).catch(function(){});
   }
   startCallTimer();startQual();
+  var statusEl=document.getElementById('call-status');
+  if(statusEl)statusEl.textContent='Connected ✓';
+  var outWrap=document.getElementById('outgoing-wrap');
+  if(outWrap)outWrap.classList.remove('show');
+  var incOverlay=document.getElementById('incoming-overlay');
+  if(incOverlay)incOverlay.classList.remove('show');
   if(mc)monitorCallConnection(mc);
 }
 
@@ -5810,18 +5816,12 @@ function setupMediaConnectionEvents(mc,pid,voiceOnly,isCaller){
   function onStream(rs){
     if(streamHandled&&document.getElementById('video-remote').srcObject===rs)return;
     streamHandled=true;
-    diagLog('ℹ️ '+(isCaller?'placeCallAttempt':'acceptCall')+': SDP-level stream received — waiting for real ICE connectivity');
+    diagLog('ℹ️ '+(isCaller?'placeCallAttempt':'acceptCall')+': SDP-level stream received — connecting media');
     handleRemoteStream(rs,mc,isCaller,pid);
     if(isCaller){logCall(pid,'connected','out');}
   }
   mc.on('stream',onStream);
-  // FIX (still zero 🧊 candidate logs even after the earlier timing fix): checking
-  // mc.peerConnection ONCE, synchronously, right here is itself a race — PeerJS
-  // creates the real RTCPeerConnection a tick or more AFTER call()/answer() returns,
-  // especially on the caller side. A single synchronous check can miss it entirely
-  // and fall through to the "delayed" branch with nothing ever following up, which
-  // is exactly what silently skipped ICE monitoring on this call. Poll briefly
-  // instead of checking once, so monitoring attaches the moment pc actually exists.
+  // Poll briefly for RTCPeerConnection to attach event listeners and monitor
   var pcWaitAttempts=0;
   (function waitForPeerConnection(){
     if(mc.peerConnection){
@@ -5858,7 +5858,9 @@ function setupMediaConnectionEvents(mc,pid,voiceOnly,isCaller){
   mc.on('close',function(){
     diagLog('ℹ️ '+(isCaller?'placeCallAttempt':'acceptCall')+': MediaConnection closed');
     clearIceCandidateBuffer(pid||(mc&&mc.peer));
-    endCall();
+    if(currentCall===mc){
+      endCall();
+    }
   });
   mc.on('error',function(err){
     diagLog('⚠️ MediaConnection error: '+(err&&err.message?err.message:err));
@@ -5998,27 +6000,20 @@ function monitorCallConnection(mc){
     },RETRY_INTERVAL_MS);
   }
 
-  // BUG (the intermittent "relay error"): if ICE stays in checking/new and never
-  // formally transitions to 'disconnected' or 'failed' — exactly what a slow/flaky
-  // TURN allocation looks like — NONE of the retry logic below ever engaged, because
-  // schedulePeriodicRetry() and the give-up timer only ever got wired up inside the
-  // disconnected/failed branches of iceconnectionstatechange. A stuck 'checking' call
-  // got exactly one relay kickstart at 3.5s and then silence forever: no further
-  // retries, no give-up, no clean failure — it just hung until something unrelated
-  // eventually killed it. Give 'checking/new' the same ongoing recovery treatment as
-  // disconnected/failed instead of a single one-shot attempt.
+  // Only run fallback checking recovery after the call has been answered (not while waiting for ringing)
   checkingFallbackTimer=setTimeout(function(){
     if(iceEverConnected)return;
+    if(!outCallConnected)return; // still ringing — do not restart ICE while waiting for answer
     var st0=pc.iceConnectionState;
-    if(st0!=='checking'&&st0!=='new')return;
-    diagLog('⚡ ICE initial check taking >3.5s — kickstarting TURN relay candidate pairing');
+    if(st0!=='checking'&&st0!=='new'&&st0!=='disconnected')return;
+    diagLog('⚡ ICE check taking long after answer — attempting relay configuration');
     recoverySuppressingClose=true;
     if(!recoveryStartedAt)recoveryStartedAt=Date.now();
     forceRelayRestart();
     forcedRelayAttempted=true;
     schedulePeriodicRetry(false);
     armGiveUpCheck();
-  },3500);
+  },15000);
 
   try{
     pc.addEventListener('icecandidate',function(e){
@@ -6047,14 +6042,6 @@ function monitorCallConnection(mc){
     iceEverConnected=true;recoveryStartedAt=0;
     reconnectAttempted=false;forcedRelayAttempted=false;giveUpToastShown=false;clearRecoveryTimers();
     recoverySuppressingClose=false;
-    // FIX (silent TURN-quota drain): forceRelayRestart() sets iceTransportPolicy='relay'
-    // to force a stuck call through TURN. It never got reverted, so ONE bad network
-    // moment early in a call permanently pinned that call's RTCPeerConnection to
-    // TURN-only — even after a faster/free direct path became available again — quietly
-    // burning through the free-tier TURN quotas (1000GB/mo ExpressTURN, 20GB/mo
-    // Metered.ca) for no reason on every call it had ever touched. The instant we get a
-    // real, confirmed connection, release the relay-only restriction so ICE is free to
-    // use a direct/STUN path again on any future renegotiation.
     try{
       var cfgNow=(typeof pc.getConfiguration==='function')?pc.getConfiguration():null;
       if(cfgNow&&cfgNow.iceTransportPolicy==='relay'){
@@ -6066,6 +6053,10 @@ function monitorCallConnection(mc){
     stopOutTone();markOutCallConnected();
     var statusEl=document.getElementById('call-status');
     if(statusEl)statusEl.textContent='Connected ✓';
+    var outWrap=document.getElementById('outgoing-wrap');
+    if(outWrap)outWrap.classList.remove('show');
+    var incOverlay=document.getElementById('incoming-overlay');
+    if(incOverlay)incOverlay.classList.remove('show');
     diagLog('✅ Real WebRTC connection established — call is live');
     logSelectedCandidatePair();
   }
@@ -6084,17 +6075,17 @@ function monitorCallConnection(mc){
         if(pc.iceConnectionState!=='disconnected')return;
         if(!reconnectAttempted&&typeof pc.restartIce==='function'){
           reconnectAttempted=true;
-          diagLog('🔄 disconnected at 1.5s — fast restartIce()');
+          diagLog('🔄 disconnected at 2.5s — fast restartIce()');
           try{pc.restartIce();}catch(e){diagLog('⚠️ restartIce() threw: '+(e&&e.message?e.message:e));}
         }
-      },1500);
+      },2500);
       relayRetryTimer=setTimeout(function(){
         if((pc.iceConnectionState==='disconnected'||pc.iceConnectionState==='failed')&&!forcedRelayAttempted){
           forcedRelayAttempted=true;
-          diagLog('🔄 still disconnected at 4s — forcing TURN relay');
+          diagLog('🔄 still disconnected at 6s — forcing TURN relay');
           forceRelayRestart();
         }
-      },4000);
+      },6000);
       schedulePeriodicRetry(true);
       armGiveUpCheck();
     }else if(st==='failed'){
@@ -6121,6 +6112,12 @@ function monitorCallConnection(mc){
       if(pc.connectionState==='connected')handleConnectionSuccess();
     });
   }
+  // Immediate check of current connection states upon attaching
+  try{
+    if(pc.iceConnectionState==='connected'||pc.iceConnectionState==='completed'||(typeof pc.connectionState!=='undefined'&&pc.connectionState==='connected')){
+      handleConnectionSuccess();
+    }
+  }catch(e){}
 }
 function placeCallAttempt(pid,voiceOnly){
   if(!localStream)return;
@@ -6245,6 +6242,9 @@ async function acceptCall(){
     var stream=await takePreWarmedStream(callIsVoiceOnly,facingMode);localStream=stream;
     diagLog('✅ acceptCall: got local stream — answering the WebRTC call now');
     var lv=document.getElementById('video-local');lv.srcObject=localStream;applyMirror(lv,facingMode);
+    showScreen('screen-call');setVoiceMode(callIsVoiceOnly,callPeerId);
+    document.getElementById('call-peer-name').textContent=callPeerId;
+    var outWrap=document.getElementById('outgoing-wrap');if(outWrap)outWrap.classList.remove('show');
     incomingCall.answer(localStream);currentCall=incomingCall;hideCallChat();
     document.getElementById('call-status').textContent='Connecting…';
     // Send immediate call-accept signal over data channel
