@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import android.util.Base64;
+import android.util.Log;
 
 @CapacitorPlugin(
     name = "VahinPermissions",
