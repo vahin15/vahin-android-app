@@ -6,6 +6,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
@@ -315,6 +318,116 @@ public class VahinPermissionsPlugin extends Plugin {
         AppState.setPeerReady(connected);
         DebugLog.log("AppState", "setPeerConnected: " + connected);
         call.resolve();
+    }
+
+    // FIX (ROOT CAUSE of "voice not going through even though the call connects"):
+    // the web layer (index.html) has always called
+    // Capacitor.Plugins.VahinPermissions.setSpeakerphoneOn() the moment a call's media
+    // connects, and again whenever the user taps the Speaker button — but this native
+    // method never actually existed. Capacitor's JS plugin proxy doesn't care whether a
+    // native method exists (it dynamically proxies ANY method name), so the JS-side
+    // truthy check `Capacitor.Plugins.VahinPermissions.setSpeakerphoneOn` always passed
+    // and the call was sent to native — which had nothing registered for it, silently
+    // rejected the promise, and the JS ".catch(function(){})" swallowed that rejection
+    // completely. Net effect: the app never once actually switched Android's real audio
+    // route. On many devices the WebView's own WebRTC audio session ends up parked on
+    // the earpiece (very quiet, easy to mistake for "no audio at all" when the phone
+    // isn't held right up to your ear) instead of the loudspeaker the UI's Speaker
+    // button claims is on — and because AudioManager's mode was also never switched to
+    // MODE_IN_COMMUNICATION or given real audio focus, that routing could be further
+    // disturbed by whatever the OS/other apps last left the audio session in, which
+    // fits "the last two to three times" — this wasn't a one-off crash, it was a
+    // silently-broken feature the whole time, just intermittently masked depending on
+    // whatever state the phone's audio system happened to already be in.
+    @PluginMethod
+    public void setSpeakerphoneOn(PluginCall call) {
+        boolean on = call.getBoolean("on", true);
+        try {
+            AudioManager am = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+            if (am == null) {
+                call.reject("AudioManager unavailable");
+                return;
+            }
+            // A live call must run in MODE_IN_COMMUNICATION — this is what tells
+            // Android "this is a voice call", which is what actually makes the
+            // earpiece/speaker split (and echo cancellation) work correctly. Without
+            // it the WebView's audio track can end up treated like ordinary media
+            // playback, with no reliable, controllable route at all.
+            am.setMode(AudioManager.MODE_IN_COMMUNICATION);
+            requestCallAudioFocus(am);
+            am.setSpeakerphoneOn(on);
+            Log.d(TAG_AUDIO, "setSpeakerphoneOn: on=" + on + " mode set to MODE_IN_COMMUNICATION");
+            call.resolve(new JSObject().put("success", true));
+        } catch (Exception e) {
+            Log.e(TAG_AUDIO, "setSpeakerphoneOn: exception — " + e.getMessage(), e);
+            call.reject("setSpeakerphoneOn failed: " + e.getMessage());
+        }
+    }
+
+    // Called from index.html's endCall()/endConf() once a call is fully over — puts
+    // AudioManager back to its normal (non-call) state. Skipping this after a call was
+    // the other half of the same bug class: leaving the device stuck in
+    // MODE_IN_COMMUNICATION with an unreleased audio focus grant between calls, which
+    // is exactly the kind of leftover state that would make audio increasingly
+    // unreliable across "the last two to three calls" rather than failing the same way
+    // every time.
+    @PluginMethod
+    public void resetAudioRouting(PluginCall call) {
+        try {
+            AudioManager am = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+            if (am != null) {
+                am.setSpeakerphoneOn(false);
+                am.setMode(AudioManager.MODE_NORMAL);
+                abandonCallAudioFocus(am);
+                Log.d(TAG_AUDIO, "resetAudioRouting: mode reset to MODE_NORMAL, focus abandoned");
+            }
+        } catch (Exception e) {
+            Log.w(TAG_AUDIO, "resetAudioRouting: exception — " + e.getMessage());
+        }
+        call.resolve();
+    }
+
+    private static final String TAG_AUDIO = "VahinAudioRouting";
+    private static AudioFocusRequest activeFocusRequest;
+    private static final AudioManager.OnAudioFocusChangeListener NOOP_FOCUS_LISTENER =
+        focusChange -> { /* we hold focus for the duration of the call; nothing to react to */ };
+
+    private void requestCallAudioFocus(AudioManager am) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                AudioAttributes attrs = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build();
+                activeFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                    .setAudioAttributes(attrs)
+                    .setOnAudioFocusChangeListener(NOOP_FOCUS_LISTENER)
+                    .build();
+                am.requestAudioFocus(activeFocusRequest);
+            } else {
+                //noinspection deprecation
+                am.requestAudioFocus(NOOP_FOCUS_LISTENER, AudioManager.STREAM_VOICE_CALL,
+                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+            }
+        } catch (Exception e) {
+            Log.w(TAG_AUDIO, "requestCallAudioFocus: exception — " + e.getMessage());
+        }
+    }
+
+    private void abandonCallAudioFocus(AudioManager am) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (activeFocusRequest != null) {
+                    am.abandonAudioFocusRequest(activeFocusRequest);
+                    activeFocusRequest = null;
+                }
+            } else {
+                //noinspection deprecation
+                am.abandonAudioFocus(NOOP_FOCUS_LISTENER);
+            }
+        } catch (Exception e) {
+            Log.w(TAG_AUDIO, "abandonCallAudioFocus: exception — " + e.getMessage());
+        }
     }
 
     /**

@@ -2751,7 +2751,21 @@ function boot(){
   var onboarded=localStorage.getItem(SK.ONBOARDED);
   if(saved){
     myId=saved;loadAll();enterApp();
-    if(appLock&&appLock.enabled&&appLock.pin&&!appUnlocked){showAppLockScreen();}
+    /* FIX (root cause of "PIN screen blocks incoming calls, call never connects"):
+       boot() used to show the app-lock PIN screen unconditionally and SYNCHRONOUSLY,
+       before drainPendingNativeAction() (a few lines below, at the bottom of this
+       file) ever gets a chance to run. On a cold start where the user tapped Answer
+       on a native incoming-call notification, MainActivity has already written the
+       pending accept/decline into window.__vahinPendingNativeAction — but boot() ran
+       first and showed the PIN screen anyway, permanently covering the call UI with
+       no way to answer. Checking that mailbox here, before deciding whether to lock,
+       closes that race: a call being answered/declined/missed always wins over the
+       PIN prompt. (Belt-and-suspenders: handleNativeCallAction() and showIncoming()
+       also force-hide the lock screen directly, covering the case where a call
+       arrives while the app is already open and sitting on the PIN screen.) */
+    var _pna=window.__vahinPendingNativeAction;
+    var _hasPendingCallAction=!!(_pna&&_pna.action&&/^(accept|decline|missed|end)$/.test(_pna.action));
+    if(appLock&&appLock.enabled&&appLock.pin&&!appUnlocked&&!_hasPendingCallAction){showAppLockScreen();}
   }
   else if(!onboarded){showScreen('screen-onboard');obRender();}
   else{showScreen('screen-id');}
@@ -3250,6 +3264,12 @@ function probePeerPresence(pid){
       updateDots(pid);
       if(!isBlocked(pid)){
         try{var st=activeMyStatusesForSync();if(st.length)probe.send({type:'status-sync',statuses:st});}catch(e){}
+        /* Piggyback pending group membership on the periodic presence check too —
+           this is what actually catches someone coming back online after being
+           offline for a while, since checkPresence() runs every 25s for known
+           contacts regardless of whether a real DM/call connection happens to open.
+           See syncGroupsOnConnOpen's comment for the full reasoning. */
+        syncGroupsOnConnOpen(probe);
       }
       setTimeout(function(){try{probe.close();}catch(e){}},700);
     });
@@ -3879,7 +3899,7 @@ function connectGroupMember(gid,pid){
    problem because sendMsg()'s dm branch uses connectWithWake(), which retries the
    connect every 1.5s for up to 40s specifically to ride out that wake-up race. This
    gives group traffic the exact same treatment. */
-function connectGroupMemberReliable(gid,pid,onOpen,onFail){
+function connectGroupMemberReliable(gid,pid,onOpen,onFail,maxWaitMs){
   if(!groupConnsByGid[gid])groupConnsByGid[gid]={};
   var existing=groupConnsByGid[gid][pid];
   if(existing&&existing.open){onOpen(existing);return;}
@@ -3888,7 +3908,7 @@ function connectGroupMemberReliable(gid,pid,onOpen,onFail){
     conn.on('data',function(data){handleData(pid,data,conn);});
     conn.on('error',function(){});
     onOpen(conn);
-  },onFail,40000,{groupId:gid});
+  },onFail,maxWaitMs||40000,{groupId:gid});
 }
 // Sends this group's current name+member list to every member (except self) — used
 // on create, rename, add member, remove member, and leave, so every device converges
@@ -3907,10 +3927,21 @@ function broadcastGroupState(gid){
 function sendGroupInvite(gid,pid){
   var g=groups[gid];if(!g)return;
   var payload={type:'group-invite',groupId:gid,name:g.name,members:g.members,createdBy:g.createdBy};
+  /* FIX: bumped from the default 40s wait to 70s — this app's own cold-boot timing
+     (FCM wake -> process start -> Capacitor bridge -> PeerJS reconnect) is documented
+     elsewhere as routinely taking 35-50s on real devices, so a 40s delivery attempt
+     was frequently losing that race by design, not by bad luck. This alone won't
+     catch every offline case (see syncGroupsOnConnOpen for the durable fix), but it
+     meaningfully raises the odds of the very first invite landing. */
   connectGroupMemberReliable(gid,pid,function(conn){try{conn.send(payload);}catch(e){}},function(){
-    diagLog('⚠️ Could not reach '+pid+' P2P for group invite — relying on server wake-up alone');
-  });
+    diagLog('⚠️ Could not reach '+pid+' P2P for group invite — relying on server wake-up + future reconnect sync');
+  },70000);
   notifyPeerGroupInvite(pid,gid,g.name,g.members,g.createdBy);
+  /* Make sure this member is in recentPeers even if we've never DM'd them — otherwise
+     the periodic presence check (checkPresence(), every 25s) never probes them at
+     all, and syncGroupsOnConnOpen's catch-up sync (piggybacked on that probe) would
+     never get a chance to fire once they come back online. */
+  addRecentSilent(pid);
 }
 function createGroup(name,members){
   var gid=genGroupId();
@@ -5024,6 +5055,38 @@ function receiveStatus(from,s){
 function syncStatusOnConnOpen(conn){
   if(!conn||conn.metadata&&conn.metadata.type==='presence')return;
   try{conn.send({type:'status-sync',statuses:activeMyStatusesForSync()});}catch(e){}
+  syncGroupsOnConnOpen(conn);
+}
+/* FIX (root cause of "group doesn't reach everyone if they weren't online at
+   creation time"): the only delivery path for a new group used to be a single P2P
+   attempt (connectWithWake, up to ~40s) plus an FCM push that ONLY shows a
+   notification — it never actually carries the group's member list/name into the
+   offline member's local storage (see VahinMessagingService.java's group-invite/
+   group-msg handling). If that one P2P attempt lost the race against how long the
+   offline member's device actually takes to wake up (documented elsewhere in this
+   file as routinely 35-50s on a real cold start), the group was silently never
+   delivered — the member would see a notification, tap it, and land on an empty
+   Groups list with no trace anything happened, while the group worked fine for
+   everyone else. This makes group membership self-healing instead of "one shot":
+   any time we open ANY live P2P connection with someone (a DM, a call, a presence
+   check) — for every group we're in, if pid is also a member, just resend them the
+   full group-invite payload. It's idempotent (the receiver merges/creates from it
+   the same way either way), cheap, and means a member converges on the correct
+   group membership the very next time they're reachable at all, not just the first
+   40 seconds after the group was created. */
+var _lastGroupSyncTo={};
+function syncGroupsOnConnOpen(conn){
+  var pid=conn&&conn.peer;
+  if(!pid||pid===myId)return;
+  var now=Date.now();
+  if(_lastGroupSyncTo[pid]&&(now-_lastGroupSyncTo[pid])<60000)return; // throttle: once/min per peer
+  _lastGroupSyncTo[pid]=now;
+  Object.keys(groups).forEach(function(gid){
+    var g=groups[gid];
+    if(g&&g.members&&g.members.indexOf(pid)!==-1){
+      try{conn.send({type:'group-invite',groupId:gid,name:g.name,members:g.members,createdBy:g.createdBy});}catch(e){}
+    }
+  });
 }
 function hasUnviewedStatuses(){
   return Object.keys(peerStatuses).some(function(pid){return (peerStatuses[pid]||[]).some(function(s){return !s.viewed;});});
@@ -5908,6 +5971,7 @@ function monitorCallConnection(mc){
   if(mc._monitorAttached)return; // already watching this call's ICE — avoid double listeners
   mc._monitorAttached=true;
   var pc=mc.peerConnection;
+  mc.on('close',function(){try{stopMediaWatchdog();}catch(e){}});
   // FIX (relay error still happens intermittently even with retry logic in place):
   // PeerJS's OWN internal oniceconnectionstatechange handler (inside peerjs.min.js)
   // calls mc.close() the instant iceConnectionState hits 'failed' — and that close()
@@ -6014,6 +6078,62 @@ function monitorCallConnection(mc){
     },RETRY_INTERVAL_MS);
   }
 
+  // FIX (root cause of "the call connects but voice — and video along with it —
+  // never comes through"): everything above this point only reacts to ICE STATE
+  // (connecting/disconnected/failed). It has no way to notice the one case that
+  // matches exactly what's being reported: iceConnectionState genuinely reaches
+  // 'connected' (so the UI correctly shows "Connected ✓", and nothing above ever
+  // fires) but real audio/video RTP packets never actually start flowing — a known
+  // WebRTC failure mode on some carrier-grade NAT/TURN paths, where the control
+  // plane (ICE consent checks) succeeds but the actual media plane silently stays
+  // empty. Since audio AND video are two tracks on the SAME underlying transport,
+  // this explains why both go silent together instead of just one. This watchdog
+  // is the missing check: once ICE says "connected", start actually counting
+  // inbound RTP bytes. If that count is flat for two checks in a row (~10s) while
+  // ICE still claims to be connected, that's the exact "connected but silent" state
+  // — recover by re-attaching the remote stream (forces the <video> element to
+  // re-bind/re-render its tracks) and forcing the same TURN-relay ICE restart
+  // already used for genuine disconnects, since a full relay restart is the most
+  // reliable way to re-establish an actually-flowing media path.
+  var mediaWatchdogTimer=null,_mwLastBytes=null,_mwSilentStreak=0;
+  function startMediaWatchdog(){
+    stopMediaWatchdog();
+    _mwLastBytes=null;_mwSilentStreak=0;
+    mediaWatchdogTimer=setInterval(async function(){
+      if(!pc||(pc.iceConnectionState!=='connected'&&pc.iceConnectionState!=='completed'))return;
+      try{
+        var stats=await pc.getStats();
+        var totalBytes=0,hasInbound=false;
+        stats.forEach(function(r){
+          if(r.type==='inbound-rtp'&&(r.kind==='audio'||r.kind==='video')){
+            hasInbound=true;totalBytes+=(r.bytesReceived||0);
+          }
+        });
+        if(!hasInbound)return; // stats not populated yet — too early to judge
+        if(_mwLastBytes!==null&&totalBytes<=_mwLastBytes){
+          _mwSilentStreak++;
+          if(_mwSilentStreak===2){
+            diagLog('🔇 ICE reports connected but 0 inbound media bytes for ~10s — recovering (re-binding stream + forcing relay restart)');
+            try{
+              var rv=document.getElementById('video-remote');
+              if(rv&&rv.srcObject){
+                var s=rv.srcObject;rv.srcObject=null;
+                requestAnimationFrame(function(){rv.srcObject=s;try{rv.play().catch(function(){});}catch(e){}});
+              }
+            }catch(e){}
+            forceRelayRestart();
+          }
+        }else{
+          _mwSilentStreak=0;
+        }
+        _mwLastBytes=totalBytes;
+      }catch(e){}
+    },5000);
+  }
+  function stopMediaWatchdog(){
+    if(mediaWatchdogTimer){clearInterval(mediaWatchdogTimer);mediaWatchdogTimer=null;}
+  }
+
   try{
     pc.addEventListener('icecandidate',function(e){
       if(!e.candidate)return;
@@ -6058,6 +6178,7 @@ function monitorCallConnection(mc){
     if(incOverlay)incOverlay.classList.remove('show');
     diagLog('✅ Real WebRTC connection established — call is live');
     logSelectedCandidatePair();
+    startMediaWatchdog();
   }
   pc.addEventListener('iceconnectionstatechange',function(){
     var st=pc.iceConnectionState;
@@ -6145,6 +6266,7 @@ function handlePeerUnavailable(){
 }
 function showIncoming(pid,kind){
   weAreCaller=false;outCallConnected=false;
+  bypassAppLockForCall();
   /* FIX (duplicate ring popup when both already online): a direct P2P peer.on('call')
      firing here means the callee's app is foregrounded and reachable RIGHT NOW — the
      in-app ring UI below is already showing. The FCM wake-up ping is still sent in
@@ -6315,6 +6437,13 @@ function endCall(){
      unconditionally. */
   try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.VahinPermissions&&callPeerId){
     window.Capacitor.Plugins.VahinPermissions.dismissCallNotification({from:callPeerId});
+  }}catch(e){}
+  /* FIX (audio routing bug — see setSpeakerphoneOn native method): puts AudioManager
+     back to MODE_NORMAL and releases the call's audio focus grant every time a call
+     ends, so leftover call-audio state can never leak into whatever the phone does
+     next (including the next Unifest call). */
+  try{if(window.Capacitor&&window.Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions&&Capacitor.Plugins.VahinPermissions.resetAudioRouting){
+    Capacitor.Plugins.VahinPermissions.resetAudioRouting().catch(function(){});
   }}catch(e){}
   /* FIX 7: send explicit hangup signals over data connections before closing them.
      PeerJS's own close-propagation on the MediaConnection isn't reliable — the 'close'
@@ -6547,6 +6676,13 @@ function addConfSlot(pid,stream){
   var lbl=document.createElement('div');lbl.className='slot-label';lbl.textContent=pid;
   slot.appendChild(v);slot.appendChild(lbl);document.getElementById('conf-grid').appendChild(slot);
   updateConfGrid();
+  /* Same native audio-routing fix as 1:1 calls (see setSpeakerphoneOn) — without this,
+     conference call audio was left on whatever route the OS happened to already be in,
+     same root cause as regular calls going silent. Only needs to fire once per
+     conference (idempotent to call again for each new participant, but harmless). */
+  try{if(window.Capacitor&&window.Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions&&Capacitor.Plugins.VahinPermissions.setSpeakerphoneOn){
+    Capacitor.Plugins.VahinPermissions.setSpeakerphoneOn({on:true}).catch(function(){});
+  }}catch(e){}
 }
 function removeConfSlot(pid){
   var el=document.getElementById('cslot_'+pid);if(el)el.remove();
@@ -6561,6 +6697,9 @@ function updateConfGrid(){
   document.getElementById('conf-sub').textContent=ex===0?'You only':ex===1?'You + 1 person':'You + '+ex+' people';
 }
 function endConf(){
+  try{if(window.Capacitor&&window.Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions&&Capacitor.Plugins.VahinPermissions.resetAudioRouting){
+    Capacitor.Plugins.VahinPermissions.resetAudioRouting().catch(function(){});
+  }}catch(e){}
   stopScreenSharing(true);
   Object.values(confCalls).forEach(function(mc){try{if(mc)mc.close();}catch(e){}});
   Object.values(confConns).forEach(function(c){try{if(c)c.close();}catch(e){}});
@@ -7571,6 +7710,7 @@ function requestCallRedeliver(from){
    tap, guard against processing the exact same action twice in a row. */
 var lastNativeActionKey=null,lastNativeActionAt=0;
 function handleNativeCallAction(action,from,groupId){
+  if(action==='accept'||action==='decline'||action==='missed'||action==='end'){bypassAppLockForCall();}
   var _key=action+'|'+from;
   var _now=Date.now();
   if(_key===lastNativeActionKey&&(_now-lastNativeActionAt)<4000){
@@ -8323,6 +8463,22 @@ function toggleBiometricLock(){
   updateAppLockUI();
   toast(appLock.biometric?'Biometric unlock enabled':'Biometric unlock disabled');
 }
+/* FIX (PIN screen blocking calls): force-hides the app-lock PIN overlay without
+   marking the app "unlocked" — the rest of the app stays locked, only the call UI
+   underneath is freed up. Called from handleNativeCallAction() (native Answer/
+   Decline/Missed/End) and showIncoming() (a live P2P call arriving while the app is
+   foregrounded), so a ring or an active call can never be stuck behind the PIN
+   prompt regardless of which path it arrived through. Safe/cheap to call even when
+   the lock screen isn't showing. */
+function bypassAppLockForCall(){
+  try{
+    var lockEl=document.getElementById('app-lock-screen');
+    if(lockEl&&lockEl.classList.contains('show')){
+      lockEl.classList.remove('show');
+      diagLog('🔓 Bypassed PIN lock screen for an incoming/active call');
+    }
+  }catch(e){}
+}
 function showAppLockScreen(){
   enteredPin='';
   updateLockDots();
@@ -8388,7 +8544,10 @@ document.addEventListener('visibilitychange',function(){
     // by an incoming call — the PIN screen was covering the ringing UI and blocking
     // the user from ever answering. Skip the lock while a call is ringing or live;
     // it'll still lock normally the next time the app is opened with no call active.
-    if(incomingCall||currentCall)return;
+    /* Also skip while a native call action is pending replay (accept tapped, PeerJS
+       call hasn't arrived yet — see handleNativeCallAction) so the lock screen can't
+       jump in during that short window either. */
+    if(incomingCall||currentCall||pendingNativeAction)return;
     if(appLock.enabled&&appLock.pin&&!appUnlocked){
       showAppLockScreen();
     }
