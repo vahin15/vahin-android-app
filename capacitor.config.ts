@@ -1,7 +1,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.vahin.unifest',
+  appId: 'com.vahin.unifest2',
   appName: 'Unifest',
   webDir: 'www',
   server: {

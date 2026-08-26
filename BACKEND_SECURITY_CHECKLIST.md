@@ -35,7 +35,7 @@ app.get('/api/version', (req, res) => {
     latest_version_code: 1,
     latest_version_name: "1.0",
     force_update: false,
-    update_url: "https://play.google.com/store/apps/details?id=com.vahin.unifest",
+    update_url: "https://play.google.com/store/apps/details?id=com.vahin.unifest2",
     message: "A new version of Unifest is available with performance and security improvements."
   });
 });

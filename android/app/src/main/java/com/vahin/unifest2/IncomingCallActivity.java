@@ -1,4 +1,4 @@
-package com.vahin.unifest;
+package com.vahin.unifest2;
 
 import android.app.KeyguardManager;
 import android.content.BroadcastReceiver;
@@ -46,7 +46,7 @@ public class IncomingCallActivity extends AppCompatActivity {
     private static final String TAG = "IncomingCallActivity";
 
     /** Broadcast sent by VahinConnection.onAbort() when the caller hangs up mid-ring. */
-    public static final String ACTION_CALL_CANCELLED = "com.vahin.unifest.CALL_CANCELLED";
+    public static final String ACTION_CALL_CANCELLED = "com.vahin.unifest2.CALL_CANCELLED";
 
     private MediaPlayer ringtonePlayer;
     private Vibrator vibrator;

@@ -9,7 +9,26 @@
       "client_info": {
         "mobilesdk_app_id": "1:877018616752:android:7144783551cc8ec7133c75",
         "android_client_info": {
-          "package_name": "com.vahin.unifest"
+          "package_name": "com.vahin.connect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDgrQoTDZYlzdlL6Kl4i9-Tya-twpjiOJM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:877018616752:android:603ba1f33a5a67cb133c75",
+        "android_client_info": {
+          "package_name": "com.vahin.unifest2"
         }
       },
       "oauth_client": [],

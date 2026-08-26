@@ -1,4 +1,4 @@
-package com.vahin.unifest;
+package com.vahin.unifest2;
 
 /**
  * Tiny shared flags read by VahinMessagingService to decide whether an incoming
