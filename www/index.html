@@ -2741,7 +2741,7 @@ function applyAdmobBannerVisible(show){
       if(admobBannerStarted)AdMobP.resumeBanner().catch(function(){});
       else{
         admobBannerStarted=true;
-        AdMobP.showBanner({adId:'ca-app-pub-6297134793449432/6716447548',adSize:'BANNER',position:'BOTTOM_CENTER',margin:0}).catch(function(){admobBannerStarted=false;});
+        AdMobP.showBanner({adId:'ca-app-pub-6297134793449432/4357183958',adSize:'BANNER',position:'BOTTOM_CENTER',margin:0}).catch(function(){admobBannerStarted=false;});
       }
     }else if(admobBannerStarted){
       /* FIX (call-controls black tint): hideBanner() failing silently left the native ad

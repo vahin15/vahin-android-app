@@ -11,10 +11,10 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <!-- AdMob App ID (Unifest) -->
+        <!-- AdMob App ID (Unifest2 — registered separately from the original Unifest app) -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-6297134793449432~6078153294"/>
+            android:value="ca-app-pub-6297134793449432~5620390662"/>
 
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
