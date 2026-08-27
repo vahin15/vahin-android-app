@@ -98,23 +98,16 @@ public class MainActivity extends BridgeActivity {
         // this (REQUEST_IGNORE_BATTERY_OPTIMIZATIONS); OEM "autostart"/"protected apps"
         // screens have no public API, so we best-effort deep-link to each vendor's known
         // settings screen and silently do nothing if it's not present on the device.
-        new Handler(Looper.getMainLooper()).postDelayed(this::maybePromptBatteryExemption, 1200);
-        new Handler(Looper.getMainLooper()).postDelayed(this::maybePromptFullScreenIntent, 1600);
+        new Handler(Looper.getMainLooper()).postDelayed(this::maybePromptBatteryExemption, 4000);
 
         handleIntentExtras(getIntent());
     }
 
-    // FIX FOR USERS: re-check on every resume, not just cold start. This covers two
-    // cases the old onCreate-only check missed: (1) the user grants the permission in
-    // Settings and taps back — we want that reflected immediately, not on next cold
-    // launch; (2) the user reopens the app days later still without having granted it —
-    // the cooldown inside maybePromptFullScreenIntent() decides whether to re-ask, so
-    // this is safe to call on every resume without becoming a nag on every single one.
+    private boolean isShowingPermissionDialog = false;
+
     @Override
     public void onResume() {
         super.onResume();
-        maybePromptFullScreenIntent();
-        maybePromptBatteryExemption();
     }
 
     // FIX (redundant native ring when both phones are already online): onStart/onStop
@@ -150,16 +143,16 @@ public class MainActivity extends BridgeActivity {
     // digging through phone settings unprompted. Since this permission is not optional
     // (calling literally cannot ring without it), we now re-prompt on a cooldown instead
     // of a one-shot ask, until the user actually grants it.
-    private static final long FSI_PROMPT_COOLDOWN_MS = 24 * 60 * 60 * 1000L; // 24 hours
+    private static final long FSI_PROMPT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000L; // 7 days
 
     private void maybePromptFullScreenIntent() {
         if (Build.VERSION.SDK_INT < 34) return; // permission only exists / is restricted from API 34
-        if (isFinishing() || isDestroyed()) return;
+        if (isFinishing() || isDestroyed() || isShowingPermissionDialog) return;
 
         android.app.NotificationManager nm =
             (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
-        // FIX A: log the full-screen intent permission status so it's diagnosable
+        // log the full-screen intent permission status so it's diagnosable
         boolean canUse = nm != null && nm.canUseFullScreenIntent();
         Log.d(TAG, "maybePromptFullScreenIntent: canUseFullScreenIntent=" + canUse);
 
@@ -168,9 +161,10 @@ public class MainActivity extends BridgeActivity {
         android.content.SharedPreferences prefs = getSharedPreferences("vahin_prefs", Context.MODE_PRIVATE);
         long lastShown = prefs.getLong("fsi_prompt_last_shown", 0);
         long now = System.currentTimeMillis();
-        if (now - lastShown < FSI_PROMPT_COOLDOWN_MS) return; // asked recently — don't nag every launch
+        if (now - lastShown < FSI_PROMPT_COOLDOWN_MS) return; // asked recently — don't nag
 
         Log.w(TAG, "maybePromptFullScreenIntent: USE_FULL_SCREEN_INTENT not granted — prompting user");
+        isShowingPermissionDialog = true;
 
         new AlertDialog.Builder(this)
             .setTitle("Turn on full-screen calls")
@@ -178,6 +172,7 @@ public class MainActivity extends BridgeActivity {
                 "closed or your phone is locked — please allow \"Full screen notifications\" " +
                 "on the next screen. Takes a few seconds.")
             .setCancelable(true)
+            .setOnDismissListener(d -> isShowingPermissionDialog = false)
             .setPositiveButton("Allow", (d, w) -> {
                 prefs.edit().putLong("fsi_prompt_last_shown", now).apply();
                 try {
@@ -186,49 +181,45 @@ public class MainActivity extends BridgeActivity {
                     startActivity(intent);
                 } catch (Exception e) {
                     Log.w(TAG, "maybePromptFullScreenIntent: could not open settings — " + e.getMessage());
-                    // Some OEM builds may not expose this screen; nothing more we can do.
                 }
             })
             .setNegativeButton("Not now", (d, w) -> prefs.edit().putLong("fsi_prompt_last_shown", now).apply())
             .show();
     }
 
-    // FIX FOR USERS: previously this checked prefs.getBoolean("battery_prompt_shown")
-    // and, once true, NEVER looked at the real PowerManager state again — permanently,
-    // for the life of the install. That flag got set either on first successful grant
-    // OR on a single "Not now" tap OR simply because the app happened to already be
-    // exempt the first time this ran. None of those guarantee the exemption stays
-    // granted forever: a phone system/OS update, a manufacturer battery-manager reset,
-    // or the user later un-exempting the app in Settings can all silently revoke it —
-    // and this app had no way to notice, so ringing-while-closed would break with zero
-    // trace and no path back except the user digging through Settings unprompted. Now
-    // mirrors maybePromptFullScreenIntent()'s pattern: re-check the ACTUAL current
-    // state every resume, and only use a time cooldown (not a permanent flag) to avoid
-    // nagging on every single launch.
-    private static final long BATTERY_PROMPT_COOLDOWN_MS = 24 * 60 * 60 * 1000L; // 24 hours
+    private static final long BATTERY_PROMPT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000L; // 7 days
 
     private void maybePromptBatteryExemption() {
-        if (isFinishing() || isDestroyed()) return;
+        if (isFinishing() || isDestroyed() || isShowingPermissionDialog) return;
 
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         boolean alreadyIgnoring = pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
         Log.d(TAG, "maybePromptBatteryExemption: isIgnoringBatteryOptimizations=" + alreadyIgnoring);
-        if (alreadyIgnoring) return; // genuinely fine right now — nothing to do
+        if (alreadyIgnoring) {
+            maybePromptFullScreenIntent();
+            return;
+        }
 
         android.content.SharedPreferences prefs = getSharedPreferences("vahin_prefs", Context.MODE_PRIVATE);
         long lastShown = prefs.getLong("battery_prompt_last_shown", 0);
         long now = System.currentTimeMillis();
-        if (now - lastShown < BATTERY_PROMPT_COOLDOWN_MS) return; // asked recently — don't nag every launch
+        if (now - lastShown < BATTERY_PROMPT_COOLDOWN_MS) {
+            maybePromptFullScreenIntent();
+            return;
+        }
 
         Log.w(TAG, "maybePromptBatteryExemption: battery optimization is ON (not exempt) — prompting user");
+        isShowingPermissionDialog = true;
 
         new AlertDialog.Builder(this)
             .setTitle("Allow reliable ringing")
             .setMessage("To make sure calls ring even when Unifest is closed, please allow it " +
-                "to run without battery restrictions on the next screen. (If you already did this " +
-                "before, your phone's last update may have reset it — this can happen after system " +
-                "updates.)")
+                "to run without battery restrictions on the next screen.")
             .setCancelable(true)
+            .setOnDismissListener(d -> {
+                isShowingPermissionDialog = false;
+                maybePromptFullScreenIntent();
+            })
             .setPositiveButton("Allow", (d, w) -> {
                 prefs.edit().putLong("battery_prompt_last_shown", now).apply();
                 requestIgnoreBatteryOptimizations();

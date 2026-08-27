@@ -124,10 +124,28 @@ public class IncomingCallActivity extends AppCompatActivity {
             boolean isConf = getIntent().getBooleanExtra("isConf", false);
             Log.d(TAG, "onCreate: from=" + from + " isConf=" + isConf);
 
-            TextView nameView = findViewById(R.id.incoming_call_name);
-            TextView subView  = findViewById(R.id.incoming_call_sub);
-            if (nameView != null) nameView.setText(from == null ? "Unknown" : from);
-            if (subView  != null) subView.setText(isConf
+            TextView nameView   = findViewById(R.id.incoming_call_name);
+            TextView subView    = findViewById(R.id.incoming_call_sub);
+            TextView avatarView = findViewById(R.id.incoming_call_avatar);
+            android.view.View pulseView = findViewById(R.id.incoming_avatar_pulse);
+
+            String displayName = (from == null || from.trim().isEmpty()) ? "Unknown" : from.trim();
+            if (nameView != null) nameView.setText(displayName);
+            if (avatarView != null) {
+                avatarView.setText(displayName.substring(0, 1).toUpperCase());
+            }
+            if (pulseView != null) {
+                android.view.animation.Animation pulse = new android.view.animation.ScaleAnimation(
+                    1.0f, 1.35f, 1.0f, 1.35f,
+                    android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f,
+                    android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f
+                );
+                pulse.setDuration(1200);
+                pulse.setRepeatCount(android.view.animation.Animation.INFINITE);
+                pulse.setRepeatMode(android.view.animation.Animation.REVERSE);
+                pulseView.startAnimation(pulse);
+            }
+            if (subView != null) subView.setText(isConf
                 ? "Conference invite \u00b7 Unifest"
                 : "Incoming call \u00b7 Unifest");
 

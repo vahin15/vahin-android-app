@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.media.AudioAttributes;
+import android.media.AudioDeviceInfo;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.net.Uri;
@@ -24,6 +25,7 @@ import com.getcapacitor.PermissionState;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.util.List;
 import android.util.Base64;
 import android.util.Log;
 
@@ -349,13 +351,41 @@ public class VahinPermissionsPlugin extends Plugin {
                 call.reject("AudioManager unavailable");
                 return;
             }
-            // A live call must run in MODE_IN_COMMUNICATION — this is what tells
-            // Android "this is a voice call", which is what actually makes the
-            // earpiece/speaker split (and echo cancellation) work correctly. Without
-            // it the WebView's audio track can end up treated like ordinary media
-            // playback, with no reliable, controllable route at all.
             am.setMode(AudioManager.MODE_IN_COMMUNICATION);
             requestCallAudioFocus(am);
+
+            // Modern Android (API 31+ / Android 12+) communication device routing
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                List<AudioDeviceInfo> devices = am.getAvailableCommunicationDevices();
+                AudioDeviceInfo targetDevice = null;
+                if (on) {
+                    for (AudioDeviceInfo d : devices) {
+                        if (d.getType() == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER) {
+                            targetDevice = d;
+                            break;
+                        }
+                    }
+                } else {
+                    for (AudioDeviceInfo d : devices) {
+                        if (d.getType() == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE ||
+                            d.getType() == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
+                            d.getType() == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
+                            d.getType() == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                            d.getType() == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) {
+                            targetDevice = d;
+                            break;
+                        }
+                    }
+                }
+                if (targetDevice != null) {
+                    boolean success = am.setCommunicationDevice(targetDevice);
+                    Log.d(TAG_AUDIO, "setCommunicationDevice " + targetDevice.getType() + " -> " + success);
+                } else if (!on) {
+                    am.clearCommunicationDevice();
+                }
+            }
+
+            // Legacy fallback / dual-dispatch for hardware OEMs that require setSpeakerphoneOn
             am.setSpeakerphoneOn(on);
             Log.d(TAG_AUDIO, "setSpeakerphoneOn: on=" + on + " mode set to MODE_IN_COMMUNICATION");
             call.resolve(new JSObject().put("success", true));
@@ -366,17 +396,15 @@ public class VahinPermissionsPlugin extends Plugin {
     }
 
     // Called from index.html's endCall()/endConf() once a call is fully over — puts
-    // AudioManager back to its normal (non-call) state. Skipping this after a call was
-    // the other half of the same bug class: leaving the device stuck in
-    // MODE_IN_COMMUNICATION with an unreleased audio focus grant between calls, which
-    // is exactly the kind of leftover state that would make audio increasingly
-    // unreliable across "the last two to three calls" rather than failing the same way
-    // every time.
+    // AudioManager back to its normal (non-call) state.
     @PluginMethod
     public void resetAudioRouting(PluginCall call) {
         try {
             AudioManager am = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
             if (am != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    am.clearCommunicationDevice();
+                }
                 am.setSpeakerphoneOn(false);
                 am.setMode(AudioManager.MODE_NORMAL);
                 abandonCallAudioFocus(am);

@@ -2,8 +2,8 @@
 //  UNIFEST — Service Worker v4.0
 //  Offline caching · Push notifications · Background sync
 // ═══════════════════════════════════════════════════════════════
-const SW_VERSION = 'unifest-sw-v4';
-const CACHE_NAME = 'unifest-cache-v4';
+const SW_VERSION = 'unifest-sw-v4.1';
+const CACHE_NAME = 'unifest-cache-v4.1';
 
 const PRECACHE = [
   '/',

@@ -1,6 +1,6 @@
 {
   "name": "Unifest",
-  "description": "Voice, video call and messaging web application powered by WebRTC and PeerJS",
+  "description": "Secure WebRTC voice and video calls, direct and group messaging, file sharing, status updates, and 12-hour inactivity engagement reminders",
   "requestFramePermissions": [
     "camera",
     "microphone"

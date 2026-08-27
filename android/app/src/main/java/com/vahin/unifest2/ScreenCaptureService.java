@@ -50,13 +50,12 @@ public class ScreenCaptureService extends Service {
     private static final String CHANNEL_ID = "vahin_screenshare";
     private static final int NOTIF_ID = 4271;
 
-    /** Target capture cadence. Constrained to match WebRTC encoder limits
-        (12 fps) for smooth transmission without buffer overflow or frame dropping. */
-    private static final int TARGET_FPS = 12;
+    /** Target capture cadence: 20 fps for fluid, smooth real-time screen sharing. */
+    private static final int TARGET_FPS = 20;
     private static final long FRAME_INTERVAL_MS = 1000L / TARGET_FPS;
-    /** Downscale capture to max 1280 longest-side, with 16-pixel alignment
+    /** Downscale capture to max 960 longest-side, with 16-pixel alignment
         to strictly respect WebRTC H.264/VP8 hardware encoder macroblock requirements. */
-    private static final int MAX_DIMENSION = 1280;
+    private static final int MAX_DIMENSION = 960;
 
     public static final String EXTRA_RESULT_CODE = "resultCode";
     public static final String EXTRA_RESULT_DATA = "resultData";
@@ -166,8 +165,8 @@ public class ScreenCaptureService extends Service {
             bitmap.copyPixelsFromBuffer(buffer);
             if (rowPadding != 0) bitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height);
 
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 62, baos);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(65536);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 60, baos);
             String b64 = android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.NO_WRAP);
             bitmap.recycle();
 

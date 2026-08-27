@@ -151,7 +151,7 @@ button,input,textarea{font-family:inherit;}
 .pill{background:var(--glass-bg);-webkit-backdrop-filter:blur(var(--glass-blur));backdrop-filter:blur(var(--glass-blur));border:1px solid var(--glass-border);border-radius:20px;padding:7px 14px;font-size:11.5px;color:var(--text2);
   display:flex;align-items:center;gap:6px;font-weight:600;box-shadow:var(--elev1);}
 .pill-dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
-#screen-onboard{position:relative;overflow:hidden;background:linear-gradient(160deg,#10131C 0%,#05060A 100%);z-index:70;}
+#screen-onboard{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;background:linear-gradient(160deg,#10131C 0%,#05060A 100%);z-index:70;}
 #screen-onboard::before{
   content:'';position:absolute;inset:-15%;pointer-events:none;z-index:0;
   background:
@@ -854,6 +854,7 @@ button,input,textarea{font-family:inherit;}
 .lowdata-media-placeholder{padding:14px;border:1.5px dashed var(--border2);border-radius:14px;background:var(--surface2);display:flex;align-items:center;gap:12px;cursor:pointer;}
 .lowdata-media-placeholder:active{background:var(--surface3);}
 
+
 /* ==========================================================================
    Design pass v2 — Midnight Indigo, Sora/Manrope, spacious & calm.
    Purely presentational: no markup, script or behaviour is affected.
@@ -1251,6 +1252,7 @@ img,video,canvas{max-width:100%;}
   <div class="top-header">
     <div class="header-brand"><div class="header-title">Unifest</div><div class="ghost-pill" id="ghost-pill" style="display:none;" title="Ghost Mode Active — appearing offline"><span style="font-size:12px;">👻</span><span>Ghost</span></div></div>
     <div class="header-actions">
+        
       <button class="hdr-btn" id="qr-scan-btn" title="QR Code &amp; Scanner"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="6" height="6" x="3" y="3" rx="1"/><rect width="6" height="6" x="15" y="3" rx="1"/><rect width="6" height="6" x="3" y="15" rx="1"/><path d="M15 15h2v2h-2z"/><path d="M19 15h2v2h-2z"/><path d="M15 19h2v2h-2z"/><path d="M19 19h2v2h-2z"/></svg></button>
       <button class="hdr-btn" id="gs-btn" title="Search"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg></button>
       <div class="online-pill" id="online-pill"><div class="online-dot off" id="online-dot"></div><span class="online-name" id="topbar-myid">—</span></div>
@@ -1272,7 +1274,7 @@ img,video,canvas{max-width:100%;}
 </div>
 <div id="screen-status" class="screen tabbed">
   <div class="top-header"><div class="header-title">Pulse</div></div>
-  <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+  <div id="status-body" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;">
     <div class="status-my-row" id="my-status-row">
       <div class="cli-av" style="cursor:pointer;">
         <span class="status-ring" id="my-status-ring"></span>
@@ -1334,9 +1336,9 @@ img,video,canvas{max-width:100%;}
     <button class="chat-back" id="gc-back-btn"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
     <div style="flex:1;min-width:0;"><div class="chat-peer-name">New Group</div></div>
   </div>
-  <div style="padding:16px;overflow-y:auto;flex:1;">
+  <div class="gc-body" style="padding:16px;overflow-y:auto;flex:1;">
     <input class="id-input" id="gc-name-input" placeholder="Group name" autocomplete="off" style="margin-bottom:16px;"/>
-    <div style="display:flex;gap:8px;margin-bottom:10px;">
+    <div class="id-input-row" style="margin-bottom:10px;">
       <input class="id-input" id="gc-add-id-input" placeholder="Add by ID…" autocomplete="off" style="flex:1;"/>
       <button class="btn-primary" id="gc-add-id-btn" style="width:auto;padding:0 18px;">Add</button>
     </div>
@@ -1345,26 +1347,26 @@ img,video,canvas{max-width:100%;}
     <div style="font-size:12px;color:var(--text3);font-weight:700;margin:14px 0 8px;">FROM YOUR CONTACTS</div>
     <div id="gc-contacts-list"></div>
   </div>
-  <div style="padding:16px;"><button class="btn-primary" id="gc-create-btn">Create Group</button></div>
+  <div class="gc-foot" style="padding:16px;"><button class="btn-primary" id="gc-create-btn">Create Group</button></div>
 </div>
 <div id="screen-group-info" class="screen">
   <div class="chat-top">
     <button class="chat-back" id="gi-back-btn">‹</button>
     <div style="flex:1;min-width:0;"><div class="chat-peer-name">Group Info</div></div>
   </div>
-  <div style="padding:16px;overflow-y:auto;flex:1;">
-    <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;">
+  <div class="gi-body" style="padding:16px;overflow-y:auto;flex:1;">
+    <div class="id-input-row" style="margin-bottom:20px;">
       <input class="id-input" id="gi-name-input" style="flex:1;"/>
       <button class="btn-primary" id="gi-rename-btn" style="width:auto;padding:0 16px;">Save</button>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:16px;">
+    <div class="id-input-row" style="margin-bottom:16px;">
       <input class="id-input" id="gi-add-id-input" placeholder="Add member by ID…" autocomplete="off" style="flex:1;"/>
       <button class="btn-primary" id="gi-add-id-btn" style="width:auto;padding:0 18px;">Add</button>
     </div>
     <div style="font-size:12px;color:var(--text3);font-weight:700;margin:14px 0 8px;">MEMBERS</div>
     <div id="gi-members-list"></div>
   </div>
-  <div style="padding:16px;"><button class="btn-primary" id="gi-leave-btn" style="background:rgba(179,38,30,.1);color:#B3261E;box-shadow:none;">Leave Group</button></div>
+  <div class="gi-foot" style="padding:16px;"><button class="btn-primary" id="gi-leave-btn" style="background:rgba(179,38,30,.1);color:#B3261E;box-shadow:none;">Leave Group</button></div>
 </div>
 <div id="screen-settings" class="screen tabbed">
   <div class="top-header"><div class="header-title">Settings</div></div>
@@ -1400,6 +1402,7 @@ img,video,canvas{max-width:100%;}
       <div class="settings-section-title">Notifications</div>
       <div class="settings-group">
         <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(29,122,95,.1);">🔔</div><div><div class="s-label">Ringtone</div><div class="s-sub">Sound on incoming calls</div></div></div><div class="toggle-sw on" id="ringtone-sw"></div></div>
+        <div class="settings-row" id="reminder-12h-row" style="cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(79,70,229,.12);">⏰</div><div><div class="s-label">12-Hour Inactivity Reminders</div><div class="s-sub">Reminds you if you haven't opened Unifest in 12 hours</div></div></div><div class="toggle-sw on" id="reminder-12h-sw"></div></div>
         <div class="settings-row" id="custom-ringtone-row"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(30,58,95,.1);">🎵</div><div><div class="s-label">Custom Ringtone</div><div class="s-sub" id="ringtone-sub-text">Default tone</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" id="contact-sounds-row" style="cursor:pointer;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(234,179,8,.12);">🔔</div><div><div class="s-label">Contact Notification Sounds</div><div class="s-sub">Custom ringtone &amp; alert per contact</div></div></div><div class="chevron">›</div></div>
         <div class="settings-row" style="cursor:default;"><div class="settings-row-left"><div class="settings-row-icon" style="background:rgba(62,102,144,.1);">📳</div><div><div class="s-label">Vibrate on call</div></div></div><div class="toggle-sw on" id="vibrate-sw"></div></div>
@@ -1547,9 +1550,11 @@ img,video,canvas{max-width:100%;}
     <button class="ctrl-btn ctrl-glass" id="btn-screenshare" title="Share Screen"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/><polyline points="15 10 12 7 9 10"/><line x1="12" x2="12" y1="7" y2="13"/></svg></button>
     <button class="ctrl-btn ctrl-glass" id="btn-flip" title="Flip"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/><path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/><circle cx="12" cy="12" r="3"/><path d="m18 22-3-3 3-3"/><path d="m6 2 3 3-3 3"/></svg></button>
     <button class="ctrl-btn ctrl-glass" id="btn-speaker" title="Speaker"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></button>
+    
     <button class="ctrl-btn ctrl-glass" id="btn-call-chat" title="Chat"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
     <button class="ctrl-btn ctrl-end" id="btn-end" title="End"><svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-1.02.49-1.95 1.13-2.75 1.9-.27.26-.64.38-1 .33-.37-.06-.69-.28-.86-.61L.43 12.19c-.27-.51-.15-1.14.28-1.51C3.39 8.35 7.49 7 12 7c4.51 0 8.61 1.35 11.29 3.68.43.37.55 1 .28 1.51l-1.8 3.15c-.17.33-.49.55-.86.61-.36.05-.73-.07-1-.33-.8-.77-1.73-1.41-2.75-1.9-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg></button>
   </div>
+
   <div class="call-chat-panel" id="call-chat-panel">
     <div class="cc-handle" id="call-chat-handle"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding:0 6px 8px;">
@@ -1597,7 +1602,8 @@ img,video,canvas{max-width:100%;}
   </div>
   <div class="conf-controls">
     <button class="ctrl-btn ctrl-glass" id="conf-mute-btn" title="Mute"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
-    <button class="ctrl-btn ctrl-glass" id="conf-cam-btn" title="Camera"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.934a.5.5 0 0 0-.777-.416L16 11"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg></button>
+    <button class="ctrl-btn ctrl-glass" id="conf-cam-btn" title="Camera">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.934a.5.5 0 0 0-.777-.416L16 11"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg></button>
     <button class="ctrl-btn ctrl-glass" id="conf-screenshare-btn" title="Share Screen"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/><polyline points="15 10 12 7 9 10"/><line x1="12" x2="12" y1="7" y2="13"/></svg></button>
     <button class="ctrl-btn ctrl-glass" id="conf-flip-btn" title="Flip"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/><path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/><circle cx="12" cy="12" r="3"/><path d="m18 22-3-3 3-3"/><path d="m6 2 3 3-3 3"/></svg></button>
   </div>
@@ -1611,7 +1617,7 @@ img,video,canvas{max-width:100%;}
     <button class="chat-back" id="starred-back-btn"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
     <div style="flex:1;min-width:0;"><div class="chat-peer-name">Starred Messages</div><div class="chat-peer-status" id="starred-header-sub">0 starred</div></div>
   </div>
-  <div style="padding:16px;overflow-y:auto;flex:1;" id="starred-list-body"></div>
+  <div style="padding:16px;overflow-y:auto;flex:1;" class="starred-body" id="starred-list-body"></div>
 </div>
 <div id="screen-chat-media" class="screen">
   <div class="chat-top">
@@ -2639,8 +2645,16 @@ function loadAll(){
 }
 function applyTheme(){
   var t=localStorage.getItem('uf_theme')||settings.theme||'auto';
-  var dark=t==='dark'||(t==='auto'&&window.matchMedia('(prefers-color-scheme:dark)').matches);
-  document.documentElement.classList.toggle('dark',dark);
+  var root=document.documentElement;
+  root.classList.remove('theme-cyberpunk','theme-sunset','theme-emerald','theme-velvet','theme-sakura');
+  var isCustomTheme = t.indexOf('theme-') === 0;
+  if(isCustomTheme){
+    root.classList.add(t);
+    root.classList.add('dark');
+  } else {
+    var dark=t==='dark'||(t==='auto'&&window.matchMedia('(prefers-color-scheme:dark)').matches);
+    root.classList.toggle('dark',dark);
+  }
 }
 function setTheme(t){
   localStorage.setItem('uf_theme',t);settings.theme=t;saveAll();applyTheme();
@@ -3083,6 +3097,7 @@ function startPeer(){
       diagLog('✅ Peer connected to broker as '+id);
       if(reconnTimer){clearTimeout(reconnTimer);reconnTimer=null;}
       subscribePush();
+      if(pendingNativeAction&&pendingNativeAction.action==='accept'&&pendingNativeAction.from){requestCallRedeliver(pendingNativeAction.from);}
     });
     peer.on('call',function(mc){
       if(!isCurrent())return;
@@ -3385,6 +3400,7 @@ function handleData(from,data,conn){
   var now=fmtTime();
   if(!data||!data.type)return;
   switch(data.type){
+
     case 'presence-pong':
       onlinePeers[from]=true;
       onlinePeersTs[from]=Date.now();
@@ -3745,7 +3761,9 @@ function renderChats(filter){
     av.appendChild(pres);
     
     var info=document.createElement('div');info.className='cli-info';
-    var nm=document.createElement('div');nm.className='cli-name';nm.textContent=pid+(blocked?' 🚫':'')+(pinned?' 📌':'');
+
+    var nm=document.createElement('div');nm.className='cli-name';
+    nm.innerHTML = esc(pid) + (blocked?' 🚫':'') + (pinned?' 📌':'');
     var pr=document.createElement('div');pr.className='cli-prev';
     info.appendChild(nm);info.appendChild(pr);
     
@@ -4351,6 +4369,7 @@ function sendMsg(){
     var mo={me:true,text:t,time:now,_id:mid,replyTo:replyingTo?{text:replyingTo.text,sender:replyingTo.me?myId:chatPeerId}:null};
     if(!dmHistory[chatPeerId])dmHistory[chatPeerId]=[];
     dmHistory[chatPeerId].push(mo);ls_set(SK.DM,dmHistory);
+    
     removeEmpty('chat-msgs');appendMsg(true,t,now,false,null,mo);cancelReply();
     var pl={type:'chat-dm',text:t,time:now,msgId:mid,replyTo:mo.replyTo};
     var doSend=function(conn){(conn||chatConn).send(pl);};
@@ -5506,6 +5525,7 @@ function renderCallHistory(){
   });
 }
 function applySettingsToUI(){
+  apply12HourReminderToUI();
   var cv=document.getElementById('conf-limit-val');if(cv)cv.textContent=settings.confLimit;
   var rs=document.getElementById('ringtone-sw');if(rs)rs.classList.toggle('on',settings.ringtone);
   var vs=document.getElementById('vibrate-sw');if(vs)vs.classList.toggle('on',settings.vibrate);
@@ -6845,7 +6865,7 @@ function startNativeScreenCapture(){
         if(!gotFirstFrame){
           gotFirstFrame=true;
           try{
-            var stream=_screenCanvas.captureStream(12);
+            var stream=_screenCanvas.captureStream(20);
             resolve(stream);
           }catch(e){reject(e);}
         }
@@ -7744,16 +7764,17 @@ var pendingNativeTimer=null;
    one retry chain runs per callee ID at a time. */
 var _redeliverActiveFor=null,_redeliverTimer=null,_redeliverAttempts=0;
 function requestCallRedeliver(from){
-  if(_redeliverActiveFor===from)return; // already nudging this same caller
+  if(!from) return;
+  if(_redeliverActiveFor===from)return;
   _redeliverActiveFor=from;_redeliverAttempts=0;
   clearTimeout(_redeliverTimer);
   (function attempt(){
-    if(getIncomingCallPeer()===from||incomingCall){ // real call arrived — stop nudging
+    if(getIncomingCallPeer()===from||incomingCall||currentCall){
       _redeliverActiveFor=null;return;
     }
     _redeliverAttempts++;
-    if(_redeliverAttempts>5||!peer){_redeliverActiveFor=null;return;}
-    if(peerReady){
+    if(_redeliverAttempts>12){_redeliverActiveFor=null;return;}
+    if(peer&&peerReady){
       try{
         var rc=peer.connect(from,{reliable:true,metadata:{type:'redeliver'}});
         if(rc){
@@ -7766,7 +7787,7 @@ function requestCallRedeliver(from){
         }
       }catch(e){}
     }
-    if(_redeliverActiveFor===from)_redeliverTimer=setTimeout(attempt,2000);
+    if(_redeliverActiveFor===from)_redeliverTimer=setTimeout(attempt,1200);
   })();
 }
 /* FIX (dedupe): the native side can now deliver the same tap through two independent
@@ -8291,1906 +8312,90 @@ function isMsgStarred(mid){
   return starredMessages.some(function(s){return s._id===mid;});
 }
 function updateStarredCountUI(){
-  var sub=document.getElementById('starred-count-sub');
-  if(sub)sub.textContent=starredMessages.length?starredMessages.length+' message'+(starredMessages.length>1?'s':''):'No starred messages';
-}
-function toggleStarMsg(msg){
-  if(!msg)return;
-  var mid=msg._id;
-  var idx=starredMessages.findIndex(function(s){return s._id===mid;});
-  if(idx>-1){
-    starredMessages.splice(idx,1);
-    toast('Message unstarred');
-  }else{
-    starredMessages.unshift({
-      _id:mid||('star_'+Date.now()),
-      peerId:chatPeerId||activeGroupId||'unknown',
-      chatMode:chatMode||'dm',
-      sender:msg.me?myId:(chatMode==='dm'?chatPeerId:(msg.sender||'Contact')),
-      text:msg.text||(msg.file?'📎 '+msg.file.name:''),
-      time:msg.time||fmtTime(),
-      file:msg.file||null,
-      me:!!msg.me
-    });
-    toast('Message starred ⭐');
-  }
-  saveAll();
-  updateStarredCountUI();
-  if(chatMode==='dm'&&chatPeerId)openDMChat(chatPeerId);
-  else if(chatMode==='group'&&activeGroupId)openGroupChat(activeGroupId);
-}
-function openStarredScreen(){
-  renderStarredList();
-  showScreen('screen-starred');
-}
-function renderStarredList(){
-  var body=document.getElementById('starred-list-body');
-  if(!body)return;
-  if(!starredMessages.length){
-    body.innerHTML='<div class="empty-state"><div class="empty-icon">⭐</div><div class="empty-title">No starred messages</div><div class="empty-sub">Long-press or tap any message to star it for easy access later.</div></div>';
-    return;
-  }
-  body.innerHTML='';
-  starredMessages.forEach(function(item){
-    var card=document.createElement('div');card.className='starred-item-card';
-    card.onclick=function(){
-      if(item.chatMode==='group'&&groups[item.peerId]){openGroupChat(item.peerId);}
-      else if(item.peerId){openDMChat(item.peerId);}
-    };
-    var hdr=document.createElement('div');hdr.className='sic-header';
-    var sender=document.createElement('div');sender.className='sic-sender';sender.textContent=item.sender+(item.chatMode==='group'?' ('+item.peerId+')':'');
-    var time=document.createElement('div');time.className='sic-time';time.textContent=item.time||'';
-    hdr.appendChild(sender);hdr.appendChild(time);
-    var bodyDiv=document.createElement('div');bodyDiv.className='sic-body';
-    if(item.file){
-      var fEl=document.createElement('div');fEl.className='sic-file';
-      fEl.innerHTML='<span>'+fileIcon(item.file.name||'')+'</span><span style="font-weight:600;">'+esc(item.file.name||'File')+'</span> <span style="font-size:12px;color:var(--text3);">('+fmtSize(item.file.size)+')</span>';
-      bodyDiv.appendChild(fEl);
-    }
-    if(item.text){
-      var tEl=document.createElement('div');tEl.textContent=item.text;bodyDiv.appendChild(tEl);
-    }
-    var ftr=document.createElement('div');ftr.className='sic-footer';
-    var chatLbl=document.createElement('div');chatLbl.className='sic-chat';chatLbl.textContent='💬 '+item.peerId;
-    var unstarBtn=document.createElement('button');unstarBtn.className='sic-unstar-btn';unstarBtn.textContent='⭐ Unstar';
-    unstarBtn.onclick=function(e){
-      e.stopPropagation();
-      toggleStarMsg(item);
-      renderStarredList();
-    };
-    ftr.appendChild(chatLbl);ftr.appendChild(unstarBtn);
-    card.appendChild(hdr);card.appendChild(bodyDiv);card.appendChild(ftr);
-    body.appendChild(card);
-  });
-}
-
-/* 6. Shared-media Gallery */
-var activeMediaPeerId='';
-var activeMediaTab='media';
-function openSharedMedia(pid){
-  activeMediaPeerId=pid;
-  activeMediaTab='media';
-  document.getElementById('chat-media-title').textContent=pid||'Media';
-  ['media','docs','links'].forEach(function(t){
-    var tabEl=document.getElementById('cm-tab-'+t);
-    if(tabEl)tabEl.classList.toggle('active',t===activeMediaTab);
-  });
-  renderSharedMediaContent();
-  showScreen('screen-chat-media');
-}
-function switchMediaTab(t){
-  activeMediaTab=t;
-  ['media','docs','links'].forEach(function(tb){
-    var tabEl=document.getElementById('cm-tab-'+tb);
-    if(tabEl)tabEl.classList.toggle('active',tb===t);
-  });
-  renderSharedMediaContent();
-}
-function renderSharedMediaContent(){
-  var body=document.getElementById('chat-media-body');
-  if(!body)return;
-  var pid=activeMediaPeerId;
-  var hist=dmHistory[pid]||[];
-  if(!hist.length&&groups[pid])hist=groups[pid].history||[];
-  
-  if(activeMediaTab==='media'){
-    var mediaItems=hist.filter(function(m){return m.file&&m.file.isImage;});
-    if(!mediaItems.length){
-      body.innerHTML='<div class="empty-state"><div class="empty-icon">🖼️</div><div class="empty-title">No photos or videos</div><div class="empty-sub">Photos and videos shared in this chat will appear here.</div></div>';
-      return;
-    }
-    body.innerHTML='<div class="media-grid" id="cm-media-grid"></div>';
-    var grid=document.getElementById('cm-media-grid');
-    mediaItems.forEach(function(m){
-      var tfId=m.file.transferId;
-      var url=fileBlobs[tfId]||(m.file&&m.file.url);
-      var itm=document.createElement('div');itm.className='media-grid-item';
-      if(url){
-        if(/\.(mp4|mov|webm)$/i.test(m.file.name||'')){
-          var v=document.createElement('video');v.src=url;v.playsInline=true;itm.appendChild(v);
-          var playBadge=document.createElement('div');playBadge.style.cssText='position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.6);color:#fff;border-radius:4px;padding:2px 4px;font-size:10px;font-weight:700;';playBadge.textContent='▶';itm.appendChild(playBadge);
-        }else{
-          var img=document.createElement('img');img.src=url;itm.appendChild(img);
-        }
-        itm.onclick=function(){openFileUrl(url,m.file.name,true);};
-      }else{
-        itm.innerHTML='<div style="font-size:24px;">🖼️</div><div style="font-size:10px;color:var(--text3);padding:4px;text-align:center;">'+esc(m.file.name)+'</div>';
-        itm.onclick=function(){toast('Media not loaded in memory — request peer to resend');};
-      }
-      grid.appendChild(itm);
-    });
-  }else if(activeMediaTab==='docs'){
-    var docItems=hist.filter(function(m){return m.file&&!m.file.isImage;});
-    if(!docItems.length){
-      body.innerHTML='<div class="empty-state"><div class="empty-icon">📄</div><div class="empty-title">No documents</div><div class="empty-sub">Files and PDFs shared in this chat will appear here.</div></div>';
-      return;
-    }
-    body.innerHTML='<div class="docs-list" id="cm-docs-list"></div>';
-    var dList=document.getElementById('cm-docs-list');
-    docItems.forEach(function(m){
-      var tfId=m.file.transferId;
-      var url=fileBlobs[tfId]||(m.file&&m.file.url);
-      var row=document.createElement('div');row.className='doc-item-row';
-      row.innerHTML='<div class="doc-item-icon">'+fileIcon(m.file.name||'')+'</div>'
-        +'<div class="doc-item-info"><div class="doc-item-name">'+esc(m.file.name||'file')+'</div><div class="doc-item-meta">'+fmtSize(m.file.size)+' · '+esc(m.time||'')+'</div></div>'
-        +'<div style="font-size:18px;color:var(--accent2);padding-left:8px;">⬇</div>';
-      row.onclick=function(){
-        if(url)openFileUrl(url,m.file.name,false);
-        else toast('File not loaded in memory');
-      };
-      dList.appendChild(row);
-    });
-  }else if(activeMediaTab==='links'){
-    var linkRegex=/https?:\/\/[^\s]+/gi;
-    var links=[];
-    hist.forEach(function(m){
-      if(m.text){
-        var matches=m.text.match(linkRegex);
-        if(matches){
-          matches.forEach(function(u){
-            links.push({url:u,sender:m.me?'You':(m.sender||pid),time:m.time});
-          });
-        }
-      }
-    });
-    if(!links.length){
-      body.innerHTML='<div class="empty-state"><div class="empty-icon">🔗</div><div class="empty-title">No shared links</div><div class="empty-sub">Web links sent in this chat will appear here.</div></div>';
-      return;
-    }
-    body.innerHTML='<div class="docs-list" id="cm-links-list"></div>';
-    var lList=document.getElementById('cm-links-list');
-    links.forEach(function(lnk){
-      var row=document.createElement('div');row.className='link-item-row';
-      var host=lnk.url;
-      try{host=new URL(lnk.url).hostname;}catch(e){}
-      row.innerHTML='<div class="link-item-icon">🌐</div>'
-        +'<div class="link-item-info"><div class="link-item-url">'+esc(lnk.url)+'</div><div class="link-item-meta">'+esc(host)+' · '+esc(lnk.sender)+' · '+esc(lnk.time||'')+'</div></div>';
-      row.onclick=function(){
-        if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Browser){Capacitor.Plugins.Browser.open({url:lnk.url});}
-        else{window.open(lnk.url,'_blank');}
-      };
-      lList.appendChild(row);
-    });
-  }
-}
-
-/* 7. App Lock */
-function updateAppLockUI(){
-  var st=document.getElementById('applock-status-sub');
-  if(st)st.textContent=appLock.enabled?'Enabled (PIN protected)':'Disabled';
-  var sw=document.getElementById('applock-master-sw');
-  if(sw)sw.classList.toggle('on',!!appLock.enabled);
-  var pinRow=document.getElementById('applock-pin-row');
-  if(pinRow)pinRow.style.display=appLock.enabled?'flex':'none';
-  var bioRow=document.getElementById('applock-biometric-row');
-  if(bioRow)bioRow.style.display=appLock.enabled?'flex':'none';
-  var bioSw=document.getElementById('applock-biometric-sw');
-  if(bioSw)bioSw.classList.toggle('on',!!appLock.biometric);
-}
-function openAppLockModal(){
-  updateAppLockUI();
-  document.getElementById('applock-modal').classList.add('show');
-}
-function closeAppLockModal(){
-  document.getElementById('applock-modal').classList.remove('show');
-}
-async function toggleAppLockMaster(){
-  if(!appLock.enabled){
-    var pin=await styledPrompt('Choose a 4-digit PIN for App Lock:',{placeholder:'e.g. 1234'});
-    if(!pin||pin.trim().length!==4||!/^\d{4}$/.test(pin.trim())){
-      toast('Please enter exactly 4 digits');return;
-    }
-    appLock.enabled=true;
-    appLock.pin=pin.trim();
-    saveAll();
-    updateAppLockUI();
-    toast('App Lock enabled ✓');
-  }else{
-    if(await styledConfirm('Disable App Lock?',{danger:true,okText:'Disable'})){
-      appLock.enabled=false;
-      saveAll();
-      updateAppLockUI();
-      toast('App Lock disabled');
-    }
-  }
-}
-async function changeAppLockPin(){
-  var oldPin=await styledPrompt('Enter your CURRENT 4-digit PIN:',{placeholder:'Current PIN'});
-  if(oldPin!==appLock.pin){toast('Incorrect current PIN');return;}
-  var newPin=await styledPrompt('Enter your NEW 4-digit PIN:',{placeholder:'New 4-digit PIN'});
-  if(!newPin||newPin.trim().length!==4||!/^\d{4}$/.test(newPin.trim())){
-    toast('PIN must be exactly 4 digits');return;
-  }
-  appLock.pin=newPin.trim();
-  saveAll();
-  toast('PIN changed successfully ✓');
-}
-function toggleBiometricLock(){
-  appLock.biometric=!appLock.biometric;
-  saveAll();
-  updateAppLockUI();
-  toast(appLock.biometric?'Biometric unlock enabled':'Biometric unlock disabled');
-}
-/* FIX (PIN screen blocking calls): force-hides the app-lock PIN overlay without
-   marking the app "unlocked" — the rest of the app stays locked, only the call UI
-   underneath is freed up. Called from handleNativeCallAction() (native Answer/
-   Decline/Missed/End) and showIncoming() (a live P2P call arriving while the app is
-   foregrounded), so a ring or an active call can never be stuck behind the PIN
-   prompt regardless of which path it arrived through. Safe/cheap to call even when
-   the lock screen isn't showing. */
-function bypassAppLockForCall(){
-  try{
-    var lockEl=document.getElementById('app-lock-screen');
-    if(lockEl&&lockEl.classList.contains('show')){
-      lockEl.classList.remove('show');
-      diagLog('🔓 Bypassed PIN lock screen for an incoming/active call');
-    }
-  }catch(e){}
-}
-function showAppLockScreen(){
-  enteredPin='';
-  updateLockDots();
-  document.getElementById('app-lock-screen').classList.add('show');
-  if(appLock.biometric){setTimeout(tryBiometricUnlock,400);}
-}
-function hideAppLockScreen(){
-  document.getElementById('app-lock-screen').classList.remove('show');
-  enteredPin='';
-}
-function updateLockDots(){
-  for(var i=0;i<4;i++){
-    var d=document.getElementById('ldot-'+i);
-    if(d)d.classList.toggle('filled',i<enteredPin.length);
-  }
-}
-function handleLockKeyPress(key){
-  if(key==='del'){
-    if(enteredPin.length>0){enteredPin=enteredPin.slice(0,-1);updateLockDots();}
-    return;
-  }
-  if(key==='bio'){
-    tryBiometricUnlock();
-    return;
-  }
-  if(enteredPin.length<4){
-    enteredPin+=key;
-    updateLockDots();
-    if(enteredPin.length===4){
-      setTimeout(function(){
-        if(enteredPin===appLock.pin){
-          appUnlocked=true;
-          hideAppLockScreen();
-          toast('Unlocked 🔓');
-        }else{
-          var dotsEl=document.getElementById('lock-dots');
-          if(dotsEl){
-            dotsEl.style.animation='none';
-            void dotsEl.offsetWidth;
-            dotsEl.style.animation='lockShake 0.4s ease';
-          }
-          if(navigator.vibrate)navigator.vibrate([80,40,80]);
-          toast('Incorrect PIN');
-          enteredPin='';
-          updateLockDots();
-        }
-      },120);
-    }
-  }
-}
-function tryBiometricUnlock(){
-  if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.BiometricAuth){
-    Capacitor.Plugins.BiometricAuth.verify().then(function(res){
-      if(res&&res.verified){
-        appUnlocked=true;hideAppLockScreen();toast('Unlocked 🔓');
-      }
-    }).catch(function(){});
-  }
-}
-document.addEventListener('visibilitychange',function(){
-  if(document.visibilityState==='visible'){
-    // BUG: this used to fire unconditionally, including when the app is woken up
-    // by an incoming call — the PIN screen was covering the ringing UI and blocking
-    // the user from ever answering. Skip the lock while a call is ringing or live;
-    // it'll still lock normally the next time the app is opened with no call active.
-    /* Also skip while a native call action is pending replay (accept tapped, PeerJS
-       call hasn't arrived yet — see handleNativeCallAction) so the lock screen can't
-       jump in during that short window either. */
-    if(incomingCall||currentCall||pendingNativeAction)return;
-    if(appLock.enabled&&appLock.pin&&!appUnlocked){
-      showAppLockScreen();
-    }
-  }
-});
-
-/* 8. Invite Friends */
-function inviteFriends(){
-  var shareText="Hey! Let's chat and call with zero servers and end-to-end P2P encryption on Unifest.\nMy ID: "+myId+"\nJoin here: "+window.location.origin;
-  if(navigator.share){
-    navigator.share({
-      title:'Join me on Unifest',
-      text:shareText,
-      url:window.location.origin
-    }).catch(function(){});
-  }else{
-    if(navigator.clipboard){
-      navigator.clipboard.writeText(shareText).then(function(){
-        toast('Invite link & ID copied to clipboard ✓');
-      }).catch(function(){
-        toast('My ID: '+myId);
-      });
-    }else{
-      toast('My ID: '+myId);
-    }
-  }
-}
-
-/* 9. Account & Data Deletion */
-async function deleteAccountAndData(){
-  var confirmed = await styledConfirm(
-    'Delete your account and all data permanently? This will unregister your ID from Unifest servers and wipe all messages, contacts, media, and encryption keys from this device. This action CANNOT be undone.',
-    { title: 'Delete Account & Data', danger: true, okText: 'Delete Everything' }
-  );
-  if(!confirmed) return;
-
-  var currentId = myId;
-  var cachedFcm = localStorage.getItem('uf_fcm_token_v1');
-
-  toast('Deleting account and data…');
-
-  // 1. Stop background signal service
-  stopSignalService();
-
-  // 2. Deregister on backend (best-effort)
-  try {
-    if(currentId){
-      await fetchWithRetries(NOTIF_API + '/api/account/delete', {
-        method: 'POST',
-        headers: apiHeaders(),
-        body: JSON.stringify({ myId: currentId, fcmToken: cachedFcm })
-      }, 5000, 10000).catch(function(){});
-    }
-  } catch(e){}
-
-  // 3. Clear native storage / cache if available
-  try {
-    if(window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.VahinPermissions && Capacitor.Plugins.VahinPermissions.deleteAccountLocalData){
-      await Capacitor.Plugins.VahinPermissions.deleteAccountLocalData();
-    }
-  } catch(e){}
-
-  // 4. Destroy peer
-  if(peer && !peer.destroyed){
-    try { peer.destroy(); } catch(e){}
-    peer = null;
-  }
-  peerReady = false;
-
-  // 5. Clear all local storage
-  try { localStorage.clear(); } catch(e){}
-
-  // 6. Reset in-memory states
-  myId = ''; chatMode = ''; chatPeerId = '';
-  dmHistory = {}; callHistory = []; recentPeers = [];
-  blockedUsers = []; pinnedChats = []; starredMessages = [];
-  groups = {}; groupConnsByGid = {}; unreadDM = {}; unreadGroup = {};
-
-  var tn = document.getElementById('tab-nav');
-  if(tn) tn.classList.remove('visible');
-
-  showScreen('screen-id');
-  var idI = document.getElementById('my-id-input'), pwI = document.getElementById('my-pw-input');
-  if(idI) idI.value = '';
-  if(pwI) pwI.value = '';
-  if(authMode !== 'signup') toggleAuthMode();
-
-  await styledConfirm('Your account and all local data have been permanently deleted.', { title: 'Account Deleted', okText: 'OK', danger: false });
-}
-
-/* 10. Privacy Policy Modal */
-function openPrivacyPolicyModal(){
-  var m = document.getElementById('privacy-policy-modal');
-  if(m) m.classList.add('show');
-}
-function closePrivacyPolicyModal(){
-  var m = document.getElementById('privacy-policy-modal');
-  if(m) m.classList.remove('show');
-}
-function openPrivacyPolicyWeb(){
-  window.open('privacy-policy.html', '_blank');
-}
-
-/* 11. Contact Support Modal */
-var appVersionInfo = { versionName: '1.0', versionCode: 1 };
-async function loadAppVersionInfo(){
-  try {
-    if(window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.VahinPermissions && Capacitor.Plugins.VahinPermissions.getAppVersionInfo){
-      var v = await Capacitor.Plugins.VahinPermissions.getAppVersionInfo();
-      if(v){
-        appVersionInfo = v;
-        var el1 = document.getElementById('support-app-ver');
-        var el2 = document.getElementById('settings-app-ver');
-        var txt = 'Version ' + (v.versionName || '1.0') + ' (Build ' + (v.versionCode || 1) + ')';
-        if(el1) el1.textContent = txt;
-        if(el2) el2.textContent = txt;
-      }
-    }
-  } catch(e){}
-}
-function openSupportModal(){
-  loadAppVersionInfo();
-  var m = document.getElementById('support-modal');
-  if(m) m.classList.add('show');
-}
-function closeSupportModal(){
-  var m = document.getElementById('support-modal');
-  if(m) m.classList.remove('show');
-}
-function sendSupportEmail(){
-  var subject = encodeURIComponent('Unifest Support Request [' + (myId || 'Guest') + ']');
-  var body = encodeURIComponent(
-    'Hi Unifest Support Team,\n\n[Please describe your issue or question here]\n\n' +
-    '---\n' +
-    'User ID: ' + (myId || 'None') + '\n' +
-    'App Version: ' + appVersionInfo.versionName + ' (' + appVersionInfo.versionCode + ')\n' +
-    'Platform: ' + (navigator.userAgent || 'Android') + '\n'
-  );
-  window.location.href = 'mailto:unifest.messenger@gmail.com?subject=' + subject + '&body=' + body;
-}
-
-/* 12. UGC Report User Flow */
-var reportingTargetPid = '';
-function openReportUserModal(pid){
-  if(!pid) return;
-  reportingTargetPid = pid;
-  var tName = document.getElementById('report-user-target-name');
-  if(tName) tName.textContent = pid;
-  var details = document.getElementById('report-user-details');
-  if(details) details.value = '';
-  var rad = document.querySelector('input[name="report-category"][value="spam"]');
-  if(rad) rad.checked = true;
-  var m = document.getElementById('report-user-modal');
-  if(m) m.classList.add('show');
-}
-function closeReportUserModal(){
-  reportingTargetPid = '';
-  var m = document.getElementById('report-user-modal');
-  if(m) m.classList.remove('show');
-}
-async function submitReportUser(){
-  var target = reportingTargetPid;
-  if(!target){ closeReportUserModal(); return; }
-  var catInput = document.querySelector('input[name="report-category"]:checked');
-  var category = catInput ? catInput.value : 'other';
-  var detailsInput = document.getElementById('report-user-details');
-  var details = detailsInput ? detailsInput.value.trim() : '';
-  var alsoBlock = document.getElementById('report-also-block') ? document.getElementById('report-also-block').checked : false;
-
-  closeReportUserModal();
-
-  var reports = ls_get('uf_reports_v1', []);
-  var reportObj = {
-    reporterId: myId,
-    against: target,
-    category: category,
-    reason: details,
-    time: new Date().toISOString()
-  };
-  reports.push(reportObj);
-  ls_set('uf_reports_v1', reports);
-
-  // Sync to backend (best-effort)
-  try {
-    fetchWithRetries(NOTIF_API + '/api/report', {
-      method: 'POST',
-      headers: apiHeaders(),
-      body: JSON.stringify(reportObj)
-    }, 4000, 8000).catch(function(){});
-  } catch(e){}
-
-  if(alsoBlock && !isBlocked(target)){
-    blockUser(target);
-  }
-
-  toast('Report submitted. Thank you for keeping Unifest safe.');
-}
-
-/* 13. OEM Battery Reliability Guide */
-var OEM_GUIDES = {
-  samsung: '<h4>Samsung (One UI)</h4><ol style="padding-left:18px;margin-top:6px;"><li>Open phone <b>Settings &gt; Apps &gt; Unifest</b>.</li><li>Tap <b>Battery</b> and choose <b>Unrestricted</b> (do not use "Optimized").</li><li>Go to <b>Settings &gt; Battery &gt; Background usage limits</b> and ensure Unifest is NOT in "Sleeping apps" or "Deep sleeping apps".</li><li>Add Unifest to <b>Never auto-sleeping apps</b>.</li></ol>',
-  xiaomi: '<h4>Xiaomi / Redmi / POCO (MIUI / HyperOS)</h4><ol style="padding-left:18px;margin-top:6px;"><li>Open phone <b>Settings &gt; Apps &gt; Manage apps &gt; Unifest</b>.</li><li>Enable <b>Autostart</b> (crucial for incoming calls).</li><li>Tap <b>Battery saver</b> and select <b>No restrictions</b>.</li><li>In phone <b>Security app &gt; Permissions &gt; Autostart</b>, ensure Unifest is enabled.</li><li>Lock Unifest in Recent Apps screen by holding its card and tapping the Lock icon.</li></ol>',
-  vivo: '<h4>Vivo / iQOO (Funtouch OS)</h4><ol style="padding-left:18px;margin-top:6px;"><li>Open phone <b>Settings &gt; Battery &gt; Background power consumption management</b>.</li><li>Find <b>Unifest</b> and set to <b>High background power usage</b> (Allow).</li><li>Go to <b>Settings &gt; Applications &amp; Permissions &gt; Autostart</b> and enable Unifest.</li></ol>',
-  oppo: '<h4>Oppo / Realme (ColorOS / Realme UI)</h4><ol style="padding-left:18px;margin-top:6px;"><li>Open phone <b>Settings &gt; Apps &gt; App management &gt; Unifest</b>.</li><li>Tap <b>Battery usage</b> and enable <b>Allow background activity</b> and <b>Allow auto-launch</b>.</li><li>Disable <b>Pause app activity if unused</b>.</li><li>Lock the app in the Recent Tasks overview.</li></ol>',
-  oneplus: '<h4>OnePlus (OxygenOS)</h4><ol style="padding-left:18px;margin-top:6px;"><li>Open phone <b>Settings &gt; Apps &gt; App management &gt; Unifest</b>.</li><li>Tap <b>Battery usage</b> &gt; Enable <b>Allow background activity</b> and <b>Allow auto-launch</b>.</li><li>Go to <b>Settings &gt; Battery &gt; More settings &gt; Optimize battery use</b> and set Unifest to <b>Don\'t optimize</b>.</li></ol>'
-};
-
-function openBatteryGuideModal(){
-  showOemGuide('samsung');
-  var m = document.getElementById('battery-guide-modal');
-  if(m) m.classList.add('show');
-}
-function closeBatteryGuideModal(){
-  var m = document.getElementById('battery-guide-modal');
-  if(m) m.classList.remove('show');
-}
-function showOemGuide(brand){
-  var content = document.getElementById('oem-guide-content');
-  if(content && OEM_GUIDES[brand]){
-    content.innerHTML = OEM_GUIDES[brand];
-  }
-  var tabs = document.querySelectorAll('#oem-brand-tabs button');
-  tabs.forEach(function(b){
-    if(b.getAttribute('data-brand') === brand) b.classList.add('active');
-    else b.classList.remove('active');
-  });
-}
-
-/* 14. In-App Update Checker */
-var pendingUpdateUrl = 'https://play.google.com/store/apps/details?id=com.vahin.unifest2';
-async function checkForAppUpdate(isManual){
-  if(isManual) toast('Checking for updates…');
-  try {
-    var res = await fetchWithTimeout(NOTIF_API + '/api/version', { method: 'GET', cache: 'no-store' }, 6000);
-    if(!res || !res.ok){
-      if(isManual) toast('You are using the latest version of Unifest (' + appVersionInfo.versionName + ')');
-      return;
-    }
-    var data = await res.json();
-    if(!data) return;
-
-    var currentCode = appVersionInfo.versionCode || 1;
-    var minCode = data.min_version_code || 1;
-    var latestCode = data.latest_version_code || 1;
-    pendingUpdateUrl = data.update_url || 'market://details?id=com.vahin.unifest2';
-
-    if(currentCode < minCode){
-      // Force / Mandatory Update
-      document.getElementById('app-update-title').textContent = '⚠️ Update Required';
-      document.getElementById('app-update-msg').textContent = data.message || 'This version of Unifest is no longer supported. Please update immediately to continue calling and messaging.';
-      document.getElementById('app-update-later-btn').style.display = 'none';
-      document.getElementById('app-update-modal').classList.add('show');
-    } else if(currentCode < latestCode){
-      // Optional Update
-      document.getElementById('app-update-title').textContent = '✨ Update Available';
-      document.getElementById('app-update-msg').textContent = data.message || 'A new update (v' + (data.latest_version_name || '') + ') is available with performance and security improvements.';
-      document.getElementById('app-update-later-btn').style.display = 'block';
-      document.getElementById('app-update-modal').classList.add('show');
-    } else {
-      if(isManual) toast('Unifest is up to date (v' + appVersionInfo.versionName + ') ✓');
-    }
-  } catch(err){
-    if(isManual) toast('Unifest is up to date (v' + appVersionInfo.versionName + ') ✓');
-  }
-}
-function openPlayStoreUpdate(){
-  try {
-    if(window.Capacitor && Capacitor.isNativePlatform()){
-      window.open('market://details?id=com.vahin.unifest2', '_system');
-    } else {
-      window.open(pendingUpdateUrl, '_blank');
-    }
-  } catch(e){
-    window.open('https://play.google.com/store/apps/details?id=com.vahin.unifest2', '_blank');
-  }
-}
-/* Keeps layout pinned to the visual viewport so the input bar stays above the on-screen keyboard. */
-function setupKeyboardFix(){
-  var chatInp=document.getElementById('chat-input');if(!chatInp)return;
-  chatInp.addEventListener('input',function(){autoResizeTA();onChatTyping();});
-  chatInp.addEventListener('focus',function(){setTimeout(function(){var msgs=document.getElementById('chat-msgs');if(msgs)msgs.scrollTop=msgs.scrollHeight;},400);});
-  if(window.visualViewport){
-    var vv=window.visualViewport;
-    function syncViewport(){
-      document.documentElement.style.setProperty('--app-h',vv.height+'px');
-      document.body.style.height=vv.height+'px';
-      var screen=document.getElementById('screen-chat');
-      if(screen&&screen.classList.contains('active')){
-        var msgs=document.getElementById('chat-msgs');
-        if(msgs)setTimeout(function(){msgs.scrollTop=msgs.scrollHeight;},60);
-      }
-    }
-    vv.addEventListener('resize',syncViewport);
-    vv.addEventListener('scroll',syncViewport);
-  }
-}
-function addClick(id, handler){
-  var el=document.getElementById(id);
-  if(el)el.addEventListener('click', handler);
-}
-function addEvt(id, eventName, handler, options){
-  var el=document.getElementById(id);
-  if(el)el.addEventListener(eventName, handler, options);
-}
-function bindEvents(){
-
-  addClick('ob-next-btn',obNext);
-  addClick('ob-skip-btn',obSkip);
-  addClick('get-started-btn',submitAuth);
-  addClick('auth-toggle-btn',toggleAuthMode);
-  
-  var idInp=document.getElementById('my-id-input');
-  if(idInp){
-    idInp.addEventListener('input',function(){this.value=this.value.toLowerCase().replace(/[^a-z0-9_\-]/g,'');});
-    idInp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();var pw=document.getElementById('my-pw-input');if(pw)pw.focus();}});
-  }
-  addEvt('my-pw-input','keydown',function(e){if(e.key==='Enter'){e.target.blur();submitAuth();}});
-  
-  document.querySelectorAll('.tab-btn').forEach(function(btn){
-    btn.addEventListener('click',function(){switchTab(btn.dataset.tab);});
-  });
-  
-  addClick('gs-btn',openGlobalSearch);
-  addClick('online-pill',function(){
-    if(navigator.clipboard)navigator.clipboard.writeText(myId).then(function(){toast('ID "'+myId+'" copied ✓');}).catch(function(){toast('Your ID: '+myId);});
-    else toast('Your ID: '+myId);
-  });
-  addEvt('contact-search','input',function(){renderChats(this.value);});
-  addClick('new-chat-fab',openNewChatModal);
-  addClick('nb-enable-btn',enableNotifs);
-  addClick('nb-close-btn',function(){var nb=document.getElementById('notif-banner');if(nb)nb.classList.remove('show');notifBannerDismissedThisSession=true;});
-  addClick('new-call-btn',openNewChatModal);
-  addClick('new-group-fab',openGroupCreateScreen);
-  addClick('gc-back-btn',function(){showScreen('screen-groups','back');});
-  addClick('gc-add-id-btn',gcAddById);
-  addClick('gc-create-btn',gcCreateGroup);
-  addClick('gi-back-btn',function(){showScreen('screen-groups','back');});
-  addClick('gi-rename-btn',function(){
-    var gi=document.getElementById('gi-name-input');
-    var v=gi?gi.value.trim():'';if(!v||!activeGroupId)return;renameGroup(activeGroupId,v);toast('Renamed ✓');
-  });
-  addClick('gi-add-id-btn',function(){
-    var inp=document.getElementById('gi-add-id-input');var p=inp?inp.value.trim().toLowerCase().replace(/[^a-z0-9_\-]/g,''):'';
-    if(!p||!activeGroupId)return;if(p===myId){toast("That's you!");return;}
-    addMemberToGroup(activeGroupId,p);if(inp)inp.value='';
-  });
-  addClick('gi-leave-btn',async function(){
-    if(!activeGroupId)return;
-    if(await styledConfirm('Leave this group?',{danger:true,okText:'Leave'}))leaveGroup(activeGroupId);
-  });
-  addClick('copy-id-btn',function(){if(navigator.clipboard)navigator.clipboard.writeText(myId).then(function(){toast('Copied ✓');});else toast('Your ID: '+myId);});
-  function openDpChoiceSheet(){var s=document.getElementById('dp-choice-sheet');if(s)s.classList.add('show');}
-  function closeDpChoiceSheet(){var s=document.getElementById('dp-choice-sheet');if(s)s.classList.remove('show');}
-  function processDpUpload(file){
-    if(!file)return;
-    if(!file.type||file.type.indexOf('image/')!==0){toast('Please choose an image');return;}
-    toast('Updating photo…');
-    resizeImageFileToDataUrl(file,256).then(function(dataUrl){
-      uploadDp(dataUrl);
-      closeDpChoiceSheet();
-    }).catch(function(){toast('Could not read that image');});
-  }
-  addClick('dp-edit-btn',openDpChoiceSheet);
-  addClick('dp-choice-cancel-btn',closeDpChoiceSheet);
-  addClick('dp-choice-sheet',function(e){if(e.target===this)closeDpChoiceSheet();});
-  addClick('dp-opt-camera',function(){closeDpChoiceSheet();var c=document.getElementById('dp-camera-input');if(c)c.click();});
-  addClick('dp-opt-gallery',function(){closeDpChoiceSheet();var g=document.getElementById('dp-gallery-input');if(g)g.click();});
-  addClick('dp-opt-remove',async function(){
-    closeDpChoiceSheet();
-    if(await styledConfirm('Remove your profile photo?',{danger:true,okText:'Remove'})){
-      uploadDp('');
-      toast('Profile photo removed');
-    }
-  });
-  addEvt('dp-camera-input','change',function(e){var f=e.target.files&&e.target.files[0];e.target.value='';processDpUpload(f);});
-  addEvt('dp-gallery-input','change',function(e){var f=e.target.files&&e.target.files[0];e.target.value='';processDpUpload(f);});
-  addEvt('dp-file-input','change',function(e){var f=e.target.files&&e.target.files[0];e.target.value='';processDpUpload(f);});
-  addClick('copy-diag-row',function(){
-    var log=ls_get('uf_last_call_diag',null)||callDiagLog;
-    if(!log||!log.length){toast('No call attempted yet this session');return;}
-    var text=log.join('\n');
-    if(navigator.clipboard)navigator.clipboard.writeText(text).then(function(){toast('Copied '+log.length+' lines — paste it to me 📋');}).catch(function(){toast(text.substring(0,200));});
-    else toast(text.substring(0,200));
-  });
-  addClick('switch-account-row',async function(){
-    if(await styledConfirm('Switch account? You will need to log in with a different ID.',{danger:true,okText:'Switch'})){
-      stopSignalService();
-      localStorage.removeItem(SK.MYID);localStorage.removeItem(SK.TOKEN);
-      var tn=document.getElementById('tab-nav');if(tn)tn.classList.remove('visible');
-      myId='';chatMode='';
-      if(peer&&!peer.destroyed){try{peer.destroy();}catch(e){}peer=null;}
-      peerReady=false;showScreen('screen-id');
-      var idI=document.getElementById('my-id-input'),pwI=document.getElementById('my-pw-input');
-      if(idI)idI.value='';if(pwI)pwI.value='';
-      if(authMode!=='login')toggleAuthMode();
-    }
-  });
-  addClick('ringtone-sw',function(){toggleSetting('ringtone');});
-  addClick('vibrate-sw',function(){toggleSetting('vibrate');});
-  addClick('backcam-sw',function(){toggleSetting('backcam');});
-  addClick('custom-ringtone-row',openRingtoneModal);
-  addClick('ringtone-pick-btn',pickRingtoneFile);
-  addClick('ringtone-any-btn',pickRingtoneFileAny);
-  addEvt('ringtone-file-input','change',function(e){var f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRingtoneFile(f);});
-  addEvt('ringtone-file-input-any','change',function(e){var f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRingtoneFile(f);});
-  addClick('ringtone-reset-btn',resetRingtone);
-  addClick('ringtone-test-btn',testRingtone);
-  addClick('ringtone-done-btn',closeRingtoneModal);
-  addClick('ringtone-modal',function(e){if(e.target===this)closeRingtoneModal();});
-  addClick('push-toggle-row',enableNotifs);
-  addClick('notif-row',async function(){
-    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openNotificationSettings();
-  });
-  addClick('fsi-row',async function(){
-    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openFullScreenIntentSettings();
-  });
-  addClick('battery-row',async function(){
-    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openBatterySettings();
-  });
-  addClick('dnd-row',async function(){
-    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openDndAccessSettings();
-  });
-  addClick('debug-log-row',async function(){
-    var ta=document.getElementById('debug-log-text');
-    if(ta)ta.value='Loading…';
-    var dlm=document.getElementById('debug-log-modal');
-    if(dlm)dlm.classList.add('show');
-    try{
-      var r=await Capacitor.Plugins.VahinPermissions.getDiagnosticLog();
-      if(ta)ta.value=r&&r.log?r.log:'(no diagnostic entries yet — trigger a test call first)';
-    }catch(e){if(ta)ta.value='Could not read diagnostic log: '+e.message;}
-  });
-  addClick('debug-log-close-btn',function(){
-    var dlm=document.getElementById('debug-log-modal');
-    if(dlm)dlm.classList.remove('show');
-  });
-  addClick('debug-log-modal',function(e){
-    if(e.target===this)this.classList.remove('show');
-  });
-  addClick('debug-log-clear-btn',async function(){
-    try{await Capacitor.Plugins.VahinPermissions.clearDiagnosticLog();}catch(e){}
-    var ta=document.getElementById('debug-log-text');
-    if(ta)ta.value='(cleared — trigger a test call to record new entries)';
-  });
-  addClick('debug-log-copy-btn',async function(){
-    var ta=document.getElementById('debug-log-text');
-    var text=ta?ta.value:'';
-    try{
-      await navigator.clipboard.writeText(text);
-      toast('Copied — paste it to share');
-    }catch(e){
-      if(ta){ta.focus();ta.select();}
-      try{document.execCommand('copy');toast('Copied — paste it to share');}
-      catch(e2){toast('Could not copy — select the text manually');}
-    }
-  });
-  addClick('ps-enable-all-btn',function(){enableAllPermissions();});
-  addClick('ps-done-btn',async function(){
-    var status;
-    try{status=await Capacitor.Plugins.VahinPermissions.getStatus();}catch(e){status=null;}
-    var stillMissing=status&&(
-      (status.notificationsApplicable&&!status.notificationsGranted)||
-      (status.fullScreenIntentApplicable&&!status.fullScreenIntentGranted)||
-      !status.batteryExemptionGranted||
-      !status.dndAccessGranted
-    );
-    closePermSetup(!!stillMissing);
-  });
-  addClick('ps-skip-top-btn',async function(){
-    var status;
-    try{status=await Capacitor.Plugins.VahinPermissions.getStatus();}catch(e){status=null;}
-    var stillMissing=status&&(
-      (status.notificationsApplicable&&!status.notificationsGranted)||
-      (status.fullScreenIntentApplicable&&!status.fullScreenIntentGranted)||
-      !status.batteryExemptionGranted||
-      !status.dndAccessGranted
-    );
-    closePermSetup(!!stillMissing);
-  });
-  addClick('conf-limit-minus',function(){settings.confLimit=Math.max(2,settings.confLimit-1);saveAll();applySettingsToUI();});
-  addClick('conf-limit-plus',function(){settings.confLimit=Math.min(12,settings.confLimit+1);saveAll();applySettingsToUI();});
-  addClick('blocked-list-row',openBlockedModal);
-  addClick('starred-msgs-row',openStarredScreen);
-  addClick('starred-back-btn',function(){showScreen('screen-chats','back');switchTab('chats');});
-  addClick('account-recovery-row',openRecoveryModal);
-  addClick('recovery-close-btn',closeRecoveryModal);
-  addClick('recovery-modal',function(e){if(e.target===this)closeRecoveryModal();});
-  addClick('recovery-copy-btn',function(){
-    var p=getOrGenRecoveryKey(myId);
-    if(navigator.clipboard){navigator.clipboard.writeText(p).then(function(){toast('Recovery phrase copied ✓');});}else{toast(p);}
-  });
-  addClick('restore-account-link',openRestoreModal);
-  addClick('restore-cancel-btn',closeRestoreModal);
-  addClick('restore-submit-btn',submitRestore);
-  addClick('restore-modal',function(e){if(e.target===this)closeRestoreModal();});
-  addClick('applock-row',openAppLockModal);
-  addClick('applock-close-btn',closeAppLockModal);
-  addClick('applock-modal',function(e){if(e.target===this)closeAppLockModal();});
-  addClick('applock-master-row',toggleAppLockMaster);
-  addClick('applock-pin-row',changeAppLockPin);
-  addClick('applock-biometric-row',toggleBiometricLock);
-  document.querySelectorAll('.lock-key').forEach(function(k){
-    k.addEventListener('click',function(){handleLockKeyPress(this.dataset.key);});
-  });
-  addClick('delete-account-row',deleteAccountAndData);
-  addClick('privacy-policy-row',openPrivacyPolicyModal);
-  addClick('privacy-policy-close-btn',closePrivacyPolicyModal);
-  addClick('privacy-policy-web-btn',openPrivacyPolicyWeb);
-  addClick('privacy-policy-modal',function(e){if(e.target===this)closePrivacyPolicyModal();});
-  addClick('contact-support-row',openSupportModal);
-  addClick('support-close-btn',closeSupportModal);
-  addClick('support-email-btn',sendSupportEmail);
-  addClick('support-modal',function(e){if(e.target===this)closeSupportModal();});
-  addClick('support-copy-diag-row',function(){
-    var log=ls_get('uf_last_call_diag',null)||callDiagLog;
-    if(!log||!log.length){toast('No call attempted yet this session');return;}
-    var text=log.join('\n');
-    if(navigator.clipboard)navigator.clipboard.writeText(text).then(function(){toast('Copied '+log.length+' diagnostic lines 📋');}).catch(function(){toast(text.substring(0,200));});
-    else toast(text.substring(0,200));
-  });
-  addClick('check-update-row',function(){checkForAppUpdate(true);});
-  addClick('app-update-now-btn',openPlayStoreUpdate);
-  addClick('app-update-later-btn',function(){var m=document.getElementById('app-update-modal');if(m)m.classList.remove('show');});
-  addClick('app-update-modal',function(e){if(e.target===this){var b=document.getElementById('app-update-later-btn');if(b&&b.style.display!=='none')this.classList.remove('show');}});
-  addClick('battery-guide-row',openBatteryGuideModal);
-  addClick('battery-guide-close-btn',closeBatteryGuideModal);
-  addClick('battery-guide-modal',function(e){if(e.target===this)closeBatteryGuideModal();});
-  addClick('battery-guide-sys-btn',async function(){
-    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.VahinPermissions)await Capacitor.Plugins.VahinPermissions.openBatterySettings();
-  });
-  document.querySelectorAll('#oem-brand-tabs button').forEach(function(b){
-    b.addEventListener('click',function(){showOemGuide(this.getAttribute('data-brand'));});
-  });
-  addClick('report-user-cancel-btn',closeReportUserModal);
-  addClick('report-user-submit-btn',submitReportUser);
-  addClick('report-user-modal',function(e){if(e.target===this)closeReportUserModal();});
-  addClick('invite-friends-row',inviteFriends);
-  addClick('dp-viewer-close-btn',closeDpViewer);
-  addClick('dp-viewer-overlay',function(e){if(e.target===this)closeDpViewer();});
-  addClick('new-status-fab',openStatusComposer);
-  addClick('my-status-row',function(){if(myStatuses.length)openStatusViewer('me');else openStatusComposer();});
-  addClick('sv-close-btn',closeStatusViewer);
-  addClick('sv-delete-btn',function(){if(statusViewerCtx)deleteMyStatus(statusViewerCtx.items[statusViewerCtx.idx].id);});
-  addClick('sv-nav-prev',function(){statusViewerNav(-1);});
-  addClick('sv-nav-next',function(){statusViewerNav(1);});
-  addClick('sc-close-btn',closeStatusComposer);
-  addClick('sc-post-btn',submitStatusComposer);
-  addClick('sc-pick-image-btn',function(){document.getElementById('sc-image-input').click();});
-  addClick('sc-camera-btn',function(){var c=document.getElementById('sc-camera-input');if(c)c.click();});
-  addEvt('sc-image-input','change',function(){if(this.files&&this.files[0])chooseStatusImage(this.files[0]);this.value='';});
-  addEvt('sc-camera-input','change',function(){if(this.files&&this.files[0])chooseStatusImage(this.files[0]);this.value='';});
-  (function(){
-    var picker=document.getElementById('sc-bg-picker');
-    STATUS_BG_COLORS.forEach(function(c,i){
-      var sw=document.createElement('div');sw.className='sc-bg-swatch'+(i===0?' active':'');sw.dataset.c=c;
-      sw.style.background=c;sw.onclick=function(){pickStatusBg(c);};
-      picker.appendChild(sw);
-    });
-  })();
-  addClick('chat-media-back-btn',function(){showScreen('screen-chat','back');});
-  addClick('cm-tab-media',function(){switchMediaTab('media');});
-  addClick('cm-tab-docs',function(){switchMediaTab('docs');});
-  addClick('cm-tab-links',function(){switchMediaTab('links');});
-  addClick('preview-compress-row',function(){
-    compressImageChat=!compressImageChat;
-    var sw=document.getElementById('preview-compress-sw');if(sw)sw.classList.toggle('on',!!compressImageChat);
-    saveAll();
-  });
-  addClick('clear-calls-row',async function(){if(await styledConfirm('Clear all call history?',{danger:true,okText:'Clear'})){callHistory=[];saveAll();renderCallHistory();toast('Cleared');}});
-  addClick('to-auto',function(){setTheme('auto');});
-  addClick('to-light',function(){setTheme('light');});
-  addClick('to-dark',function(){setTheme('dark');});
-  addClick('chat-back-btn',function(){chatMode='';chatPeerId='';chatConn=null;showScreen('screen-chats','back');switchTab('chats');renderChats();});
-  addClick('reply-cancel-btn',cancelReply);
-  addClick('cs-close-btn',closeChatSearch);
-  addEvt('cs-inp','input',function(){searchInChat(this.value);});
-  
-  var chatInputEl=document.getElementById('chat-input');
-  if(chatInputEl){
-    chatInputEl.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
-    chatInputEl.addEventListener('focus',hideEmojiPanel);
-  }
-  addClick('send-btn',sendMsg);
-  addClick('attach-btn',openAttachMenu);
-  addClick('emoji-btn',toggleEmojiPanel);
-  addClick('voice-btn',startVoiceRecord);
-  addClick('unblock-btn',function(){unblockUser(chatPeerId);});
-  addClick('report-btn',function(){
-    openReportUserModal(chatPeerId);
-  });
-  addClick('attach-overlay',function(e){if(e.target===this)closeAttachMenu();});
-  addClick('attach-image-btn',function(){triggerFilePick('image');});
-  addClick('attach-doc-btn',function(){triggerFilePick('any');});
-  addClick('attach-cancel-btn',closeAttachMenu);
-  addEvt('file-input','change',function(e){var f=e.target.files&&e.target.files[0];e.target.value='';if(f)openFilePreview(f);});
-  addClick('preview-cancel-btn',closeFilePreview);
-  addClick('preview-send-btn',confirmFilePreview);
-  addClick('preview-modal',function(e){if(e.target===this)closeFilePreview();});
-  addClick('new-chat-modal',function(e){if(e.target===this)closeNewChatModal();});
-  addClick('new-chat-cancel-btn',closeNewChatModal);
-  addClick('new-chat-start-btn',startChatFromModal);
-  
-  var nci=document.getElementById('new-chat-inp');
-  if(nci){
-    nci.addEventListener('input',function(){this.value=this.value.toLowerCase().replace(/[^a-z0-9_\-]/g,'');});
-    nci.addEventListener('keydown',function(e){if(e.key==='Enter')startChatFromModal();});
-  }
-  addClick('blocked-modal',function(e){if(e.target===this){var bm=document.getElementById('blocked-modal');if(bm)bm.classList.remove('show');}});
-  addClick('blocked-modal-close-btn',function(){var bm=document.getElementById('blocked-modal');if(bm)bm.classList.remove('show');});
-  addClick('chat-opts-modal',function(e){if(e.target===this)closeChatOptions();});
-  addClick('chat-opts-cancel-btn',closeChatOptions);
-  addClick('ctx-overlay',function(e){
-    if(Date.now()-_ctxOpenTs<350)return;
-    if(e.target===this)closeCtx();
-  });
-  addClick('ctx-reply-btn',function(){if(!ctxMsg)return;closeCtx();setReplyTo(ctxMsg);});
-  addClick('ctx-star-btn',function(){if(!ctxMsg)return;var targetMsg=Object.assign({},ctxMsg);closeCtx();toggleStarMsg(targetMsg);});
-  addClick('ctx-delete-everyone-btn',deleteMsgForEveryone);
-  addClick('ctx-copy-btn',function(){
-    if(!ctxMsg)return;
-    if(navigator.clipboard)navigator.clipboard.writeText(ctxMsg.text||'').then(function(){toast('Copied ✓');});else toast(ctxMsg.text||'');
-    closeCtx();
-  });
-  addClick('ctx-forward-btn',function(){
-    if(!ctxMsg)return;var fwdText=ctxMsg.text||'';closeCtx();openForwardPicker(fwdText);
-  });
-  addClick('forward-modal',function(e){if(e.target===this)closeForwardModal();});
-  addClick('forward-cancel-btn',closeForwardModal);
-  addClick('ctx-delete-btn',async function(){
-    if(!ctxMsg){closeCtx();return;}
-    if(!ctxMsg.me){toast('Can only delete your own messages');closeCtx();return;}
-    if(!(await styledConfirm('Delete this message for yourself?',{danger:true,okText:'Delete'}))){closeCtx();return;}
-    var h=dmHistory[chatPeerId]||[];
-    var i=h.findIndex(function(m){return m._id===ctxMsg._id||(m.time===ctxMsg.time&&m.text===ctxMsg.text);});
-    if(i>-1){h.splice(i,1);saveAll();}
-    closeCtx();openDMChat(chatPeerId);toast('Deleted');
-  });
-  addClick('rec-stop-btn',stopVoiceRecord);
-  addClick('rec-cancel-btn',cancelVoiceRecord);
-  addClick('qr-scan-btn',function(){openQRModal('my');});
-  addClick('qr-modal',function(e){if(e.target===this)closeQRModal();});
-  addClick('qr-modal-close-btn',closeQRModal);
-  addClick('qr-tab-my',function(){switchQRTab('my');});
-  addClick('qr-tab-scan',function(){switchQRTab('scan');});
-  addClick('qr-copy-btn',copyMyQRId);
-  addClick('qr-share-btn',shareMyQR);
-  addEvt('qr-image-upload','change',function(e){var f=e.target.files&&e.target.files[0];if(f)uploadQRImage(f);e.target.value='';});
-  addClick('qr-torch-btn',async function(){
-    if(qrScannerStream){
-      var track=qrScannerStream.getVideoTracks()[0];
-      if(track&&track.applyConstraints){
-        try{
-          var caps=track.getCapabilities?track.getCapabilities():{};
-          if(caps.torch){
-            var torchOn=!track.torchState;
-            await track.applyConstraints({advanced:[{torch:torchOn}]});
-            track.torchState=torchOn;
-            toast(torchOn?'Torch ON 🔦':'Torch OFF');
-          }else{
-            toast('Torch not supported on this camera');
-          }
-        }catch(e){toast('Could not toggle torch');}
-      }
-    }
-  });
-
-  addClick('btn-screenshare',function(){toggleScreenShare(false);});
-  addClick('conf-screenshare-btn',function(){toggleScreenShare(true);});
-  addClick('call-screenshare-stop-btn',function(){stopScreenSharing(false,true);});
-  addClick('conf-screenshare-stop-btn',function(){stopScreenSharing(true,true);});
-  /* FIX: no longer wired to tapping the video — see toggleCallControlsOverlay comment
-     above. Tapping the remote video during a call now does nothing, so the call UI
-     (including the End Call button) can never be accidentally hidden. */
-
-  addClick('btn-mute',toggleMute);
-  addClick('btn-cam',toggleCam);
-  addClick('btn-flip',flipCamera);
-  addClick('btn-speaker',toggleSpeaker);
-  addClick('btn-call-chat',toggleCallChat);
-  addClick('call-chat-close-btn',hideCallChat);
-  addClick('btn-end',endCall);
-  addClick('btn-decline',declineCall);
-  addClick('btn-accept',acceptCall);
-  addClick('ring-toggle-btn',toggleRingMute);
-  addClick('cc-send-btn',sendCallChatMsg);
-  addEvt('cc-input','keydown',function(e){if(e.key==='Enter')sendCallChatMsg();});
-  addClick('conf-end-btn',endConf);
-  addClick('conf-invite-toggle-btn',function(){var cip=document.getElementById('conf-invite-panel');if(cip)cip.classList.toggle('show');});
-  addClick('conf-invite-submit-btn',inviteToConf);
-  
-  var cii=document.getElementById('conf-invite-inp');
-  if(cii){
-    cii.addEventListener('input',function(){this.value=this.value.toLowerCase().replace(/[^a-z0-9_\-]/g,'');});
-    cii.addEventListener('keydown',function(e){if(e.key==='Enter')inviteToConf();});
-  }
-  addClick('conf-mute-btn',confToggleMute);
-  addClick('conf-cam-btn',confToggleCam);
-  addClick('conf-flip-btn',confFlipCamera);
-  addClick('search-back-btn',function(){showScreen('screen-chats','back');switchTab('chats');});
-  addEvt('g-search-input','input',function(){doGlobalSearch(this.value);});
-  addClick('headsup-notif',handleHUNTap);
-  
-  window.addEventListener('online',function(){toast('Back online 🟢');if(!peerReady)scheduleReconnect();});
-  window.addEventListener('offline',function(){toast('No internet — calls may drop');showBanner('No internet connection');});
-  window.addEventListener('beforeunload',function(e){if(currentCall||Object.keys(confCalls).length){e.preventDefault();e.returnValue='';}});
-  
-  function unlockAudio(){getAudioCtx();document.removeEventListener('touchstart',unlockAudio);document.removeEventListener('click',unlockAudio);}
-  document.addEventListener('touchstart',unlockAudio,{once:true,passive:true});
-  document.addEventListener('click',unlockAudio,{once:true});
-  setupKeyboardFix();registerSW();setupTabSwipe();setupFeatureHandlers();
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   ── FEATURE MODULES: NOTIFICATION ROUTING, NEARBY, LOWDATA, EXPORT, 
-      SCHEDULED, CONTACT SOUNDS, WIDGET & BADGE, GHOST MODE, SMART REVIEW
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-/* ── 1. Notification Drop Prevention & Guaranteed Chat Routing ───────── */
-function ensureDMMessageSaved(fromId, text, ts, msgType){
-  if(!fromId || !text || !myId || fromId === myId) return;
-  if(!dmHistory[fromId]) dmHistory[fromId] = [];
-  var existing = dmHistory[fromId].some(function(m){
-    return m.text === text && Math.abs((m.time || 0) - (ts || 0)) < 15000;
-  });
-  if(!existing){
-    var mo = {
-      me: false,
-      text: text,
-      time: ts ? new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : fmtTime(),
-      _id: 'notif_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
-      type: msgType || 'text',
-      _read: (chatMode === 'dm' && chatPeerId === fromId && document.visibilityState === 'visible')
-    };
-    dmHistory[fromId].push(mo);
-    ls_set(SK.DM, dmHistory);
-    addRecentSilent(fromId);
-    if(chatMode === 'dm' && chatPeerId === fromId){
-      removeEmpty('chat-msgs');
-      appendMsg(false, text, mo.time, false, null, mo);
-    } else {
-      unreadDM[fromId] = (unreadDM[fromId] || 0) + 1;
-      updateUnreadBadges();
-      renderChats();
-    }
-  }
-}
-
-/* ── 2. Synthesized Contact Alert Sounds ─────────────────────────────── */
-var TONE_PRESETS = {
-  classic: { name: 'Unifest Classic', icon: '🎵', desc: 'Crisp dual-tone chime' },
-  crystal: { name: 'Crystal Chime', icon: '������', desc: 'Bright bell resonance' },
-  marimba: { name: 'Marimba Drop', icon: '🪵', desc: 'Warm acoustic marimba melody' },
-  cyber: { name: 'Cyber Surge', icon: '⚡', desc: 'Futuristic electronic chirp' },
-  bell: { name: 'Zen Bell', icon: '🔔', desc: 'Deep soothing temple chime' },
-  starlight: { name: 'Starlight Pulse', icon: '🚀', desc: 'Ascending cosmic sparkle' },
-  vibrate: { name: 'Vibrate Only', icon: '📳', desc: 'Silent tactile notification' }
-};
-
-function playSynthesizedTone(toneKey){
-  if(!settings.ringtone && toneKey !== 'vibrate') return;
-  if(toneKey === 'vibrate'){
-    doVibratePattern([120, 80, 120]);
-    return;
-  }
-  var ctx = getAudioCtx();
-  if(!ctx) return;
-  var now = ctx.currentTime;
-  
-  try {
-    if(toneKey === 'crystal'){
-      [1046.5, 1318.5, 1567.98].forEach(function(freq, idx){
-        var osc = ctx.createOscillator(), gain = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
-        gain.gain.setValueAtTime(0, now + idx * 0.08);
-        gain.gain.linearRampToValueAtTime(0.18, now + idx * 0.08 + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.start(now + idx * 0.08); osc.stop(now + idx * 0.08 + 0.38);
-      });
-      doVibratePattern([80, 50, 80]);
-    } else if(toneKey === 'marimba'){
-      [523.25, 659.25, 783.99, 1046.5].forEach(function(freq, idx){
-        var osc = ctx.createOscillator(), gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now + idx * 0.06);
-        gain.gain.setValueAtTime(0.22, now + idx * 0.06);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.22);
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.start(now + idx * 0.06); osc.stop(now + idx * 0.06 + 0.25);
-      });
-      doVibratePattern([100, 60, 100]);
-    } else if(toneKey === 'cyber'){
-      var osc = ctx.createOscillator(), gain = ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(440, now);
-      osc.frequency.exponentialRampToValueAtTime(1760, now + 0.18);
-      gain.gain.setValueAtTime(0.15, now);
-      gain.gain.linearRampToValueAtTime(0, now + 0.22);
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.start(now); osc.stop(now + 0.25);
-      doVibratePattern([150]);
-    } else if(toneKey === 'bell'){
-      [587.33, 880].forEach(function(freq, idx){
-        var osc = ctx.createOscillator(), gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now);
-        gain.gain.setValueAtTime(0.24, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.start(now); osc.stop(now + 0.85);
-      });
-      doVibratePattern([200]);
-    } else if(toneKey === 'starlight'){
-      [880, 1174.66, 1396.91, 1760].forEach(function(freq, idx){
-        var osc = ctx.createOscillator(), gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now + idx * 0.05);
-        gain.gain.setValueAtTime(0, now + idx * 0.05);
-        gain.gain.linearRampToValueAtTime(0.16, now + idx * 0.05 + 0.015);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.28);
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.start(now + idx * 0.05); osc.stop(now + idx * 0.05 + 0.3);
-      });
-      doVibratePattern([60, 40, 60, 40, 100]);
-    } else {
-      // Classic Unifest chime
-      [880, 1318.51].forEach(function(freq, idx){
-        var osc = ctx.createOscillator(), gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now + idx * 0.12);
-        gain.gain.setValueAtTime(0, now + idx * 0.12);
-        gain.gain.linearRampToValueAtTime(0.2, now + idx * 0.12 + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.3);
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.start(now + idx * 0.12); osc.stop(now + idx * 0.12 + 0.32);
-      });
-      doVibratePattern([120, 80, 120]);
-    }
-  } catch(e){}
-}
-
-function playMessageAlertTone(senderId){
-  var tone = (senderId && contactSounds && contactSounds[senderId]) ? contactSounds[senderId] : 'classic';
-  playSynthesizedTone(tone);
-}
-
-var activeSoundPickerPeer = '';
-function openContactSoundModal(peerId){
-  activeSoundPickerPeer = peerId || chatPeerId || (recentPeers[0] || '');
-  var sel = document.getElementById('contact-sound-peer-select');
-  if(sel){
-    sel.innerHTML = '';
-    var peers = Array.from(new Set([activeSoundPickerPeer].concat(recentPeers).concat(Object.keys(contacts||{})))).filter(function(p){ return p && p !== myId; });
-    if(!peers.length) peers = [activeSoundPickerPeer || 'contact'];
-    peers.forEach(function(p){
-      var opt = document.createElement('option');
-      opt.value = p; opt.textContent = '@' + p + ((contacts[p] && contacts[p].name) ? ' (' + contacts[p].name + ')' : '');
-      if(p === activeSoundPickerPeer) opt.selected = true;
-      sel.appendChild(opt);
-    });
-    sel.onchange = function(){
-      activeSoundPickerPeer = this.value;
-      renderContactSoundList();
-    };
-  }
-  renderContactSoundList();
-  document.getElementById('contact-sound-modal').classList.add('show');
-}
-
-function closeContactSoundModal(){
-  document.getElementById('contact-sound-modal').classList.remove('show');
-}
-
-function renderContactSoundList(){
-  var list = document.getElementById('contact-sound-list');
-  if(!list) return;
-  list.innerHTML = '';
-  var currentTone = (contactSounds && contactSounds[activeSoundPickerPeer]) || 'classic';
-
-  Object.keys(TONE_PRESETS).forEach(function(k){
-    var item = TONE_PRESETS[k];
-    var isSel = (k === currentTone);
-    var row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface2);border-radius:12px;border:1.5px solid ' + (isSel ? 'var(--accent)' : 'var(--border)') + ';cursor:pointer;transition:all .15s;';
-    row.innerHTML = '<div style="display:flex;align-items:center;gap:12px;"><span style="font-size:20px;">' + item.icon + '</span><div><div style="font-size:13.5px;font-weight:700;color:var(--text);">' + item.name + '</div><div style="font-size:11.5px;color:var(--text3);">' + item.desc + '</div></div></div>'
-      + '<div style="display:flex;align-items:center;gap:8px;"><button class="btn-secondary sound-prev-btn" style="padding:4px 8px;font-size:11px;min-height:28px;">▶ Play</button><div style="width:20px;height:20px;border-radius:50%;border:1.5px solid ' + (isSel ? 'var(--accent)' : 'var(--border2)') + ';background:' + (isSel ? 'var(--accent)' : 'transparent') + ';display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800;">' + (isSel ? '✓' : '') + '</div></div>';
-
-    row.querySelector('.sound-prev-btn').onclick = function(e){
-      e.stopPropagation();
-      playSynthesizedTone(k);
-    };
-    row.onclick = function(){
-      contactSounds[activeSoundPickerPeer] = k;
-      saveAll();
-      renderContactSoundList();
-      playSynthesizedTone(k);
-    };
-    list.appendChild(row);
-  });
-}
-
-function saveContactSound(){
-  closeContactSoundModal();
-  toast('Custom tone saved for @' + activeSoundPickerPeer + ' 🔔');
-}
-
-/* ── 3. Nearby / Offline Mode — REMOVED per explicit request. The feature
-   never did real Bluetooth/local-network discovery to begin with (it was a
-   QR-pairing flow that reused the same real pairing as "My QR Code"), but
-   since it was presented as a Bluetooth-flavored "sharing" feature and
-   wasn't wanted, it's removed outright — button, modal, and controller
-   functions. Regular QR pairing/scanning ("My QR Code" / qr-scan-btn) is
-   untouched and still works exactly as before. */
-
-/* ── 4. Export My Data Controller ────────────────────────────────────── */
-var exportTargetPeer = null;
-
-function openExportModal(singlePid){
-  exportTargetPeer = singlePid || null;
-  var titleEl = document.getElementById('export-close-btn');
-  
-  // Calculate statistics
-  var totalChats = exportTargetPeer ? 1 : Object.keys(dmHistory).length;
-  var totalMsgs = 0;
-  if(exportTargetPeer){
-    totalMsgs = (dmHistory[exportTargetPeer] || []).length;
-  } else {
-    Object.keys(dmHistory).forEach(function(k){ totalMsgs += (dmHistory[k] || []).length; });
-    Object.keys(groups).forEach(function(g){ totalMsgs += (groups[g].history || []).length; });
-  }
-  var totalCalls = exportTargetPeer ? callHistory.filter(function(c){ return c.pid === exportTargetPeer; }).length : callHistory.length;
-
-  var stChats = document.getElementById('export-stat-chats');
-  var stMsgs = document.getElementById('export-stat-msgs');
-  var stCalls = document.getElementById('export-stat-calls');
-  if(stChats) stChats.textContent = totalChats;
-  if(stMsgs) stMsgs.textContent = totalMsgs;
-  if(stCalls) stCalls.textContent = totalCalls;
-
-  document.getElementById('export-data-modal').classList.add('show');
-}
-
-function closeExportModal(){
-  document.getElementById('export-data-modal').classList.remove('show');
-}
-
-function generateDataExport(){
-  var formatEl = document.querySelector('input[name="export-format"]:checked');
-  var format = formatEl ? formatEl.value : 'html';
-  var includeCalls = document.getElementById('export-opt-calls') ? document.getElementById('export-opt-calls').checked : true;
-  var includeStarred = document.getElementById('export-opt-starred') ? document.getElementById('export-opt-starred').checked : true;
-
-  var exportData = {
-    exportedAt: new Date().toISOString(),
-    myId: myId,
-    target: exportTargetPeer || 'all',
-    chats: exportTargetPeer ? { [exportTargetPeer]: dmHistory[exportTargetPeer] || [] } : dmHistory,
-    groups: exportTargetPeer ? {} : groups,
-    callHistory: includeCalls ? (exportTargetPeer ? callHistory.filter(function(c){ return c.pid === exportTargetPeer; }) : callHistory) : [],
-    starredMessages: includeStarred ? starredMessages : []
-  };
-
-  var fileName = 'unifest-backup-' + (myId || 'user') + (exportTargetPeer ? '-' + exportTargetPeer : '') + '-' + new Date().toISOString().slice(0,10);
-
-  if(format === 'json'){
-    var blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    triggerBlobDownload(blob, fileName + '.json');
-  } else {
-    // Generate standalone offline HTML Viewer
-    var htmlContent = buildExportHtmlViewer(exportData);
-    var htmlBlob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-    triggerBlobDownload(htmlBlob, fileName + '.html');
-  }
-  closeExportModal();
-  toast('Data exported successfully! 💾');
-}
-
-function triggerBlobDownload(blob, filename){
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(function(){
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 1000);
-}
-
-function buildExportHtmlViewer(data){
-  var bodyContent = '';
-  Object.keys(data.chats || {}).forEach(function(pid){
-    var msgs = data.chats[pid] || [];
-    bodyContent += '<div class="chat-section"><h2 class="chat-header">💬 Chat with @' + esc(pid) + ' <span class="badge">' + msgs.length + ' msgs</span></h2><div class="msgs-flow">';
-    msgs.forEach(function(m){
-      var isMe = !!m.me;
-      bodyContent += '<div class="msg-bubble ' + (isMe ? 'me' : 'them') + '"><div class="msg-text">' + esc(m.text || '') + '</div><div class="msg-meta">' + (isMe ? 'You' : '@' + pid) + ' · ' + (m.time || '') + '</div></div>';
-    });
-    bodyContent += '</div></div>';
-  });
-
-  return '<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Unifest Chat Export · @' + esc(data.myId) + '</title><style>'
-    + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,sans-serif;background:#0F172A;color:#F8FAFC;margin:0;padding:24px;line-height:1.5;}'
-    + '.container{max-width:800px;margin:0 auto;}'
-    + '.hdr{background:#1E293B;padding:20px;border-radius:16px;border:1px solid #334155;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;}'
-    + '.title{font-size:20px;font-weight:800;color:#38BDF8;margin:0;}'
-    + '.sub{font-size:12px;color:#94A3B8;margin-top:4px;}'
-    + '.chat-section{background:#1E293B;border-radius:16px;border:1px solid #334155;padding:20px;margin-bottom:20px;}'
-    + '.chat-header{font-size:16px;font-weight:700;margin:0 0 14px 0;display:flex;align-items:center;justify-content:space-between;color:#F1F5F9;border-bottom:1px solid #334155;padding-bottom:10px;}'
-    + '.badge{font-size:11px;background:#0284C7;color:#fff;padding:2px 8px;border-radius:10px;}'
-    + '.msgs-flow{display:flex;flex-direction:column;gap:8px;}'
-    + '.msg-bubble{max-width:75%;padding:10px 14px;border-radius:14px;font-size:14px;}'
-    + '.msg-bubble.me{align-self:flex-end;background:#2563EB;color:#fff;border-bottom-right-radius:4px;}'
-    + '.msg-bubble.them{align-self:flex-start;background:#334155;color:#F8FAFC;border-bottom-left-radius:4px;}'
-    + '.msg-meta{font-size:10.5px;opacity:0.75;margin-top:4px;text-align:right;}'
-    + '</style></head><body><div class="container"><div class="hdr"><div><h1 class="title">📦 Unifest Data Archive</h1><div class="sub">Account: @' + esc(data.myId) + ' · Exported on ' + new Date(data.exportedAt).toLocaleString() + '</div></div></div>'
-    + bodyContent
-    + '</div></body></html>';
-}
-
-/* ── 5. Scheduled Messages Controller ────────────────────────────────── */
-function openScheduleModal(){
-  var msgInp = document.getElementById('chat-input');
-  var schedInp = document.getElementById('schedule-msg-text');
-  if(schedInp && msgInp){
-    schedInp.value = msgInp.value.trim();
-  }
-  // Default custom time to +30 mins
-  var customPicker = document.getElementById('schedule-custom-datetime');
-  if(customPicker){
-    var d = new Date(Date.now() + 30 * 60 * 1000);
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-    customPicker.value = d.toISOString().slice(0,16);
-  }
-  renderScheduledQueueList();
-  document.getElementById('schedule-modal').classList.add('show');
-}
-
-function closeScheduleModal(){
-  document.getElementById('schedule-modal').classList.remove('show');
-}
-
-function scheduleMessage(mins, preset){
-  var schedInp = document.getElementById('schedule-msg-text');
-  var text = (schedInp ? schedInp.value : '').trim();
-  if(!text){
-    toast('Please enter a message to schedule');
-    return;
-  }
-  var target = (chatMode === 'dm') ? chatPeerId : (chatMode === 'group' ? activeGroupId : '');
-  if(!target){
-    toast('Open a chat to schedule a message');
-    return;
-  }
-
-  var sendAt = Date.now();
-  if(preset === 'tomorrow_morning'){
-    var tom = new Date();
-    tom.setDate(tom.getDate() + 1);
-    tom.setHours(9, 0, 0, 0);
-    sendAt = tom.getTime();
-  } else if(mins){
-    sendAt = Date.now() + mins * 60 * 1000;
-  } else {
-    var picker = document.getElementById('schedule-custom-datetime');
-    if(picker && picker.value){
-      sendAt = new Date(picker.value).getTime();
-    } else {
-      sendAt = Date.now() + 15 * 60 * 1000;
-    }
-  }
-
-  var schedItem = {
-    id: 'sch_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
-    target: target,
-    mode: chatMode,
-    text: text,
-    sendAt: sendAt,
-    createdAt: Date.now()
-  };
-
-  scheduledMessages.push(schedItem);
-  saveAll();
-
-  // Clear main chat input
-  var msgInp = document.getElementById('chat-input');
-  if(msgInp) msgInp.value = '';
-  autoResizeTA();
-
-  closeScheduleModal();
-  updateScheduledBanner();
-  toast('Message scheduled for ' + new Date(sendAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) + ' 🕒');
-}
-
-function renderScheduledQueueList(){
-  var list = document.getElementById('scheduled-queue-list');
-  if(!list) return;
-  list.innerHTML = '';
-  var target = (chatMode === 'dm') ? chatPeerId : (chatMode === 'group' ? activeGroupId : '');
-  var activeScheds = scheduledMessages.filter(function(s){ return !target || s.target === target; });
-
-  if(!activeScheds.length){
-    list.innerHTML = '<div style="padding:10px;text-align:center;font-size:12px;color:var(--text3);">No pending scheduled messages</div>';
-    return;
-  }
-
-  activeScheds.forEach(function(s){
-    var card = document.createElement('div');
-    card.className = 'scheduled-item-card';
-    card.innerHTML = '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(s.text) + '</div><div style="font-size:11px;color:var(--accent);margin-top:2px;">🕒 ' + new Date(s.sendAt).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) + '</div></div>'
-      + '<div style="display:flex;gap:6px;"><button class="btn-secondary sch-send-now" style="padding:4px 8px;font-size:11px;min-height:28px;">Send Now</button><button class="btn-secondary sch-del" style="padding:4px 8px;font-size:11px;min-height:28px;color:var(--red);">🗑️</button></div>';
-
-    card.querySelector('.sch-send-now').onclick = function(){
-      dispatchScheduledMessage(s);
-      deleteScheduledMessage(s.id);
-      renderScheduledQueueList();
-    };
-    card.querySelector('.sch-del').onclick = function(){
-      deleteScheduledMessage(s.id);
-      renderScheduledQueueList();
-    };
-    list.appendChild(card);
-  });
-}
-
-function deleteScheduledMessage(id){
-  scheduledMessages = scheduledMessages.filter(function(s){ return s.id !== id; });
-  saveAll();
-  updateScheduledBanner();
-}
-
-function dispatchScheduledMessage(s){
-  if(s.mode === 'dm'){
-    var now = fmtTime();
-    if(!dmHistory[s.target]) dmHistory[s.target] = [];
-    var mo = { me: true, text: s.text, time: now, _id: 'm' + Date.now(), scheduled: true };
-    dmHistory[s.target].push(mo);
-    ls_set(SK.DM, dmHistory);
-    if(chatMode === 'dm' && chatPeerId === s.target){
-      removeEmpty('chat-msgs');
-      appendMsg(true, s.text, now, false, null, mo);
-    }
-    var c = peer && peer.connect(s.target, { reliable: true, metadata: { type: 'dm' } });
-    if(c){
-      c.on('open', function(){ try { c.send({ type: 'chat-dm', text: s.text, time: now, msgId: mo._id }); } catch(e){} });
-    }
-    notifyPeerMsg(s.target, s.text);
-  }
-}
-
-function updateScheduledBanner(){
-  var banner = document.getElementById('scheduled-msgs-banner');
-  var textEl = document.getElementById('scheduled-msgs-banner-text');
-  if(!banner || !textEl) return;
-  var target = (chatMode === 'dm') ? chatPeerId : (chatMode === 'group' ? activeGroupId : '');
-  var activeScheds = scheduledMessages.filter(function(s){ return s.target === target; });
-
-  if(activeScheds.length > 0 && chatMode){
-    textEl.textContent = activeScheds.length + ' message' + (activeScheds.length > 1 ? 's' : '') + ' scheduled';
-    banner.style.display = 'flex';
-  } else {
-    banner.style.display = 'none';
-  }
-}
-
-function processScheduledQueue(){
-  var now = Date.now();
-  var toSend = scheduledMessages.filter(function(s){ return s.sendAt <= now; });
-  if(!toSend.length) return;
-
-  toSend.forEach(function(s){
-    dispatchScheduledMessage(s);
-  });
-  scheduledMessages = scheduledMessages.filter(function(s){ return s.sendAt > now; });
-  saveAll();
-  updateScheduledBanner();
-}
-setInterval(processScheduledQueue, 10000);
-
-/* ── 6. Home Screen Widget & Badging Controller ──────────────────────── */
-function openWidgetModal(){
-  renderWidgetSpeedDial();
-  updateAppBadgeCount();
-  document.getElementById('widget-modal').classList.add('show');
-}
-
-function closeWidgetModal(){
-  document.getElementById('widget-modal').classList.remove('show');
-}
-
-function renderWidgetSpeedDial(){
-  var wrap = document.getElementById('widget-speed-dial-contacts');
-  var badgeEl = document.getElementById('widget-unread-badge');
-  if(!wrap) return;
-  wrap.innerHTML = '';
-
-  var totalUnread = 0;
-  Object.keys(unreadDM).forEach(function(k){ totalUnread += (unreadDM[k] || 0); });
-  Object.keys(unreadGroup).forEach(function(k){ totalUnread += (unreadGroup[k] || 0); });
-  if(badgeEl) badgeEl.textContent = totalUnread + ' Unread';
-
-  var topPeers = recentPeers.filter(function(p){ return p && p !== myId && !isBlocked(p); }).slice(0, 3);
-  if(!topPeers.length) topPeers = ['Alice', 'Bob', 'Support'];
-
-  topPeers.forEach(function(pid){
-    var btn = document.createElement('button');
-    btn.className = 'widget-contact-btn';
-    btn.innerHTML = '<div class="widget-contact-av">' + pid[0].toUpperCase() + '</div><div style="font-size:12px;font-weight:700;max-width:60px;overflow:hidden;text-overflow:ellipsis;">' + esc(pid) + '</div>';
-    btn.onclick = function(){
-      closeWidgetModal();
-      openDMChat(pid);
-    };
-    wrap.appendChild(btn);
-  });
-}
-
-function updateAppBadgeCount(){
-  var total = 0;
-  Object.keys(unreadDM).forEach(function(k){ total += (unreadDM[k] || 0); });
-  Object.keys(unreadGroup).forEach(function(k){ total += (unreadGroup[k] || 0); });
-
-  if(navigator.setAppBadge){
-    if(total > 0){
-      navigator.setAppBadge(total).catch(function(){});
-    } else if(navigator.clearAppBadge){
-      navigator.clearAppBadge().catch(function(){});
-    }
-  }
-}
-
-/* ── 7. Smart Review & Feedback Prompt Controller ────────────────────── */
-var userStarRating = 0;
-function maybeTriggerSmartReview(source){
-  var hasReviewed = localStorage.getItem(SK.REVIEW);
-  if(hasReviewed) return;
-
-  var eligible = (source === 'call' && callSecs > 15) || (source === 'msgs' && Object.keys(dmHistory).length >= 3);
-  if(!eligible) return;
-
-  // Show smart review prompt with gentle delay
-  setTimeout(function(){
-    document.getElementById('smart-review-modal').classList.add('show');
-  }, 1200);
-}
-
-function handleReviewStarSelect(stars){
-  userStarRating = stars;
-  var starBtns = document.querySelectorAll('.star-btn');
-  // FIX (star rating value not working): this toggled a class named 'active', but the
-  // CSS that actually colors a star in (.star-btn.filled) only ever looks for 'filled'.
-  // 'active' matched nothing, so tapping a star silently updated userStarRating in JS
-  // with zero visible feedback — from the user's side it looked completely broken.
-  starBtns.forEach(function(b, idx){
-    b.classList.toggle('filled', idx < stars);
-  });
-
-  var box = document.getElementById('review-feedback-box');
-  var prompt = document.getElementById('review-feedback-prompt');
-  var actionBtn = document.getElementById('review-action-btn');
-  if(!box || !prompt || !actionBtn) return;
-
-  box.style.display = 'flex';
-  if(stars >= 4){
-    prompt.textContent = '🌟 Awesome! Would you leave a quick review?';
-    actionBtn.textContent = '⭐ Rate on Store';
-  } else {
-    prompt.textContent = 'How can we make Unifest better for you?';
-    actionBtn.textContent = 'Send Feedback';
-  }
-}
-
-function submitReviewFeedback(){
-  localStorage.setItem(SK.REVIEW, 'done_' + userStarRating);
-  document.getElementById('smart-review-modal').classList.remove('show');
-  if(userStarRating >= 4){
-    toast('Thank you for the 5-star support! ❤️');
-  } else {
-    toast('Thank you for your feedback! We are improving continuously.');
-  }
-}
-
-function dismissReviewModal(){
-  document.getElementById('smart-review-modal').classList.remove('show');
-}
-
-/* ── 8. Wire All Event Handlers for Feature Additions ────────────────── */
-function setupFeatureHandlers(){
-  // Low data & Ghost mode settings switches
-  addClick('lowdata-sw', function(){ toggleSetting('lowData'); });
-  addClick('ghost-sw', function(){ toggleSetting('ghostMode'); });
-  addClick('ghost-pill', function(){ toggleSetting('ghostMode'); });
-
-  // Export data
-  addClick('export-data-row', function(){ openExportModal(); });
-  addClick('export-close-btn', closeExportModal);
-  addClick('export-download-btn', generateDataExport);
-
-  // Scheduled messages
-  addClick('attach-schedule-btn', function(){ closeAttachMenu(); openScheduleModal(); });
-  addClick('schedule-close-btn', closeScheduleModal);
-  addClick('schedule-confirm-btn', function(){ scheduleMessage(null); });
-  addClick('view-scheduled-btn', openScheduleModal);
-
-  document.querySelectorAll('.schedule-preset-chip').forEach(function(chip){
-    chip.onclick = function(){
-      var mins = parseInt(this.getAttribute('data-mins'), 10);
-      var preset = this.getAttribute('data-preset');
-      scheduleMessage(mins, preset);
-    };
-  });
-
-  // Contact alert sounds
-  addClick('contact-sound-close-btn', closeContactSoundModal);
-  addClick('contact-sound-save-btn', saveContactSound);
-
-  // Widget & Badges
-  addClick('widget-guide-row', openWidgetModal);
-  addClick('widget-close-btn', closeWidgetModal);
-  addClick('widget-done-btn', closeWidgetModal);
-  addClick('widget-test-badge-btn', function(){
-    if(navigator.setAppBadge){ navigator.setAppBadge(3); toast('Test badge set to 3 🔴'); }
-    else toast('App Badging simulated on this browser');
-  });
-
-  // Smart Review Modal
-  document.querySelectorAll('.star-btn').forEach(function(btn){
-    btn.onclick = function(){
-      var st = parseInt(this.getAttribute('data-star'), 10);
-      handleReviewStarSelect(st);
-    };
-  });
-  addClick('review-action-btn', submitReviewFeedback);
-  addClick('review-later-btn', dismissReviewModal);
-}
-
-function openNewChatModal(){
-  document.getElementById('new-chat-inp').value='';
-  document.getElementById('new-chat-modal').classList.add('show');
-  setTimeout(function(){try{document.getElementById('new-chat-inp').focus();}catch(e){}},300);
-}
-function closeNewChatModal(){document.getElementById('new-chat-modal').classList.remove('show');}
-function startChatFromModal(){
-  var v=document.getElementById('new-chat-inp').value.trim().toLowerCase().replace(/[^a-z0-9_\-]/g,'');
-  if(!v){toast('Enter an ID');return;}if(v===myId){toast("That's your own ID!");return;}
-  closeNewChatModal();openDMChat(v);
-}
-function handleStartupURL(){
-  var params=new URLSearchParams(window.location.search);
-  var peer2=params.get('peer'),from=params.get('from'),notif=params.get('notif'),group=params.get('group');
-  var msg=params.get('msg')||params.get('text');
-  var ts=parseInt(params.get('ts'),10)||Date.now();
-  if(from&&msg){ensureDMMessageSaved(from,msg,ts);}
-  if(group&&myId){if(groups[group])openGroupChat(group);else{switchTab('groups');showScreen('screen-groups');renderGroupsList();}return;}
-  if(peer2&&myId){if(msg)ensureDMMessageSaved(peer2,msg,ts);openDMChat(peer2);return;}
-  if(from&&(notif==='group'||notif==='group-invite'||notif==='group-msg')&&myId){if(groups[from])openGroupChat(from);else{switchTab('groups');showScreen('screen-groups');renderGroupsList();}return;}
-  if(from&&myId){openDMChat(from);return;}
-}
-var pendingSW=null;
-function swUpdate(){if(pendingSW){pendingSW.postMessage({type:'SKIP_WAITING'});window.location.reload();}}
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.ready.then(function(reg){
-    reg.addEventListener('updatefound',function(){
-      var newSW=reg.installing;if(!newSW)return;
-      newSW.addEventListener('statechange',function(){
-        if(newSW.state==='installed'&&navigator.serviceWorker.controller){
-          pendingSW=newSW;var bar=document.getElementById('sw-update-bar');if(bar)bar.style.display='flex';
-        }
-      });
-    });
-  });
-  navigator.serviceWorker.addEventListener('message',function(event){
-    if(event.data&&event.data.type==='NOTIFICATION_CLICK'){
-      var fromPeer=event.data.from;
-      var msgText=event.data.msg||event.data.text;
-      var ts=event.data.ts||Date.now();
-      if(fromPeer){
-        if(msgText) ensureDMMessageSaved(fromPeer,msgText,ts);
-        openDMChat(fromPeer);
-      }
-    }
-  });
-  setInterval(function(){navigator.serviceWorker.ready.then(function(reg){reg.update().catch(function(){});});},60000);
-}
-function handleAppBackButton(e){
-  if(e&&e.preventDefault)e.preventDefault();
-
-  // 1. In-call chat overlay
-  var cc=document.getElementById('call-chat-panel');
-  if(cc&&cc.classList.contains('show')){hideCallChat();return;}
-
-  // 2. Pulse Viewer
-  var sv=document.getElementById('sv-overlay');
-  if(sv&&sv.classList.contains('show')){closeStatusViewer();return;}
-
-  // 3. Pulse Composer
-  var sc=document.getElementById('status-composer-overlay');
-  if(sc&&sc.classList.contains('show')){closeStatusComposer();return;}
-
-  // 4. Message context menu
-  var ctx=document.getElementById('ctx-overlay');
-  if(ctx&&ctx.classList.contains('show')){closeCtx();return;}
-
-  // 5. Active sheets and modals
-  var expModal=document.getElementById('export-data-modal');
-  if(expModal&&expModal.classList.contains('show')){closeExportModal();return;}
-
-  var schModal=document.getElementById('schedule-modal');
-  if(schModal&&schModal.classList.contains('show')){closeScheduleModal();return;}
-
-  var csndModal=document.getElementById('contact-sound-modal');
-  if(csndModal&&csndModal.classList.contains('show')){closeContactSoundModal();return;}
-
-  var widModal=document.getElementById('widget-modal');
-  if(widModal&&widModal.classList.contains('show')){closeWidgetModal();return;}
-
-  var revModal=document.getElementById('smart-review-modal');
-  if(revModal&&revModal.classList.contains('show')){dismissReviewModal();return;}
-
-  var qrModal=document.getElementById('qr-modal');
-  if(qrModal&&qrModal.classList.contains('show')){closeQRModal();return;}
-
-
-  var promptModal=document.getElementById('generic-prompt-modal');
-  if(promptModal&&promptModal.classList.contains('show')){var pb=document.getElementById('generic-prompt-cancel-btn');if(pb)pb.click();else promptModal.classList.remove('show');return;}
-
-  var confModal=document.getElementById('generic-confirm-modal');
-  if(confModal&&confModal.classList.contains('show')){var cb=document.getElementById('generic-confirm-cancel-btn');if(cb)cb.click();else confModal.classList.remove('show');return;}
-
-  var dpChoice=document.getElementById('dp-choice-sheet');
-  if(dpChoice&&dpChoice.classList.contains('show')){closeDpChoiceSheet();return;}
-
-  var dpViewer=document.getElementById('dp-viewer-overlay');
-  if(dpViewer&&dpViewer.classList.contains('show')){closeDpViewer();return;}
-
-  var attach=document.getElementById('attach-overlay');
-  if(attach&&attach.classList.contains('show')){closeAttachMenu();return;}
-
-  var prevModal=document.getElementById('preview-modal');
-  if(prevModal&&prevModal.classList.contains('show')){closeFilePreview();return;}
-
-  var newChatM=document.getElementById('new-chat-modal');
-  if(newChatM&&newChatM.classList.contains('show')){closeNewChatModal();return;}
-
-  var fwdModal=document.getElementById('forward-modal');
-  if(fwdModal&&fwdModal.classList.contains('show')){closeForwardModal();return;}
-
-  var blkModal=document.getElementById('blocked-modal');
-  if(blkModal&&blkModal.classList.contains('show')){blkModal.classList.remove('show');return;}
-
-  var ringModal=document.getElementById('ringtone-modal');
-  if(ringModal&&ringModal.classList.contains('show')){ringModal.classList.remove('show');return;}
-
-  var dbgModal=document.getElementById('debug-log-modal');
-  if(dbgModal&&dbgModal.classList.contains('show')){dbgModal.classList.remove('show');return;}
-
-  var applockM=document.getElementById('applock-modal');
-  if(applockM&&applockM.classList.contains('show')){closeAppLockModal();return;}
-
-  var restoreM=document.getElementById('restore-modal');
-  if(restoreM&&restoreM.classList.contains('show')){closeRestoreModal();return;}
-
-  var recM=document.getElementById('recovery-modal');
-  if(recM&&recM.classList.contains('show')){recM.classList.remove('show');return;}
-
-  var chatOpts=document.getElementById('chat-opts-modal');
-  if(chatOpts&&chatOpts.classList.contains('show')){closeChatOptions();return;}
-
-  // 6. In-chat search bar
-  var csBar=document.getElementById('chat-search-bar');
-  if(csBar&&csBar.classList.contains('show')){closeChatSearch();return;}
-
-  // 7. Screen navigation
-  var active=document.querySelector('.screen.active');
-  if(!active)return;
-  var id=active.id;
-
-  if(id==='screen-chat'||id==='screen-search'||id==='screen-group-create'||id==='screen-group-info'||id==='screen-shared-media'){
-    if(id==='screen-chat'){chatMode='';chatPeerId='';chatConn=null;activeGroupId=null;}
-    if(id==='screen-group-create'||id==='screen-group-info'){showScreen('screen-groups','back');switchTab('groups');return;}
-    if(id==='screen-shared-media'){showScreen('screen-chat','back');return;}
-    showScreen('screen-chats','back');switchTab('chats');renderChats();
-    return;
-  }
-  if(id==='screen-call'){
-    if(!currentCall){declineCall();}
-    return;
-  }
-  if(id==='screen-conf'){
-    endConf();
-    return;
-  }
-
-  // 8. If on a secondary tab (groups, status, calls, settings), return to primary chats tab
-  if(id==='screen-groups'||id==='screen-status'||id==='screen-calls'||id==='screen-settings'){
-    switchTab('chats');
-    return;
-  }
-
-  // If on main chats screen and everything is clean, exit app gracefully
-  if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.App){
-    try{Capacitor.Plugins.App.exitApp();}catch(e){}
-  }
-}
-document.addEventListener('backbutton',handleAppBackButton,false);
-if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.App){
-  try{
-    Capacitor.Plugins.App.addListener('backButton',function(){handleAppBackButton();});
-  }catch(e){}
-}
-/* FIX (root cause of "Answer opens the general/home screen instead of the call
-   screen", worst on a cold start): MainActivity.deliverNativeCallAction() now writes
-   the native Accept/Decline tap into window.__vahinPendingNativeAction the moment its
-   WebView object exists — which can be (and on a cold start, routinely is) well before
-   this script has finished loading and running. That write lands in this same document
-   and just sits there until we get here. Drain it right after boot() — by which point
-   myId is set and enterApp() has kicked off the peer connection — so a tap that arrived
-   before we were ready is applied the very first moment we ARE ready, with no dependency
-   on winning a timing race against native's own retry loop. handleNativeCallAction()
-   itself dedupes in case the native probe-and-push path *also* ends up delivering the
-   same action (both paths are intentionally redundant, not mutually exclusive). */
-function drainPendingNativeAction(){
-  try{
-    var pna=window.__vahinPendingNativeAction;
-    if(pna&&pna.action){
-      window.__vahinPendingNativeAction=null;
-      diagLog('📲 Draining native call action stored before the page finished booting: '+pna.action);
-      handleNativeCallAction(pna.action,pna.from);
-    }
-  }catch(e){}
-}
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',function(){boot();drainPendingNativeAction();setTimeout(handleStartupURL,500);});
-}else{boot();drainPendingNativeAction();setTimeout(handleStartupURL,500);}
-</script>
-
-<script>
-  // ---- AdMob banner ad (Unifest) ----
-  var admobInitialized=false;
-  var admobBannerStarted=false;
-  async function initAds() {
-    var slot = document.getElementById('admob-banner-slot');
-    try {
-      if (!window.Capacitor || !Capacitor.isNativePlatform() || !Capacitor.Plugins || !Capacitor.Plugins.AdMob) return;
-      const { AdMob } = Capacitor.Plugins;
-
-      AdMob.addListener('bannerAdLoaded', function () {
-        admobBannerLoaded=true;
-        if (slot) slot.textContent='';
-      });
-      AdMob.addListener('bannerAdFailedToLoad', function (err) {
-        // Kept visible only on genuine failure — useful for you, invisible otherwise.
-        if (slot) slot.textContent = 'Ad failed to load';
-        console.error('Banner ad FAILED', err);
-      });
-
-      await AdMob.initialize({
-        initializeForTesting: false, // Set to false for live Google Play Store production release
-      });
-      admobInitialized=true;
-      // Catches up if the user is already sitting on the Chats screen by the time
-      // AdMob finishes initializing (this is async and can resolve after enterApp()
-      // already tried to show it once).
-      var chatsActive=document.getElementById('screen-chats')&&document.getElementById('screen-chats').classList.contains('active');
-      if(chatsActive)setAdmobBannerVisible(true);
-    } catch (err) {
-      if (slot) slot.textContent = 'Ad error';
-      console.error('Ad init failed', err);
-    }
-  }
-
-  // Capacitor apps are already "ready" by the time this script runs at the
-  // bottom of <body> — no need to wait for the old Cordova 'deviceready' event.
-  initAds();
-</script>
-</body>
-</html>
+  var sub=document.getElemx��ksI� ���"��CV5�
+>�]`� �i���������ʬ�fe�df�`6d�:�Y��홭�l$��&���$��~���~J���� DDF��
+l�άt� �2#<<"<<�=<�� }6?rV��q�:�a8�v2X��;Bx�<7�������A�iO�>v���I�w�q:yZ���%��ƺۨ.�d���X]�jv�ס��T��ڽssg4��"�c��C��dܘ&��c��ϱ��� q��c1��������s>��y�s8�ǆj��4��H�v��X�7jT ʓ�6�,D\����2�m�  i;I�,"f����|���[JN�Q��B .]������u��N�N^6�͖,�n|�t�;=���k�uᾈ�Y�?�Y�����e�C���(�L��ąቻ8�S��h��P%al��Ӭ�.NK�� $h��Db"`� }�Ǒ�O�?��w�JXwՋN`O]$]Ӄ�T��G���;V��������'����=�77�s������rv���}���~�^�"Ƽ���qż9j(�(���F6,�0r���}x�0�bE$�b�1N �M��g���['XP��Ʈ4�\c���='�Ix)�Y	�m$j���%�� t�='Φ�$:c7=�]|̳괱�f1k��X����Q���;^�����W=��]��o'IoݝF�qO��'��0֟��>ބoR/��f���q�ɫ0����0�	;���@bMx��g�N������	����,��@,v�
+��X��I�żԝ�1�	ڱ�M�2�-�aA�0#X�C�{+��g!��Ďʅ�8݇�n����H�ѩ�g�����̩�5��dm|k��H�j����%UQ�fW�}��K�%r=���k�[�iK q�",~k���~J����u�����ǻV���9d�KP�"E���_JH1��������?�|��(�șﱖ���w�5Y��q
+���Y��4l`t�/%���,B��$�<��b���\Hن�#Ҽk=ޤbT���w{�#����'i�����:@q�a�sl>"�P��nw{'��;�0�BO�6Nѽ&�j�ݯ��X�6%T�?5��,A��$��[�o�tx�D���ݪ��B�4��U%JS�iny�y5X��,U���-���H%�w"���6Y�{���fiа.Zl�?�i`�r(��%��'�߬\�g�("��8���,Z�D^���B}��4?ũ0'T�ϑ�A��4v� p��o%�T|�$(�sH@Y��H`����x�������u<[��}ߍ���;8s,<�'�h[-|9�=��÷�pE��P#��2ȈU�:�B�
+L8��8%V3Gjֱ��V�lY 1�?�|H�we� 5D������ô%��ݴ�y0UiҿL�H!&����Z)l]�N������T�,��EAM.�t8QMȮ;���>e|���P�⠔��b���Y-���X�D���z�s�/�O��B�w��o�)p�Y��Z��2M�g��L����s�SKƘzq�+�Qc��v�M�T��;nl�]�K�� 0��ds�����A�����������r�#��iH
+ą��b��ہ#KúA�^ R�ť���$N��U���k�=yQ��xƱ� �uXƫ<l�'|�p	e��8k�Fi}N�������4��d�m�r���~~懃�-��&�<I@��Y�K�K�(an�YHW�C�����b�Ncݿ��ח�`��g��v�g�B�Q�񪗢� ��N{�&<E�=O�`un/�g.!mn��Ӫ���v��4	]�C2kg�$�;��(L<���=HB�� ��3�>I6f����2�������j�;�R���h4��1�vl;�,�އj��8^0�X,�!)o��R���o��3/N���J����b��꘎k��!uL�z���7���2�\�J��jobI�e�H'�]��,,�ᒆ���XŤʺ�V�.��᫶�{�;��pc�h�ړc@����9�߂0~*91��;�]C|�������>�����Z��ȿ�@�*��&��Vo@$8����`�Q�~���w���G��-��w�Ӄ��x��;��v��)�6��,�ntm�������5qx���B	s���l���٘B����L�]�ʨA����H�(�����*=�i�G��t婛ڄ�4m���?�G� +�T��2{T`ch����ھ;J���-~�w�U�va���z�_ĵG6�c �#9֩dt�����z��r�r3�v�/�ܱ���9I�(y��n�ͷ�]�������Lz,��̯~�@�����mP�ܤ�;���q0Fpٜ4$ߕ���	F�͒I�
+f�;k��,<˲~άnc���P�o�1��MND��عor�I�͹�����oV8�`�L(,��ߺ.�V��O�Ʃ�:>�/��Yu�6x�K�r|���9.)�! 	�k�Z<����{)ޜ�j����E�{3$rw�W7��wֺ�����ٴQ�ħ�o����
+�*ޜUP�k`WrA����:V}�z��ڷ#{�a���;��l�Iū�3 � FW��:Ȩ�1�A�Ɏ��5_�Ʃ�,Բ�|;�`e�5[���ei���#��H�
+��(�m<|���.+�΢�P���,�;q�M�@
+�Ͱ;n`|�yj�h��Q��0u<b:��d)�Or��)lf��%�����Vkm��O3�@g�
+�A9Z��5���?REu�5�r�G��:���;9��r�,bo�k�k7��'6߿U�I��>��_>�@�y@��q��>S`�,گ5)  �i�bV�B+o��;���-7�	-� 2]�f#v2���E��"bmhG�"1f2�SϾ����J�4aCmX��P���v�1|�U�G�jyw����Н�>���w��ν��)8 |�@P/�i�)E��^������_|�\ݿ�g�l+ʊef")D����.܏ ��sq_j	no����e��`׳&�[�-��>4R���6����w%�'U��v5��iC1!=�Oa<;�P"���Z�4��A�cR�IߊWzPۇr/���̛2��8XJx�^��r ��r:�����X�9;;|}nV���gq�"|�����1&P�S��au��u5a�HA�Y�ׇ�.D�5�A���5�}�W!�\I5Ǌ�a�MgI*�b���d�J'P&U�y2���yg4�	I�%�g��b;<�%��+3�R���H�*?�t�b��j����$��G��� >v,�ھ�4��҆n{�9nڂ�j(�7���t�R���S}YV�sˮ�Nv;|��.�" ����Z"`��b �!�
+�H���0u`�:b�wxNL�㻯m�z���*E#�wb/H.�x��C��o{I�:����$#n�P���i�~5OwN;������v�/A�0R.۷ai�$��!�°)؁<�d8C��0xH�I:����9	$�,h��h��z�~f#lx8�D���X�O:�o��MP�����4@57@��fON��VJ�D;9�t0�`o�D�<�qL��Q�ɔ6���T�K�[����knl�_c+��(�j3�|�T���s1ǳǯ�q���w��		�����œ�iLP����yM��1�-iv�ͳ�e,v��r*?Xu"o�%��*q�;�bfI/�7�[���Py1z�뺢��`y2
+�qSTw�Q�Fa>t����������5M��$�;aڶ�zi9M�By�-���8CL�l�������kw~�n���\	��H����i���V���{B��[��vs�D!,��7��M�m�fy���R�\���}	$�r�M�r]�j�� J��5ȯF�7�� �&7x�F��X����X�ܺUu�,�2JT��$�xQ<�rm!�Q͂��_J��)�a�2u�h=�U>�`����t��<D�?�?�b�s?A�<��<��}�m4�\x���Yz�x�h�D��ֻ�Q�dH��%���SMI&z7�흭�H�	V$.������6�.)Ձ���AP��3�H;6Ԁ��؀����H�O����x1�*�s�7$c�e&&M°[�Ɵ"tPu�/���s�i�V~�5��Y�>����+<��>mn�go^tـ<���P����9�N:o���������e��Ž@A����%42꥝�!��J��|~sDR��aX,(�,'��e�,H2O��erv6�(*�aL�ஂ�HR��S� ���_�fJ��fo��ㄲ2��%������AjL!���]u�e6�vF�*vѾr*(' *�h���~�W�Gu'6IzJ`��)�l�5�sآ�r��*���M#<Cpfr"l�$c<K��)\��T)W��Zl��Z*�����4v������*t:�}e���k�C��g+7B��66V+W)�J��f�6�BoVj����fa��x�y��%�ݫ4�f�-U��m�/j^6�4MW��+�܍C���X3m&��e��v�P~�G�����y��%9}ȣO�a���7�Z����+7���"Z|���ư���� ���m�+@�t�a<���7�75��]p<G]�~���]�.�)L��K�	B�I(脱�J*��NX��(���@�kx�\V���z�)�h,۰rF�-�ͣA���
+��o����hh������j	�����+�#�Ǜ���Y)��/B�Sd�5%��"�J�AR��#��t5�<�S[��K�4Y08:�ɕ���g:d�*t�'��ԶE�]��ٲe$R$_ۏ\��X����8�]�N�gA�QƐ�AR�e%���ҋ\��׵Đ/��yS����+������7u�}���~}r����`�v$�^I��}���Қ,Ȝ,�=Y�)�C��آ��&L=�M�f�����'V����u������R�@�nHk6z?Nߧ(���F���<��Ś����o�V��dD�4�D�f)o2�Z�@�^��]CW�� ��D��A���<����i��?B/Z����N$6ra�|l��h7i�=�wz$�
+kӎ�MٙM�^��lY��=	��ӓ���>���弤�����{���?퟼]�7�ٯh&��ܴ��9tט���ܴă����؆�jy�\��0�8��}�(���T�MnM�����U͢F#66ʪI���76P�)�Q/I �Kur���&���d~2��⡺�$3�ɍ��9t�k� p���i���	����b�'�.����3��9���A��5a6��`x�������ZeX;��%���tV%�#B۠���O�h�/� �.Y����]#�7o���A6����5`��M�_��%(x[V�)\!֕�~�l�~�$��/<G�Efo;ǹ�t���(>��V
+��3��k3f
+��� �3$j�� W�R�8��ѢF��6���,��-].+]��Mh���t.l��B���/�O��=K'4�k=x��x2�:��%�<�E�~�DJ���3@��؟�@�t���]Pm��9���|m솴8�+u�[q
+Z�=���������c�me!.c��ߢю�b;���l_�)��:��`Pv4��o�c`�Z�Lҩ㟹���]��Y�f�G��,F�7�ҡ�`��}�`^�;[ X���Xb��
+�#����`�s�?�����*��w���O��!�ky;]~L/2�%6��ۋ)�yj�9	��i#��;k�)�yI]��c��E"(,��c���5�z�,�x6�|�P� �mS��y!cԀ�5����4	��`���b7�1Z	��T�hqw�%�F�ӹG������ޓ���)��Ya6�%�{����9;��Q�˪Ү[8��a��T�����_2-��vJ���*��E��=m}|��~F |co FXf��O ,��T�wXb��v���"
+k�9�_�		�k�E�I\>�Fs�OT__�h�� ��)�6S�Kfj@���)Q�:Q���)��h����)NgvgҎ�*�����0�>�s��v�|��͋/�A����y�SM3B��/�f�{��vdz�)a2��6Vf2W�����hE5�(��Ҁ/X����N	]��>�d8Fb4�)�W�jC��nD�n*8�F�vL�@��B�� m� �E�{�!�iw��������D�t��n 6l>:��	u�������t^V�g��D>'ZK�0�ҧ^�!��<&������p��UM/w�
+��su�3��3ܕS��O� j�O���/`&!~X2.�2-ւ	�i�'c ]����3:�Y� �m�>	�魊k���v�|)���`���=�A1��a-PR�0����/Q�%&�o(��l��x� 
+S�T���O-	�Np��C�/�R�D��������'�R-F7���4r�.�&�����o}\"i���m�7,j����ִJ[Zַ;�Tv�Le�YʊfT�5!���K��ݢ!W����o�C��l���r+d����8���2	9w}p݈���-��C���'����a|�\߳��[��y )ȭ
+�����/	.���,À>����_�q���Q��&�|��b�!]E�B����]�_�����D��O@�O�R�t}����������M��U���Ȏ�7>{bu��&@�������t���X?��ν_��z3��"Dz,a�K�Ц�E���(��A2�]=�^"�R�b��˹9-YG�q� ވ$�>�f�q4F�5���Ұ��d��f�?!j����ԓ��s�!6a��{z�"�Go����y��'�w�� G�^<�|?��A/�l�����г}��DҬ�	�/���$���0��y"Ԕ���2�Ÿ4Л���i��A�V���#۬r���4j�H)��@�r�"�œ�.����� 0xS�8��E(��x���~v��|��l8?�L�-�(�t�@.�M�|kJ���i~䟣/0-\Mr������a�2d*��A;X��a�}�uxcO�e+W6Ѧ:�.{Z��x��f��-4���I?{�c�KT�A^��it�"��9���B�Յ�7�6쇓|S�f�<���Rp��h�GU�Ѹ�&b7*�\���CB���{Y�����Y��#pO�lV���؜�?U9�����v�Jr��6	�+$����oPa��Z�Z�}���ts�>��ֆ�ԉ;�נV��a�f����X���5�}��Y���0ܦs�4�;<�Sپ,�1P�A�D����;)��"�=mh�TV1��qI���|�� BT�M�u�Hl�E�2��N�=ɔ��~�`����������gVy��}�bD*F�,f�GϨ6.�7��+�Iŋ��,}����G�E��nn��bg�cN7���D�gS�ZO=�_@q�xAGZ�v��9��a��[jx	�R3�W6,�[��'�	(+�+r"�&L����D)h%Ky���,iQ�#6�_�8����W �)v�BM�!�Hډm[����f�
+���Pglt�M������H�Z�b=l��>��NʗB�ʀ�j$�_&YQ�\�.��K��e��`��aWW�UVA���^~?,�殛�M]�
+ʤZL�g���xk�M�Z������U�4�F��́����tn�8�o�0rU1@qa}�7��?��o�JDӿ��>�Y�4�������8&�dUAc�6��5[�T��� 7!�)yt�.�D��H�`ƞ̤�*�:za�
+{
+�N�s����8:�K+�����6�h��iψќ���}�?߄���Y���r��ӽGv.9{�:�Z`�:g䣐&҃�hbWWP��D�`�p$uGoŰ�Pܱ�8�lx�q&}g6VČ.\c��	�N��S�8�v����)�)#z7�rW��ῗ�s�:Ikd76s~+2Yt�H�	�Ԭ�
+h����(J�+��a���B�7|��k׍0���酅�������
+T�؀ɯ���X^���T�K�������9�P>f����s���;�s�%����y�r��^���R���{D�s��t�|D����<"{�XoX&9x�
+IlH�ɲ��P�{�OM�����y���/)|� ��I&<]���2��^\�*�0�e�B���9�k�Ճ�_r7�8�pw�tް��2�Z�	�z׊>�,
+�� �\/_CU ���[�8�YKՇ�ol���WW2���M���殚V�ч[Z��\T�_L�k��	��+�sS�s��c�����]�X�O��֩�(:t���W�Oᳬ�n��Ë�� tʮ���,�gAd|R!A������������;�'o������o��!6���{/�1��������3|w����7CC�����_�����_��6����O���O��A���y��4o�����}��(W^}�z�٫�Y%+���p�lv��1�m�/@OW���]�Y�#^��8���Z;[[-� ̬�]��=z�����0��-��u���G��l�nv�|�sM`�)H��̋B���o�%�qT�@XG���A�0�N/PO�X�E�5A�Y�I�ʌ������:a��m<�wߦ�A�Z�����[�_o�^��� ��1��~�?1�#�@��0���C��0��DQ�xd�A��\������o~à�UH���{��7Ѥ��Nã�D �&dO�C�Fcz�i���a��u�(�.$��I�-�%�뤡�(��������S#��}��I�����DU�!�+��~�xJ�I�j�|m�����L�L"�yR��Om���n��aO%V��B^%%�d�'���<� J&���/g�̠�����6\��5�nl�߈>p"q�cU/'�����_�gX�����U�����o�r�s�iCCF�@��Em��CQ@�,�\4�j~���� ���,"�S����2�>r���2߽Fv�^��.�l q���Q���Rn��鷕,i�� M�%h
+V#�Pmj�"G2W�:��%�cP[�F��G`7_��lY�(+Io�(�>x{c��A)/���՟��9!��;O��1!���ke�~y;�ب@��d����9��v:��0��"!��}Q�_�a��q�\^.9�W�z��ɰ�w���O����Og	�z ��;�Iyyp��F���t3�(@UPl<�Bw�7�9�OC#�oXh�k	K�����%EJjH5i��Fvcb�-�%�����Vq7,���βl�t�qZ5��h!�����+X�,׉��_����32Mbok��o���S[�w�׸fo$5�FP���Օ��u�RЙ��WïN[nP�)�J*��Ը�O}�_�&�M����W;�([f�fIY�\j�_�4��>��.W,viY���k�E�ow�5ܖ��wf�Kw�n�<B���xפy�Y��i�5�#>R�}�u��i�@�\e��~��_8�F�\���X#"Aޞ�Z7�����Q��Rmr/�JB��\��^�?��,pQ�ap*��_�;W��F�MUY�܋4o/�0|��hx�{�{`���UHp�⭂6��6��M,��{�z6��i��p��Q���bf'qW�i %���y>*�RR�2�-�sOUY�ܩ�J���X���4��^ۮ�4i�	;l�i�(H8�`2�Nh��6��ӮV8x�Ā\	��J`�B	�mC��:\���)�Y�$�Qn���%����;֋�rw��ɐ��arV=F�`|���=���
+���]�)���ml������W�k���0A��]Ӣ�fU4pvd��C$U�y�v��̛�Ȟ�����]j�������Cgx���	e���h�7����.�l��fL�RvE��U|>S-;�*&#<��ͳJ̉99�nѰd�	5%�LIØ��Ď�E)�];���^f�������;�pA*JЁX��<w�u"��O���O'�E�QTh&�)�㢨A��i'4@���	A)�C#[��l�`c�<�#{�c�ڽ����_,<h���g��I,H�%�+���A�� ������`�����A<UxF��dJњ�-�Α+{m�~FY�z�)�E6F���rİ2Td��6���z_�=qL�C�`�'@��l<�s�g�,r�8g�*���Ţ��C�A�=J���<��'�Sec?P	-��ӱ���ֵ,:}���^cU�:#!50Ƅ^6rZ:n��1��{dwU��E\V_u�6��z
+���h�ݪ���%ܺ���?1�q����>gk�H���cw:@�j�"Z}�sS�-�V��������FZ}��m�
+�r\/"źT�;���k�������~~�]��͜��A�?	A��O\7�\t�9�O���+0M�I�/Ӎ�����^�k皌�'Do"�����x�����q�E�����c��'#L�j��M����m�I�·��F��RVaU(7*<³*J����Q�A �ՉY��C�b�����΃�E"p���̨����T���WF�Z�b?����CCGXU�ʉ���a�\�K��/�`a�d�:DG=�]����PSY*�T簴��/.V Fx�z��vn�VV�S��K�L)|�vHf�o~Lg竵?^ؾe"0n��!�먎�֓P�=#x|<
+���I���r3��&h+s�QK΄(�|n��\[���U�C�23��j�$��o����7z�*1c��i�S`���͛�"�Ǡ�e���{�|r�@i�=V�Zxdܼ��7�f#c�P��W�����ZE�NS�F)�O�Ο�$_d�t���"�_�H�ߙ�Cn�����a�[�u7C���Qb݄���ń+@�SW�����ꂔ��q�:��B��f�BXS�B�a��-���֊c��OT8���wBA\��S��|d�B)�x��K���:5�A��2�(ʝ1��E��_4w8?����A�9pb��./�PQBÅ��3�d`ʍ�RXJL�S�Gid��/=
+C�l�:��J� ���I���n��rq�|TC�3�l��XØ�:�a~ TP�5L)�=X�倆�=@R1Ry.z�,~A^�̊U��9ZU��*�vѐ�D����@P��r)!#���F����ް+.�/KU�� �i[�*�z�o�l�t�)K>�*(��հ�yu��`���t�q�Z5���D���V �=�� T����ң�XW}������ƀ؆`�U�ݘ������q����"�"ok�����r�H�G���x�r�%ޟc����[�p-��g�y}1�N��9�~8{�Br	��`6nö��|�|����xi�ͩ�Lmů�A�Gf�u��*p���fϟ6�����鬁ҿ�w�譨ka�bj�q.x��%�ɸ�=��V#) ��U1K'���E �C4�( )'�
+��	rű+Xf�F�aL���V�VIA�@V�|��('�ǩbP��� �>}Z+G}�U	fe!hE*�)x�|�uӠ���[CCdA��T׬��Á�����4ܵ��OU�y��"y�WР6 e�.�Ȕ�E���/Հ^>�P9$��~���޺��~8��l�VK��,AA��H�TW�̆Ea���%v#��0��S���D���3Gc��Ӟ��Z%(%��VO �L`�d�ǿo�I�T%�8$CM�<����G����FC�f�_tL��D������\U��Uf���QAB��T,S�
+J���A�d�R9G�Ȳ }�4���a��x����f�F%c�$��$��,���E��Ӧ(�m��˗�IrC��+,�#������*��Y^orLStI[�<��Z�u/hlW5�����!�A�f���Jg��D��nV��o+�'T�U���\�(d>F��L/vBH]�97l"�M���J��Y�B�ۨ�&��9��A�z �$~���kw�0���eT[��G�&rՌ�&1��N�9����R/�cW��1���R=�\�tH�B��3�e���Ƭ��Y�ՆI�5���Uت�E�[��-6�-@x�"Tl�UUE�PS+����4Y��+�~U^g,7�)w�.U\�Hp>��*�EO��J~���I�Q���;��h��K'&S���(+���h")�Y\�H1���2_�b��UoAyUYy�v>�z�5�����Q�Kd��0�P��$�1rp�ԸE��DJ]�h����[ƚ&:�����-D�8m���xVZ�k� �4V`>S}�,V��v�����"�4X� ��r �8W�B��|�/<n��nK�N7um���Ř��y��j߂yT�Z�854�'�d�s柛�����GE�v9��!KTH�n�7ssT�����VI���j�N�y6�]�d�m�E.�u�AÕa�� ��>�VP��Wtdh(��>����>�A(�Uy�sU�Ȩ��͹����1�'Q�(Wm嶪����$b�+���c��rb��O?6��Ĺ���6Mޖ�:�u<�Q؞�x�)�F ���/j�����u��kƧf��<��-���ѡ�<dK�� Ι�!cj�4v`��y��f�����B�
+'>�B&&���[���cE�̍��]�z�e�[_��c4_�SIF�L/���ͥ�<�?�;�������W'g���1ly�L��q�����F��ydtbiC��d��%
+��݆�k�%0X]�+(�q��#x�M�>��0 B�C�}�|6RٽQ@������O<���-�E�Z��Њ��0��n�7��Sܜd��c|O6:.Q �=YX�
+�VG����\��X���Ā���_����D�x���Vz��%ڣ�;��/��aw�ʭɉά�U*
+��R԰�:��,6)��7]�+N����HN�{�ΰ9�{���Fvj�g�U�z�1�h)���+�3��0`YM-�VYͱ�5��S��z�\I��h��[��|�|>�I�n��g��8��y�����}�Ii'F����|5�m��*�O=���P����`=����W��՘����kn'�x��kw^y��A��8�B��e�v���4��wj.����98�8AE�:Ma�ʬ{���f��.�b^�/4kx��=nc|����5�Pr�0[ h����e]I}��TWT�5aU�09�R��2o3�j�P�p���)kG�;V%(@��a�i-���X�lZ~?��,y"ʼ?U9�꭫��Q��JF�C�b�W���k����- ����,Œ��T������8�f�$��.Ukpȕ��r���?j|���V�`Q=�y֩Υoct\`	̓cs�9Xd�;)'�!|f4��0J��P98���#2�%*7*+��y�2@fA���0F�=O�{�U��[�q��FԅvY���W�ee$���Z�aC�)@F�\p��^�N(�w�=����MK�`�/ow@%4t�j,���]ε���%����/u�]������C�E��-�S��AH�k��n	Ȭ�G�-/ĺWhҜ��)��Y���m�.�R��(��-רWO*K5�!�2:�;���t�n6yv ���n��������� Vk��U.�(�����\���~�dOz�T��o3������w����& (���v�qv(����s`�����ƴ�ɡ���kccJe�%���F�I{�y5�$��6�V�I�H�ts��T,Sd�����T{Z��ӏEJ��z�˖U����	�)�;D�ggL�ִJ �խ2�z8%EVV)'�ռ�\��3�Uՠ�����5�ke݌����gg��>8��,�	�\N�2���m����ϐ 2Ђ�_���"���Z�`~�����Ʈ=͙Z��~�J�`�h��9~�����Ќo76�O���}$���$�3�!�v���"����s���o����F���4�����������'^��e�W݃ƕ�\�rs�o�@WB�yg���.�[�ɒ�R�����Z���A��������U�9�xV���* �
+�(���a�}b�2bG�~Μ�K>�,� ^�y7��ȝ�,H��_q_����k�.W�8�P�z|	R�3e�6w*F,�-!�Z50�ȭ��F�����ϻF��KLH���������W�k�9Bqr�"=��Qk�)��T� �᠖�*p�,��~lC�X�N�b�@��`�Rɮ��#�����?s�����<�oB�@���Q�� ŋb�9�LٰJ�2��� Mdǳ�?�K�-��iE�Ȼ0���>QzE�$rm<�p����1 >X1�ZY��ņ�loC�bMy��^�u�H�g���*�PS�֍ =�[Q��"V(^��ᰝ7z��O�2o�� �Η^7���EU�av�x��-ʠf���+�w��	��8۩S�8���:5�ʲ�-���LSTR�t��TT�ު�mB�����k>39�׭}*�q
+E�L�J��ϊ>��|"�c\m�U2�!A�Z)O��AT�����y��� !'�o^cWTV+�ñ�M���A_y���L*���4���uf>� �h`���Fuͽ���^Ε����8D��a����²qvv]����ԝ,zU%�������H7���#|�4�n�i��A�-t��3A[~؃�1����>�~� [
+���[�eդ�\���q�kZj]� ٲ�B�㏂`�_5(�]Nz	��!��o��7�`9�/��U���6�����%2*8�K��h?z�5�����7�?��p���١8>9x������h��Ԅ��7�G�_���ý�g�h�W'������OO��[B�������%�O^��ퟋ�ɛ�������������%^�<�c{��?�;�,x�~KH��G���	�Hb<�۝\�q �J�2c����̦�� ��x#���~# ��˥��h����-j}��u���i�L-L�s>�\�=���%(+=�~��P����;f�l*������5E���#���}��ا^�`'	�n�G��q�bB���$i�C����-i��M�Xl?�|~�P�h+,��i()5x�v+l�LD����.�����a7r1e��w��]�
+��u����=`�x�4u�7M-N)�@���x�9]��q�c�g#��]aѫ\��,�ν��NB�Ɲ�C�����|T2@7�!-����Y8��3�p�3+$��tVLA��=����xA�i(EF?yL������+l D`8�Gg=��YZWG_v�n8�0�nE>Z��Cu��B.�iHdג�Bi��r��g˘8��ƺh��1�۪i�%��=�T<����t�,(jkc���y �5������샩�7b������!��%v~������a��/)I�S�`�,����/VK����տ�_��@qk?��H83�oc*�_�K� -�9H$�t�� W�R�?�?��/�,��/}#���$Щ{Ӂm =�7��M4��o�x*�a8��K�?t�
+����M\���ⱁ����g@�π!z�oP�a �0q$ab����g.�PȰ���3���$dK���a~~DQ�#O:h_��3L�h����d���!gj�;�����W�u�'�~#Nn�����/��1m����o�[�+D���4�d�L������,C��`:�_~Tez�2��Pv�.����;[-�s[��;���)�����#g�4��;�x�D K�:R#�-Djf޲<�r�X���޺��� P�����>x�e�G�F��+��c!�w�&�L}�=���c���������"ce�S�oAyH=; ���Ɩgn0�c�9Ҝ�x�d�p(�"b����zd ��;�O��֊�P��3{������Ge���TBr?F0 ��~����x�FK)����M�w8���hUj���(w\~��7� �섢L�H�����w�"J~hPო{�������_>����+L����!�m?��D����k~=�����q)��
+�<X��(��CN���h��r��?h�s3o_��+Z��ڹ���I����Y����D�R4���� ��
+�*k� �O%��g>7�S�`�̢c��G_v���l�Xq�߯/��j��<���jb���w�.^-W�����/�w>Dq䫇�����B�	ͻ���D+V[ �<,�`Ad��'�#p�G��B�k����J�<���I�W�&�h67��)�J�O�(I4���I�����2*��VO�%!f{��J�޽���u$��Y��t���nQ_�\2ѐ��GZ��)@����Ŗi�)�x���k��u�(��&C�V�<��	"��_	�̢�	��>�{��";�E��R.�V1À�1Y ����-��ut#��Ѿ����Casml��@�i9��+�:#�<?~%��V7�L��^��Z�h
+�i�me��!E´��7ջ�"b�\__��k}�RtGV'���d�p�#�R��~WS�:Ձ4���� ʖ-���K�.���Qjw�*u��V%6F���w�~�5U���!�h؎��=o�wA������-����Oh!oZHϹ�	��o.L	��P�IY���{E�b���$�gB境d=�g�����`��T�x��hQ��_^A��m�%vN.-b��'�V�m6X�=�1X���K�����LK��X�d��f5�p�0��u�䵥+�6��i_Վ|�Sw
+h�5�~0}ړ>1��"t�fV(&����l�U�a����dX���w?�� �m�C�E��ƻ�Dc��XҊ�&���Q���u��������ؾ}�͢"t�F����T��uƘ�%�o�t�w�4��nw@�$�=G��opǁ0�dRf ��+6-:;ۅ�I¸+S�鈴$�v�A�Nv�lr����3�֗��؎��'�aUoc��-���E_�X���n���&���=1[�jn��1إ�.Y�����>t��̷�3>�\ �ƶ�^�@ƿ�dbwo?R�x����φz��j�NC�υܳc�=��tEU@O���9�����h��������k�7���X\zN:�Q��4�)j|���(1�(j4����D����ZV��z��y~2���eR�#�(��)���k����Ʌ�jX����. ���{e*�*5��T%�~0�Fn����
+φ���o��X�C��#m9�HK�Ma��͖�u�1BPN��#�U��+���e�MA'��w���נ��bS��W��#v��;;<>��� dEt���Mfǀ����+F�|��fon
+l:�xR�X7)\;�]"�?@�DFNC1p�*9]@_ډ����ڑ���ȇ-�Ҥ��,A��	�y�r3��\?�CE�د��A�v=�C��q�������E����	{௫�	;� �P=�
+Vo@+Q	2E8K�|��:����:eb�J���?�3w<�a��eG6��Q�=j����1.h5A@H�����;�
+EB8�	�Ё?�n��c��t�#?���`<[����q}:���9][�B4EW���8u^�#4��Y@@Q��IM�K}�I����W��hV���c\R�:�O����ǎ:Y	��b��)&f�0R��5'c��%E�"<�[�(�|[,M��wfC9�YZU�����\���hUʄ���+@�K����񻎌`T�&7��8\9�Ft���=���a'�ة��m�L��Ԩ*{E��`�!�����-�s�ʙc�lY�j-c��J�h7�=>#o]mJ��J��89Q++���e�S���*�&�X��.ne��;F�g��\��L����i���*�	���޺D�k���RTbuI8����T?J�Hu�t�k��g��	��&ط(ݑ���b4/�J����4�2
+�|	�;�g����\D��������/��'�Sz]�M�K��o�l�-3���E�h�W�z*�D�[w�RV��(ō0ìn��w�Pƾ�y�x*J����y��?߾ct�ICy�-���b	�{��o�<��Ȏ����Ї��̢6�;���(���T�Ӣ¥Z=��u$"}t�Z�[M��h�U�磿L�r�Y~8@a�=���۟�O^w8z9�x��R�3�N�]H�=)����$�z˕a��AxIW^�Z+&�L�*� 缐��Tu�y�G��C�� ����`��A�ͺc����8���➱��0_��io��ڏw[5P�:�E-@�7C�"V�X�Hf�� ��@������	,|2t�=a�v���:Q$Q	~S����=yk��Lbw� $�vd۸C�vs��A��s�����ޡ�9xt�N)�ko�&A݊݋���-����o�
+#WM7���֌���r�+����~uS!jF�c,©��t���]rY���]e1��,�	�W�֟<���>��<7^T�w|��^���dH�����De"C�p�� rJ��r�[�7';OLT(yj��O���j�����%��2�֦��>�X�c ���U�1  ���q�N�)���"vdw�~a��>�+X1�JS7��Ɋ��E8���dI�����Pvy�ڤe��:Z,*����z�vp����C�[0��/L�ǈ�P�i�8���|�"ƸC�^�x'm�=ǽ���������﻽m�AJ��K��$y账&"a��C��Z��
+*����|E6��=��y����H�i���=��}��ʵ���8tś���Y8Ӱ���/\P}�Vb	��L��O��o������=�{��;����[��`�pKQ���΃��i��z�9���ytЂ�`	J`Y��ĉ�LD�w���,k�l��~hCh��O�ݻ����l��N�)#��L\i~�
+gEk��{��<��&� t<!+}u��3U	3�A=7����یTn�öU�,�F��z���tIl���W�����T�$��}�
+� F}U0���Σ��_��y=J�d�04K����i;^���i��\��%�6VЗ�yձ]���S��upaӸ�I�8_�kȍ�΃�������6�QU��-��Rj��}r�ɩ˳�|��;Z�rlsV�� -�l)��V���%�Y�P�Rg��[���v	d��=N3��~	�l]N��K�(N��o�cI�{�p�]���v
+���'2�Y�n��M�P�� ��T*���ٍH��,:6�kn�وp1	��q�͝P<舾�0�����[�s�q)y�Dʰ"I�(�z/Bc���-���,������T�پ�q��[U?bo��zhz2����%���Pܽ�%�^������V+��E�Y��� ]�Ds������!�#R>���n݂ȏX�x_�^���kP[OF#�}ڔ5���9uz�C=R|D���g3w������-����)�,2V�jr}5p�[|\�j��D��͑c��H�dZ1��y��A�p�~께���xa� �� \6��\J7��FG�>Ż��;��"�nK��̂B|��R9+s>b�yt12� m 5q�0��V�8P���-�OcD�qx���ѡiW�ul,'e	��j�j{H���3�OΗy�q;_���O��I�du��n��0!�v�,uUZ(`���)��錆����?��ܵ�����+��`�ż�s��]Sw�sˉ���ן!$�2F�_i�Z�
+Eղ\!���+�J1Y��u��6�����X��{�ƣ�������$S����A��'o�Hl���v8mB���6��$U���|��e�!�(��u��/r���������='���U}'5��_a�O���Y��}�آM�Leţ�$;z�|�>IG��E�qWYr��f3:�Q}��#��5�2��<+������PD�}FJ*�r�DU�r8�lz����v�,���X2K�E�R4��N���Q�vdP�n�c+��fV�縒���������.z�2��h�<����^�x�nfa�S�m��C�0[�A�����Wga�w���X�Shb�E��i9��[�I�q0Vb�u�D���.�����>�}� ^�����6������]�I��o�����f��|�^KN�Fǫ]�t��7z��H��A��\��5�2���=X���q(#���(�0"Z�N�5�ʃ�߾-/G��
+��/��|6k����3x%U��4��e<��p�NZ�4"d�M&#K��Q��pT����I�TKF��F[2H�4/���c ��K��[_Z1���	������Ś�J�&o�����?�	Ǯ��_(��V�͎��/7���a�1K
+�2���2��X���%��-�7A�3$ļ�h�J�Ƃ{In�8�8DY��ś�I�5�E��j ٔ�B^M_�Y	 o�Z�h��s�~1�͟���Df�����
+�, ��[Uu:ϕ� <��nb<�A?떔�x��I�Q>C��*i�u�)%{��8Do��֑�ɼ��-$�z�V����w�P_}TdE
+}���l�rw��;�D������p�#T!.�mՈ��yeF��2����o=�wC`\9T0~sy� ΍FJ5�u��s���(��w�x&��zzI`nm;-!u���d,uQ�	�UqR�f�5A���'�k���dq1C�`8�`�*d�q0�/�.��z����	�ù�P�b.r���!?��j-�a�X�Q��	�x��j�܋4`��hAt*/Sw�oqM�y�3N�Y\#�{�4'3�~k�a�2�g� ��9Q^�&N'�.�h�k���ڒՠl� �Jݶ��Yɲ�/u�B-���p����;P�߀<(��/��w*� ���C�������r���ke%^��[#�S��,)��R3�(��S�CU��+sQ~�r��q��S�8ۙ�V�O��̤Ƿ��VL��1)Z��Gf:;׎M��s���+(�e���ԎSqF9Ja}�=�i��y�Yu)
+�����̖񕷌 S{>p��͔�c�I8���w��N�9�ӕ�>�2�����B�8�Q''f���1�/�QS2h:��(}w�����n��ʑ���^�Oz�Tm���}ؘEB��cQT�� �1�:��qA����kI�A��\>�Z	��YwJ������'��;tZa�4��II��Y�j�D([Z���0��y~�sA�������k�)��y�8���G��3�St�Ū�E�)��<����R&|�Q����Jj�DC#����4D�隨�>7�V�����S�٘�2$3�F� �}:�!$~�g�D	�v�PȰ�b�V.���/t��.$ ١;�����71nn�BS������2����bd���x���%���|�U/�P<%�ߢ:�ȫ�a�,/=� �Ց�أ�/1�G2�|��u�n��� �/�A#�����b���@�k�[JJ6g�����j�[;c�Tn��"����_�3�� ���[֝��x	�3[]�@�\�5p1f�ʃ��}R���R��s.!�%�3�cO���Ht{:Kί�%�+��_QA�y+�EcU:��h�pXp�=h�fIwM|�����������R	�җ*��Y�aOa�.8Hu ���Y��;�G�H<����ks�aɉ�:��~��%J*�	uF&5{�C�K>5�{NI�N�r���uC���b͒=\�����E�,�H�t12�,�N9oW�r�hi�31ƶ��RhX�y�6@���{;�k����"��[�x�Jw��k��:�R�"�ƽ_:7���SP�&m����nB{T��f؍
+��r�2��b�rUkkq��
+���hx2P�>-���pJ�7�7���%��S��/�*�|�����B]�y<�"�r�E���i{ I[�+�P�j�IO+����w�����C���{�N���JaS�
+�'�|���<��f(_���v1��(g�,P�4*�g ���X09�WV�"�Kk8:#��R�]
+�erV
+o�>\���ƣ�8��-�b���q\�ba�H�nm�M�)�����z�����r-�sٚ�:F�����JVjVY#�^a��*SEZ�g�.���JI���e,k�%������ڽ��㠥�D �K��N׼R���h�Ƌ��WEh�0M����uO��y{{�ן�~An2Z��9H�����̙U�+��o��Rj6:S�!; �����C��^�G7*d��s����
+{;TX[ϥ��:3O�E~�����A�Û�z`-�Ӥ�.I�SF�һ�̅�
+�p��Let�x���q ��e��q�=���tn���i'�-:��}�[��4�>�o�y}m�*x�'=�%r�p��p}]�F,76 r�6wZ>�҄3!BB*�ԩ��[���AO�z�ܥ�F�O�"�T���o|hD��zsc�+�l�`?*�Au?L[4~�ј�O]�'���:�B&�-��y*�B-���FG�-�at���Eo�0]��e��G~�x���5�+�X�J?v"��@uE�V������a:E6�⪊]��(����x���0�|�h��[>-ZS 0Jvм>�knAƳcWe�����l�L�K�jl��`$�:ȇ�n:J�\�C3;$$�9��h����x�.�D�������Q��,H�J��0w�H4����e�G������C��74�23�G'�WB��P�tyt���Ud� ��d���=S4x*3q���WG�_�S� ���_Ϩ��L�� 5����k�9�nVk~M�,U"�Z�϶l�Y���d1bU�zap��&;�Q����0�֋�L��� �_���VQ�᝗��gtz���6]��B:�fE~`)vow�'��xd�'��6\�\'�W�ɹ��pcc84)y�4Q�T��L9�0x%����oY@�HV�E[��E���H.b�v��D��(�rO��N�g�,�� ���F3�d�����˸��k���c* �����ォK?�Ђw0o�)bb�0��̓�أ#�L\7M($	�꾦�1"���� g9UH[>-G3o3ѕ���`S�¨�o"QQO+Le��UDf�H�ł)��s��NU�	T�+LcEh�"b��2���J!UmcC=-G'��PD�ײ骰�KtT����*|	�_�K��U\�B��ؐˇ�gg��sGkKP ��7��jtƏ�hQӃ�[bzS_�a��f4����dT�rA�.��0��we�-� V�z\���
+W�{>4���W5���h5!�x8l�X�MlXwX���PO���@��#��%�D�m.Ć�6ʛ������*�Tn�tNLG����"�zc��.� wBQ�!ZΣ�J�e�)Z�A.�=�=ex�҈��5*���
+�|Z�J�bT�et�l���5UocC=�0*����a	*��,���ml����TZ�����T����j��"WUj�,C�q�q���TMX�p�(�5�3���e�b�,~����WX�VFA�1w*�DI<�z(���rT�d�ZT�����%<���pq��˶j`'���/чP��G˚�E˧dZ.��
+e�!�����8Z�Ș#��a%i�Q�7TC������ȡO'_��f�"qҫ2�ʗ2�^Gz���m�(������Q^���S�O�u}�{�/�ec,�rW�QX�5�cd����̕8���[Lx���R�@}	ؘ��~ůn*ᮈq��.ܲ���[eN6�����h�����)]����.S��/e<�G�)����åd��	-5���!�E���Dk	8p8t=��Ux0�?��9�3b[d7�S{����UZ�ы?�KP��.@�!�`�+r�U�^����"]��[^Zܲ�[���t�{���$�!���Q��c*�D�{x��G/�-N�c{�R�_�a��ߦp!� ��9�gc`>�:��)�x~U���m���9��R�<�lpF:�9Z��]������#�ԇj��<V�$V�m�ʀJ�V�g.m����a
+�7K0�X��D�j��� {G����&���~T�"HLw�I�����9I�懡��r�+��@Ș��������629\}{�t��2�R�Q�*$��C7J7xŢ�2��C����6��)�h0�='�LC�a��[w�Z��?	2�Eg�ˉ[(��\�@.�f8�����^�����40��G��R� F^�%�j�GW�^ �e��,?�{+|�yҝ�r�(�D�X#n��Kinb3�x>�âg�鈃�!&��9�O�0�0��?g.{H�0ݪ��X<��B��(�8�٦���8-�LB ��Y�cy��ã�^"�tb�MQ8u�l�����|"i�����!�n�oy
+�ų*�ڋ�C�kę|l���K��	lӌ��G �,h�è#�t�Pad]M9�ȥ�b,4��8�mr�D��X@����EBR6b��<��#�0�z	{В[2|!7�Jg�Gt�d&��ݏC�������:8���s����t��MJ���F[H-��S)��? �_����?��c��a�cI�3��=��P�`���@/�`b"��Vy��Ҝf%[��'�١W�!�R�v���:]����;�w���c�d�
+j��Sb^����k�=PZ�n�љ�� v��&3�'w�<VO����?b�9*������o�g%�;�pp�A�1[[�6�]�+߽����v2��mM` �=CJf�����;^EG��J>���LU4֊�2ݗ�6Y/��;��sH4��r�~ۡ�2o ��A���x�(U��s�)n�ث=GR6Rz��?�sɞ�y�{�#Ӥ�4�A�,}2���^��s��16�CǍc# ��a��׀�Jg��=8�x��� ���-�~1��n�^�vV�
+���s2�(!����NE����g�����:<��`�ѐ����(����a������Ҥ��1W���]J�u��"��G̡ɷ_pOqf��;E�,MMi��M���� n?�H_�����]��)"��}SN� �a��$��d�I�YJ�G"
+B�uLI�l�F��Б�P�M{<Y���C��dAe`I�
+&��Y��3676V,Xi�0�r4ph�q�ܾaJ��;��,�'�%��n�,-�o�
+�q�%q�HUǺ��W�++�@�ӟus�s*�P��zȁ�Q�� ڴTA�
+\�0Z�J���a���8��g	�v�#2־k�82$����  �� |��
