@@ -1,9 +1,9 @@
 // ═══════════════════════════════════════════════════════════════
-//  UNIFEST — Service Worker v4.0
+//  UNIFEST — Service Worker v4.1 (cold-start PeerJS fix)
 //  Offline caching · Push notifications · Background sync
 // ═══════════════════════════════════════════════════════════════
-const SW_VERSION = 'unifest-sw-v4.1';
-const CACHE_NAME = 'unifest-cache-v4.1';
+const SW_VERSION = 'unifest-sw-v4.2';
+const CACHE_NAME = 'unifest-cache-v4.2';
 
 const PRECACHE = [
   '/',
@@ -33,6 +33,29 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (url.hostname !== self.location.hostname) return;
   if (event.request.method !== 'GET') return;
+
+  /* ── /vendor/peerjs.min.js — NETWORK-FIRST (with cache fallback) ───────────
+     Cold-start root cause: a cache-first strategy here means a stale or
+     truncated SW-cache entry (e.g. from an interrupted prior install) is
+     served silently — the <script> onload fires but window.Peer is undefined,
+     PeerJS never initialises, and the "Connecting…" banner never appears.
+     Network-first ensures the APK-bundled asset is always used when reachable
+     (which it always is in Capacitor — requests to https://localhost/* are
+     served from the app's own asset bundle, not the real internet), falling
+     back to cache only when genuinely offline. The ?v= cache-buster added by
+     loadPeerJS() is intentionally preserved here: it causes a cache miss on
+     the keyed URL, so the fresh network fetch is always preferred over any
+     old cached entry regardless of the matching logic below. */
+  if (url.pathname === '/vendor/peerjs.min.js') {
+    event.respondWith(
+      fetch(event.request).then((res) => {
+        if (res && res.status === 200)
+          caches.open(CACHE_NAME).then((c) => c.put(event.request, res.clone()));
+        return res;
+      }).catch(() => caches.match('/vendor/peerjs.min.js'))
+    );
+    return;
+  }
 
   if (url.pathname.match(/\.(js|css|png|webp|woff2?|svg|ico)$/)) {
     event.respondWith(
