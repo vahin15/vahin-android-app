@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Unifest</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --surface: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #2563eb;
+      --accent-light: rgba(37, 99, 235, 0.15);
+      --highlight: #38bdf8;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --border: #e2e8f0;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --accent: #2563eb;
+        --accent-light: #eff6ff;
+        --highlight: #0284c7;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      padding: 24px 16px;
+    }
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    .header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px;
+      margin-bottom: 24px;
+    }
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent-light);
+      color: var(--accent);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    h1 { font-size: 26px; font-weight: 800; margin-bottom: 6px; }
+    .updated { font-size: 13px; color: var(--text-muted); }
+    h2 { font-size: 18px; font-weight: 700; color: var(--highlight); margin: 26px 0 12px; }
+    p, li { font-size: 14.5px; color: var(--text); margin-bottom: 12px; }
+    ul { padding-left: 20px; margin-bottom: 14px; }
+    li { margin-bottom: 8px; }
+    .highlight-box {
+      background: var(--accent-light);
+      border-left: 4px solid var(--accent);
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin: 18px 0;
+      font-size: 14px;
+    }
+    .footer {
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+      margin-top: 32px;
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-badge">⚡ Unifest Messenger</div>
+      <h1>Privacy Policy</h1>
+      <div class="updated">Last Updated: August 2026</div>
+    </div>
+
+    <p>Welcome to <strong>Unifest</strong>. Your privacy and communications security are our core principles. Unifest is designed from the ground up as a decentralized, peer-to-peer (P2P) voice, video, and messaging application. This Privacy Policy describes how we handle information when you use our mobile application and related services.</p>
+
+    <div class="highlight-box">
+      <strong>Core Privacy Guarantee:</strong> Unifest does <u>not</u> store or read your private text messages, voice calls, video streams, or shared files on central servers. Communications are delivered directly between devices using encrypted WebRTC peer-to-peer connections.
+    </div>
+
+    <h2>1. Information We Collect</h2>
+    <p>To provide account identification and call signaling, we collect minimal operational information:</p>
+    <ul>
+      <li><strong>Account Identifier &amp; Phone Number:</strong> When you register or sign in, your chosen user ID and associated phone number are used strictly to enable other users to search for you and initiate direct calls and messages.</li>
+      <li><strong>Push Notification Token:</strong> We register a Firebase Cloud Messaging (FCM) device token with our backend so your device can wake up and ring for incoming calls and new messages when backgrounded.</li>
+      <li><strong>Presence &amp; Online Status:</strong> Ephemeral heartbeat signals indicating whether your client is currently online or reachable for peer connections.</li>
+      <li><strong>Advertising &amp; Device Identifiers:</strong> We utilize Google AdMob, which may access Google Advertising ID (<code>AD_ID</code>) and basic device technical information to deliver non-personalized or personalized banner advertisements in accordance with Google's policies.</li>
+      <li><strong>Diagnostics &amp; Crash Reports:</strong> When enabled, Firebase Crashlytics collects anonymous crash logs, device model, and OS version to help us diagnose bugs and maintain service reliability.</li>
+    </ul>
+
+    <h2>2. Information We DO NOT Collect or Store</h2>
+    <ul>
+      <li><strong>No Message Storage:</strong> Text messages, voice notes, and media attachments sent between users are transmitted directly peer-to-peer. They reside exclusively in your device's private local storage.</li>
+      <li><strong>No Call Recording or Interception:</strong> Audio and video calls use end-to-end WebRTC encryption (DTLS-SRTP). No central party or server has access to decrypted media.</li>
+      <li><strong>No Contact Book Harvesting:</strong> Unifest does not upload, harvest, or sell your device address book to external servers.</li>
+    </ul>
+
+    <h2>3. Relay &amp; Network Infrastructure</h2>
+    <p>In standard scenarios, connections are established directly between user devices. In situations where direct peer connection is obstructed by restrictive firewalls or symmetric NATs, encrypted packets are relayed through standard <strong>TURN/STUN relay servers</strong> (Metered.ca). Relayed packets remain encrypted end-to-end and are never decrypted, stored, or inspected.</p>
+
+    <h2>4. Third-Party Services</h2>
+    <p>Unifest integrates with trusted service providers strictly to deliver necessary application functions:</p>
+    <ul>
+      <li><strong>Google Play Services &amp; Firebase (Google LLC):</strong> Push notifications (FCM), Crashlytics diagnostics, and core library support. (<a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>)</li>
+      <li><strong>Google AdMob:</strong> Mobile advertisement delivery. (<a href="https://support.google.com/admob/answer/6128543" target="_blank" rel="noopener">AdMob Policies</a>)</li>
+      <li><strong>Metered.ca / WebRTC Relays:</strong> Network traversal for peer connections.</li>
+    </ul>
+
+    <h2>5. Data Retention &amp; Deletion</h2>
+    <p>Because Unifest stores your chat history, contacts, and starred messages exclusively on your local device, you maintain full control over your data:</p>
+    <ul>
+      <li><strong>In-App Deletion:</strong> You can delete all local data, clear chat history, or delete your account at any time via <code>Settings &gt; Account &gt; Delete Account &amp; Data</code>.</li>
+      <li><strong>Backend Deletion:</strong> Deleting your account in-app unregisters your phone number and FCM push token from our signaling backend immediately.</li>
+      <li><strong>Web Request:</strong> You can also submit an account deletion request via our public <a href="data-deletion.html">Data Deletion Form</a>.</li>
+    </ul>
+
+    <h2>6. Children's Privacy</h2>
+    <p>Unifest is not directed to children under the age of 13. We do not knowingly collect personal information from children under 13. If we discover that a child under 13 has provided personal information, we will delete such data immediately.</p>
+
+    <h2>7. Changes to This Policy</h2>
+    <p>We may update this Privacy Policy periodically. Any updates will be reflected on this page with an updated "Last Updated" timestamp.</p>
+
+    <h2>8. Contact &amp; Support</h2>
+    <p>If you have any questions, feedback, or privacy-related requests regarding this Privacy Policy, please reach out to us at:</p>
+    <p><strong>Developer Contact:</strong> <a href="mailto:unifest.messenger@gmail.com">unifest.messenger@gmail.com</a></p>
+
+    <div class="footer">
+      <div>&copy; 2026 Unifest. All rights reserved.</div>
+      <div><a href="data-deletion.html">Data Deletion Request</a></div>
+    </div>
+  </div>
+</body>
+</html>

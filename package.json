@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "dev": "node server.js",
-    "build": "mkdir -p dist && cp -r www/* dist/",
+    "build": "node --input-type=module -e \"import fs from 'fs'; fs.cpSync('www', 'dist', {recursive: true});\"",
     "lint": "echo 'Lint clean'",
     "start": "node server.js",
     "test": "echo \"No test specified\" && exit 0"
@@ -20,7 +20,9 @@
     "@capacitor/cli": "^8.4.1",
     "@capacitor/core": "^8.4.1",
     "@capacitor/keyboard": "^8.0.0",
+    "cors": "^2.8.6",
     "express": "^5.2.1",
+    "peer": "^1.0.2",
     "typescript": "^5.0.0"
   }
 }
